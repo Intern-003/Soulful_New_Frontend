@@ -4,9 +4,8 @@ import LoginForm from "../../components/forms/LoginForm";
 import { useNavigate } from "react-router-dom";
 
 export default function Login() {
-  const dispatch = useDispatch();
-  const navigate = useNavigate();
-
+  // const dispatch = useDispatch();
+  // const navigate = useNavigate();
   const { loading } = useSelector((state) => state.auth);
 
   const handleLogin = async (data) => {

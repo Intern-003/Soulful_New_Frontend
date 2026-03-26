@@ -1,15 +1,14 @@
-// src/routes/AppRoutes.jsx
 import React from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 
 // Pages
 import Login from "../pages/auth/Login";
 import Register from "../pages/auth/Register";
-//import ForgotPassword from "../pages/auth/ForgotPassword";
-//import Home from "../pages/public/Home";
+import Home from "../pages/public/Home";
+// import Product from "../pages/public/Product";
 
-// Components
-import PrivateRoute from "../components/common/PrivateRoute";
+// Layout
+import MainLayout from "../components/common/MainLayout";
 
 // Redux
 import { useSelector } from "react-redux";
@@ -19,34 +18,47 @@ const AppRoutes = () => {
 
   return (
     <Routes>
-      {/* Public routes */}
-      {/* <Route path="/" element={<Home />} /> */}
+
+      {/* ALL ROUTES WITH HEADER */}
+      <Route
+        path="/"
+        element={
+          <MainLayout>
+            <Home />
+          </MainLayout>
+        }
+      />
+
       <Route
         path="/login"
-        element={!isAuthenticated ? <Login /> : <Navigate to="/" />}
+        element={
+          <MainLayout>
+            {!isAuthenticated ? <Login /> : <Navigate to="/" />}
+          </MainLayout>
+        }
       />
+
       <Route
         path="/register"
-        element={!isAuthenticated ? <Register /> : <Navigate to="/" />}
-      />
-      {/* <Route
-        path="/forgot-password"
-        element={!isAuthenticated ? <ForgotPassword /> : <Navigate to="/" />}
-      /> */}
-
-      {/* Protected user routes example */}
-      {/* Replace with Profile page later */}
-      {/* <Route
-        path="/profile"
         element={
-          <PrivateRoute>
-            <Home /> 
-          </PrivateRoute>
+          <MainLayout>
+            {!isAuthenticated ? <Register /> : <Navigate to="/" />}
+          </MainLayout>
+        }
+      />
+
+      {/* <Route
+        path="/product/:slug"
+        element={
+          <MainLayout>
+            <Product />
+          </MainLayout>
         }
       /> */}
 
-      {/* Catch-all */}
+      {/* fallback */}
       <Route path="*" element={<Navigate to="/" />} />
+
     </Routes>
   );
 };
