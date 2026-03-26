@@ -5,7 +5,7 @@ import App from "./App.jsx";
 import { Provider } from "react-redux";
 import { store } from "./app/store";
 import { BrowserRouter } from "react-router-dom"; // ✅ ADD THIS
-
+//import "./index.css";
 import "./styles/tailwind.css";
 
 ReactDOM.createRoot(document.getElementById("root")).render(
