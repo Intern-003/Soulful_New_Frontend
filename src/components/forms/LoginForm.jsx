@@ -20,20 +20,30 @@ export default function LoginForm({ onSubmit, loading }) {
     >
       <input
         name="email"
+        type="email"
         placeholder="Email"
+        value={form.email}
         onChange={handleChange}
-        className="w-full p-2 border"
+        className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+        required
       />
+
       <input
         name="password"
         type="password"
         placeholder="Password"
+        value={form.password}
         onChange={handleChange}
-        className="w-full p-2 border"
+        className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+        required
       />
 
-      <button className="bg-blue-500 text-white px-4 py-2">
-        {loading ? "Loading..." : "Login"}
+      <button
+        type="submit"
+        disabled={loading}
+        className="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 rounded-lg transition"
+      >
+        {loading ? "Logging in..." : "Login"}
       </button>
     </form>
   );
