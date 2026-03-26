@@ -34,9 +34,9 @@ const Header = () => {
   ];
 
   // Redux
-  const cartItems = useSelector((state) => state.cart.items || []);
-  const wishlistItems = useSelector((state) => state.wishlist.items || []);
-  const user = useSelector((state) => state.auth.user);
+const cartItems = useSelector((state) => state.cart?.items ?? []);
+const wishlistItems = useSelector((state) => state.wishlist?.items ?? []);
+const user = useSelector((state) => state.auth?.user ?? null);
 
   // ✅ Fake Search Logic
   useEffect(() => {
