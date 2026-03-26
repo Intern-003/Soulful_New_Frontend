@@ -8,9 +8,8 @@ import Input from "../../components/common/Input";
 import Button from "../../components/common/Button";
 
 const Login = () => {
-  const dispatch = useDispatch();
-  const navigate = useNavigate();
-
+  // const dispatch = useDispatch();
+  // const navigate = useNavigate();
   const [form, setForm] = useState({
     email: "",
     password: "",
