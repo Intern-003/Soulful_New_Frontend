@@ -16,8 +16,13 @@ import useDelete from "../../api/hooks/useDelete";
 import axiosInstance from "../../api/axiosInstance";
 import { getImageUrl } from "../../utils/getImageUrl";
 
+import { useSelector } from "react-redux";
+import { useDispatch } from "react-redux";
+import { logout as logoutAction } from "../../app/slices/authSlice";
+
 const Header = () => {
   const navigate = useNavigate();
+  const { user, role } = useSelector((state) => state.auth);
 
   // 🔥 PROMO
   const promoMessages = [
@@ -55,8 +60,8 @@ const Header = () => {
   const [mobileMenu, setMobileMenu] = useState(false);
 
   // USER
-  const { data: userData } = useGet("/auth/me");
-  const user = userData || null;
+  //const { data: userData } = useGet("/auth/me");
+  //const user = userData || null;
 
   // CART
   const { data: cartData, refetch: refetchCart } = useGet("/cart");
@@ -81,15 +86,24 @@ const Header = () => {
         });
         setSuggestions(res.data?.data?.data || []);
         setShowSuggestions(true);
-      } catch {}
+      } catch { }
     }, 400);
 
     return () => clearTimeout(delay);
   }, [query]);
 
+  // const handleLogout = async () => {
+  //   await logout();
+  //   localStorage.removeItem("token");
+  //   navigate("/login");
+  // };
+
+  const dispatch = useDispatch();
+
   const handleLogout = async () => {
     await logout();
-    localStorage.removeItem("token");
+
+    dispatch(logoutAction()); // 🔥 clear redux
     navigate("/login");
   };
 
@@ -97,7 +111,7 @@ const Header = () => {
     await axiosInstance.delete(`/cart-item/${id}`);
     refetchCart();
   };
-
+  //console.log(role);
   return (
     <header className="w-full border-b shadow-sm bg-white">
 
@@ -225,8 +239,15 @@ const Header = () => {
           <span onClick={() => navigate("/contact")} className="hover:text-[#7a1c3d] cursor-pointer">Contact Us</span>
           <span onClick={() => navigate("/soulful-special")} className="hover:text-[#7a1c3d] cursor-pointer">Soulful Special</span>
           {/* <span className="hover:text-[#7a1c3d] cursor-pointer">Pages</span> */}
-          <span onClick={() => navigate("/dashboard")} className="hover:text-[#7a1c3d] cursor-pointer">Dashboard</span>
-
+          {/* <span onClick={() => navigate("/dashboard")} className="hover:text-[#7a1c3d] cursor-pointer">Dashboard</span> */}
+          {role !== "user" && (
+            <span
+              onClick={() => navigate("/dashboard")}
+              className="hover:text-[#7a1c3d] cursor-pointer"
+            >
+              Dashboard
+            </span>
+          )}
         </div>
       </div>
 
