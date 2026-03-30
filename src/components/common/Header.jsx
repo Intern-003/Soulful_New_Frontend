@@ -10,85 +10,92 @@ import {
   X,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-
 import useGet from "../../api/hooks/useGet";
 import usePost from "../../api/hooks/usePost";
 import useDelete from "../../api/hooks/useDelete";
 import axiosInstance from "../../api/axiosInstance";
+import { getImageUrl } from "../../utils/getImageUrl";
 
 const Header = () => {
   const navigate = useNavigate();
 
+  // 🔥 PROMO
+  const promoMessages = [
+    "🎁 20% off on your first order - Use code: FIRST20",
+    "🚚 Free Shipping on orders above ₹999",
+    "💳 Cash on Delivery Available",
+    "⭐ 100% Genuine Products",
+    "📦 Easy Returns within 7 days",
+  ];
+
+  const [current, setCurrent] = useState(0);
+  const [animate, setAnimate] = useState(false);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setAnimate(true);
+
+      setTimeout(() => {
+        setCurrent((prev) => (prev + 1) % promoMessages.length);
+        setAnimate(false);
+      }, 500);
+    }, 2500);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  // 🔍 SEARCH
   const [query, setQuery] = useState("");
   const [suggestions, setSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
 
+  // UI STATES
   const [profileOpen, setProfileOpen] = useState(false);
   const [cartOpen, setCartOpen] = useState(false);
+  const [mobileMenu, setMobileMenu] = useState(false);
 
-  // ✅ USER
+  // USER
   const { data: userData } = useGet("/auth/me");
   const user = userData || null;
 
-  // ✅ CART
+  // CART
   const { data: cartData, refetch: refetchCart } = useGet("/cart");
-  const cart = cartData?.data?.cart;
-  const cartItems = cart?.items || [];
+  const cartItems = cartData?.data?.cart?.items || [];
   const totals = cartData?.data?.totals;
 
-  // ✅ WISHLIST
+  // WISHLIST
   const { data: wishlistData } = useGet("/wishlist");
   const wishlistItems = wishlistData?.data || [];
 
-  // ✅ LOGOUT
+  // LOGOUT
   const { postData: logout } = usePost("/auth/logout");
 
-  // ✅ REMOVE CART ITEM
-  const { deleteData: deleteCartItem } = useDelete("");
-
-  // 🔍 SEARCH API
+  // SEARCH API
   useEffect(() => {
     const delay = setTimeout(async () => {
-      if (!query.trim()) {
-        setShowSuggestions(false);
-        return;
-      }
+      if (!query.trim()) return setShowSuggestions(false);
 
       try {
         const res = await axiosInstance.get("/products/search", {
           params: { q: query },
         });
-
-        const products = res.data?.data?.data || [];
-        setSuggestions(products);
+        setSuggestions(res.data?.data?.data || []);
         setShowSuggestions(true);
-      } catch (err) {
-        console.error(err);
-      }
+      } catch {}
     }, 400);
 
     return () => clearTimeout(delay);
   }, [query]);
 
-  // 🚪 LOGOUT
   const handleLogout = async () => {
-    try {
-      await logout();
-      localStorage.removeItem("token");
-      navigate("/login");
-    } catch (err) {
-      console.error(err);
-    }
+    await logout();
+    localStorage.removeItem("token");
+    navigate("/login");
   };
 
-  // ❌ REMOVE CART ITEM
   const handleRemoveItem = async (id) => {
-    try {
-      await axiosInstance.delete(`/cart-item/${id}`);
-      refetchCart();
-    } catch (err) {
-      console.error(err);
-    }
+    await axiosInstance.delete(`/cart-item/${id}`);
+    refetchCart();
   };
 
   return (
@@ -105,37 +112,45 @@ const Header = () => {
           </span>
         </div>
 
-        <div className="flex gap-6 items-center">
-          <span className="cursor-pointer">Track Order</span>
-        </div>
+        {/* 🔥 TRACK ORDER BUTTON */}
+        <span
+          onClick={() => navigate("/track-order")}
+          className="cursor-pointer hover:text-[#7a1c3d] font-medium"
+        >
+          Track Order
+        </span>
       </div>
 
-      {/* MAIN HEADER */}
-      <div className="flex items-center justify-between px-6 py-4">
+      {/* MAIN */}
+      <div className="flex items-center justify-between px-4 md:px-6 py-4">
+
+        {/* MOBILE MENU */}
+        <div className="md:hidden">
+          <Menu onClick={() => setMobileMenu(true)} />
+        </div>
 
         {/* LOGO */}
         <h1
-          className="text-2xl font-bold text-[#7a1c3d] cursor-pointer"
+          className="text-xl md:text-2xl font-extrabold text-[#7a1c3d] cursor-pointer"
           onClick={() => navigate("/")}
         >
-          FashionStore
+          Soulful Overseas
         </h1>
 
         {/* SEARCH */}
-        <div className="flex-1 max-w-2xl mx-6 relative hidden md:block">
+        <div className="hidden md:block flex-1 max-w-2xl mx-6 relative">
           <div className="flex border rounded-lg overflow-hidden">
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search for products..."
               className="w-full px-4 py-2 outline-none"
+              placeholder="Search..."
             />
             <button className="bg-[#7a1c3d] px-4 text-white">
               <Search size={18} />
             </button>
           </div>
 
-          {/* SUGGESTIONS */}
           {showSuggestions && (
             <div className="absolute w-full bg-white shadow-lg mt-1 rounded z-50">
               {suggestions.map((item) => {
@@ -146,12 +161,12 @@ const Header = () => {
                 return (
                   <div
                     key={item.id}
-                    className="flex items-center gap-3 p-3 hover:bg-gray-100 cursor-pointer"
+                    className="flex gap-3 p-3 hover:bg-gray-100 cursor-pointer"
                     onClick={() => navigate(`/product/${item.slug}`)}
                   >
                     <img
-                      src={`http://localhost:8000/storage/${img}`}
-                      className="w-10 h-10 object-cover rounded"
+                      src={getImageUrl(img) || "/placeholder.png"}
+                      className="w-10 h-10 object-cover rounded-md"
                     />
                     <div>
                       <p className="text-sm">{item.name}</p>
@@ -165,161 +180,69 @@ const Header = () => {
         </div>
 
         {/* RIGHT */}
-        <div className="flex items-center gap-6">
+        <div className="flex items-center gap-6 md:gap-8">
 
-          {/* PROFILE */}
-          <div
-            className="relative cursor-pointer"
-            onClick={() => setProfileOpen(!profileOpen)}
-          >
-            <User />
-            <span className="ml-1 text-sm">
-              {user?.name || "Account"}
-            </span>
-
-            {profileOpen && (
-              <div className="absolute right-0 mt-2 w-60 bg-white shadow-lg rounded border z-50">
-
-                {user ? (
-                  <>
-                    <div className="p-3 border-b">
-                      <p className="font-semibold">{user.name}</p>
-                      <p className="text-xs text-gray-500">
-                        {user.email}
-                      </p>
-                    </div>
-
-                    <div
-                      className="p-2 hover:bg-gray-100 cursor-pointer"
-                      onClick={() => navigate("/profile")}
-                    >
-                      My Profile
-                    </div>
-
-                    <div
-                      className="p-2 hover:bg-gray-100 cursor-pointer"
-                      onClick={() => navigate("/orders")}
-                    >
-                      My Orders
-                    </div>
-
-                    <div
-                      className="p-2 hover:bg-gray-100 cursor-pointer"
-                      onClick={() => navigate("/wishlist")}
-                    >
-                      Wishlist
-                    </div>
-
-                    <div
-                      className="p-2 text-red-500 hover:bg-gray-100 cursor-pointer"
-                      onClick={handleLogout}
-                    >
-                      Logout
-                    </div>
-                  </>
-                ) : (
-                  <div className="p-4 space-y-2">
-                    <button
-                      className="w-full bg-[#7a1c3d] text-white py-2 rounded"
-                      onClick={() => navigate("/login")}
-                    >
-                      Sign In
-                    </button>
-                    <button
-                      className="w-full border py-2 rounded"
-                      onClick={() => navigate("/register")}
-                    >
-                      Register
-                    </button>
-                  </div>
-                )}
-              </div>
-            )}
+          {/* ACCOUNT */}
+          <div className="flex items-center gap-2 cursor-pointer" onClick={() => setProfileOpen(!profileOpen)}>
+            <User size={20} />
+            <span className="hidden md:block text-sm">{user?.name || "Account"}</span>
           </div>
 
           {/* WISHLIST */}
-          <div onClick={() => navigate("/wishlist")} className="relative cursor-pointer">
-            <Heart />
+          <div className="flex items-center gap-2 cursor-pointer relative">
+            <Heart size={20} />
             {wishlistItems.length > 0 && (
-              <span className="absolute -top-2 -right-2 bg-[#7a1c3d] text-white text-xs px-1 rounded-full">
+              <span className="absolute -top-2 -right-2 bg-[#7a1c3d] text-white text-[10px] w-4 h-4 flex items-center justify-center rounded-full">
                 {wishlistItems.length}
               </span>
             )}
+            <span className="hidden md:block text-sm">Wishlist</span>
           </div>
 
           {/* CART */}
           <div
-            className="relative"
+            className="flex items-center gap-2 cursor-pointer relative"
             onMouseEnter={() => setCartOpen(true)}
             onMouseLeave={() => setCartOpen(false)}
           >
-            <ShoppingCart />
-
+            <ShoppingCart size={20} />
             {cartItems.length > 0 && (
-              <span className="absolute -top-2 -right-2 bg-[#7a1c3d] text-white text-xs px-1 rounded-full">
+              <span className="absolute -top-2 -right-2 bg-[#7a1c3d] text-white text-[10px] w-4 h-4 flex items-center justify-center rounded-full">
                 {cartItems.length}
               </span>
             )}
+            <span className="hidden md:block text-sm">Cart</span>
+          </div>
+        </div>
+      </div>
 
-            {cartOpen && (
-              <div className="absolute right-0 mt-2 w-72 bg-white shadow-lg rounded border z-50 p-3">
+      {/* NAVBAR */}
+      <div className="border-t border-gray-200 hidden md:block">
+        <div className="flex justify-center gap-10 py-3 text-sm font-medium">
+          <span onClick={() => navigate("/")} className="text-[#7a1c3d] border-b-2 border-[#7a1c3d] pb-1 cursor-pointer">Home</span>
+          <span onClick={() => navigate("/shop")} className="hover:text-[#7a1c3d] cursor-pointer">Shop</span>
+          <span onClick={() => navigate("/about")} className="hover:text-[#7a1c3d] cursor-pointer">About Us</span>
+          <span onClick={() => navigate("/contact")} className="hover:text-[#7a1c3d] cursor-pointer">Contact Us</span>
+          <span onClick={() => navigate("/soulful-special")} className="hover:text-[#7a1c3d] cursor-pointer">Soulful Special</span>
+          {/* <span className="hover:text-[#7a1c3d] cursor-pointer">Pages</span> */}
+        </div>
+      </div>
 
-                {cartItems.map((item) => {
-                  const img =
-                    item.variant?.image ||
-                    item.product?.images?.[0]?.image_url;
+      {/* 🔥 PROMO */}
+      <div className="bg-[#8b0d3a] text-white text-sm h-10 flex items-center justify-center overflow-hidden relative">
+        <div className="relative h-10 w-full flex items-center justify-center">
 
-                  return (
-                    <div key={item.id} className="flex gap-3 mb-3">
-                      <img
-                        src={`http://localhost:8000/storage/${img}`}
-                        className="w-12 h-12 rounded object-cover"
-                      />
-                      <div className="flex-1 text-sm">
-                        <p>{item.product.name}</p>
-                        <p className="text-gray-500">
-                          {item.quantity} x ₹{item.price}
-                        </p>
-                      </div>
+          <div className={`absolute transition-all duration-500 ${animate ? "-translate-y-full opacity-0" : "translate-y-0 opacity-100"}`}>
+            {promoMessages[current]}
+          </div>
 
-                      <button onClick={() => handleRemoveItem(item.id)}>
-                        ✕
-                      </button>
-                    </div>
-                  );
-                })}
-
-                <div className="border-t pt-2 text-sm">
-                  <p className="flex justify-between">
-                    <span>Total:</span>
-                    <span>₹ {totals?.total}</span>
-                  </p>
-
-                  <button
-                    className="w-full mt-2 border py-2 rounded"
-                    onClick={() => navigate("/cart")}
-                  >
-                    View Cart
-                  </button>
-
-                  <button
-                    className="w-full mt-2 bg-[#7a1c3d] text-white py-2 rounded"
-                    onClick={() => navigate("/checkout")}
-                  >
-                    Checkout
-                  </button>
-                </div>
-              </div>
-            )}
+          <div className={`absolute transition-all duration-500 ${animate ? "translate-y-0 opacity-100" : "translate-y-full opacity-0"}`}>
+            {promoMessages[(current + 1) % promoMessages.length]}
           </div>
 
         </div>
       </div>
 
-      {/* PROMO BAR */}
-      <div className="bg-[#8b0d3a] text-white text-center py-2 text-sm">
-        🎁 20% off on your first order - Use code: FIRST20
-      </div>
     </header>
   );
 };

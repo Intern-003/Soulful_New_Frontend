@@ -5,22 +5,23 @@ import { getImageUrl } from "../../utils/getImageUrl";
 
 const CategoryCards = () => {
   const navigate = useNavigate();
-
   const { data, loading, error } = useGet("/categories");
 
-  // ✅ extract safely
   const categories =
-    data?.data?.filter((cat) => cat.parent_id === null).slice(0, 4) || [];
+    data?.data
+      ?.filter((cat) => cat.parent_id === null)
+      ?.sort((a, b) => a.position - b.position)
+      ?.slice(0, 4) || [];
 
-  // ✅ loading UI
+  // ✅ LOADING
   if (loading) {
     return (
-      <div className="max-w-7xl mx-auto px-6 py-12">
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-10">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
           {[...Array(4)].map((_, i) => (
             <div
               key={i}
-              className="h-[260px] rounded-xl bg-gray-200 animate-pulse"
+              className="h-[240px] rounded-2xl bg-gray-200 animate-pulse"
             />
           ))}
         </div>
@@ -28,7 +29,7 @@ const CategoryCards = () => {
     );
   }
 
-  // ✅ error UI
+  // ✅ ERROR
   if (error) {
     return (
       <div className="text-center py-10 text-red-500">
@@ -38,52 +39,64 @@ const CategoryCards = () => {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-6 py-12">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-10">
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
 
         {categories.map((cat, index) => (
           <div
             key={cat.id}
             onClick={() => navigate(`/category/${cat.slug}`)}
-            className={`group relative rounded-2xl p-6 h-[260px] overflow-hidden cursor-pointer
-            transition-all duration-300 hover:shadow-xl hover:-translate-y-2
+            className={`group relative flex flex-col justify-between
+            rounded-2xl p-5 sm:p-6 h-[240px] sm:h-[260px]
+            overflow-hidden cursor-pointer
+            transition-all duration-300 ease-in-out
+            hover:shadow-xl hover:-translate-y-2
             ${bgColors[index % bgColors.length]}`}
           >
 
-            {/* SMALL TEXT */}
-            <p className="text-xs text-gray-500 mb-2">
-              {cat.slug}
-            </p>
+            {/* TEXT CONTENT */}
+            <div className="z-10">
 
-            {/* TITLE */}
-            <h3 className="text-lg md:text-xl font-semibold text-[#2b1b12] mb-3">
-              {cat.name}
-            </h3>
+              <p className="text-xs text-gray-500 mb-1 capitalize">
+                {cat.slug.replace("-", " ")}
+              </p>
 
-            {/* DESCRIPTION */}
-            <p className="text-sm text-gray-500 mb-4 line-clamp-2">
-              {cat.description}
-            </p>
+              <h3 className="text-lg sm:text-xl font-semibold text-[#2b1b12] mb-2 leading-snug">
+                {cat.name}
+              </h3>
 
-            {/* BUTTON */}
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                navigate(`/category/${cat.slug}`);
-              }}
-              className="text-sm font-medium border-b border-[#7a1c3d] text-[#7a1c3d] hover:opacity-70 transition"
-            >
-              Shop Now
-            </button>
+              <p className="text-xs sm:text-sm text-gray-500 mb-3 line-clamp-2">
+                {cat.description}
+              </p>
+
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  navigate(`/category/${cat.slug}`);
+                }}
+                className="text-sm font-medium border-b border-[#7a1c3d] text-[#7a1c3d]
+                hover:opacity-70 transition"
+              >
+                Shop Now
+              </button>
+            </div>
 
             {/* IMAGE */}
-            <img
-              src={getImageUrl(cat.image)}
-              alt={cat.name}
-              className="absolute bottom-0 right-2 w-[110px] md:w-[130px] object-contain 
-              transition-transform duration-300 group-hover:scale-110"
-            />
+            <div className="absolute bottom-0 right-0 w-full flex justify-end pr-2 pointer-events-none">
+              <img
+                src={getImageUrl(cat.image)}
+                alt={cat.name}
+                onError={(e) => (e.target.src = "/fallback.png")}
+                className="w-[90px] sm:w-[110px] md:w-[130px] object-contain
+                transition-transform duration-500 ease-out
+                group-hover:scale-110 group-hover:-translate-y-1"
+              />
+            </div>
+
+            {/* HOVER OVERLAY EFFECT */}
+            <div className="absolute inset-0 bg-white/0 group-hover:bg-white/10 transition duration-300 rounded-2xl" />
+
           </div>
         ))}
 
@@ -94,9 +107,7 @@ const CategoryCards = () => {
 
 export default CategoryCards;
 
-//
-// 🎨 COLORS (MATCH TEMPLATE EXACTLY)
-//
+// 🎨 COLORS
 const bgColors = [
   "bg-[#f3ede9]",
   "bg-[#eef2ef]",
