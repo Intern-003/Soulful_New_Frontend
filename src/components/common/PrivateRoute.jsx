@@ -1,16 +1,16 @@
-// src/components/common/PrivateRoute.jsx
-import React from "react";
-import { useSelector } from "react-redux";
-import { Navigate } from "react-router-dom";
+// // src/components/common/PrivateRoute.jsx
+// import React from "react";
+// import { useSelector } from "react-redux";
+// import { Navigate } from "react-router-dom";
 
-const PrivateRoute = ({ children }) => {
-  const { isAuthenticated } = useSelector((state) => state.auth);
+// const PrivateRoute = ({ children }) => {
+// //   const { isAuthenticated } = useSelector((state) => state.auth);
 
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
-  }
+// //   if (!isAuthenticated) {
+// //     return <Navigate to="/login" replace />;
+// //   }
 
-  return children;
-};
+// //   return children;
+// // };
 
-export default PrivateRoute;
+// export default PrivateRoute;

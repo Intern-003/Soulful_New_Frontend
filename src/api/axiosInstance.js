@@ -16,15 +16,15 @@ axiosInstance.interceptors.request.use((config) => {
 });
 
 // Optional: handle 401
-axiosInstance.interceptors.response.use(
-  (res) => res,
-  (err) => {
-    if (err.response?.status === 401) {
-      localStorage.removeItem("token");
-      window.location.href = "/login";
-    }
-    return Promise.reject(err);
-  }
-);
+// axiosInstance.interceptors.response.use(
+//   (res) => res,
+//   (err) => {
+//     if (err.response?.status === 401) {
+//       localStorage.removeItem("token");
+//       window.location.href = "/login";
+//     }
+//     return Promise.reject(err);
+//   }
+// );
 
 export default axiosInstance;
