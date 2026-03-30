@@ -225,6 +225,8 @@ const Header = () => {
           <span onClick={() => navigate("/contact")} className="hover:text-[#7a1c3d] cursor-pointer">Contact Us</span>
           <span onClick={() => navigate("/soulful-special")} className="hover:text-[#7a1c3d] cursor-pointer">Soulful Special</span>
           {/* <span className="hover:text-[#7a1c3d] cursor-pointer">Pages</span> */}
+          <span onClick={() => navigate("/dashboard")} className="hover:text-[#7a1c3d] cursor-pointer">Dashboard</span>
+
         </div>
       </div>
 
