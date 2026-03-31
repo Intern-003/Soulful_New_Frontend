@@ -47,11 +47,18 @@ const authSlice = createSlice({
     error: null,
   },
   reducers: {
+
+
     logout: (state) => {
       localStorage.removeItem("token");
       localStorage.removeItem("user");
+      localStorage.removeItem("role");
+      localStorage.removeItem("permissions");
+
       state.user = null;
       state.token = null;
+      state.role = null;
+      state.permissions = [];
     },
   },
   extraReducers: (builder) => {
