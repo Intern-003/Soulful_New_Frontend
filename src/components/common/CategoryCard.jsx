@@ -11,9 +11,8 @@ const CategoryCard = ({
 
   const [imgSrc, setImgSrc] = useState("/placeholder.jpg");
   const [isLoading, setIsLoading] = useState(true);
-  const [hasError, setHasError] = useState(false);
 
-  // Set image source safely
+  // Set image source once when category changes
   useEffect(() => {
     if (!category?.image) {
       setImgSrc("/placeholder.jpg");
@@ -22,14 +21,8 @@ const CategoryCard = ({
     }
 
     const url = getImageUrl(category.image);
-    if (url) {
-      setImgSrc(url);
-      setHasError(false);
-      setIsLoading(true);
-    } else {
-      setImgSrc("/placeholder.jpg");
-      setIsLoading(false);
-    }
+    setImgSrc(url || "/placeholder.jpg");
+    setIsLoading(true);
   }, [category]);
 
   const handleClick = () => {
@@ -38,17 +31,15 @@ const CategoryCard = ({
     }
   };
 
-  const handleImageError = () => {
-    setHasError(true);
-    setImgSrc("/placeholder.jpg");
-    setIsLoading(false);
-  };
-
   const handleImageLoad = () => {
     setIsLoading(false);
   };
 
-  // Default Card (Main one used in CategoryCards)
+  const handleImageError = () => {
+    setImgSrc("/placeholder.jpg");
+    setIsLoading(false);
+  };
+
   return (
     <div
       onClick={handleClick}
@@ -75,7 +66,7 @@ const CategoryCard = ({
       </div>
 
       {/* Image Area */}
-      <div className="relative h-64 bg-gray-50 flex items-center justify-center overflow-hidden">
+      <div className="relative h-64 bg-gray-50 flex items-center justify-center p-6 overflow-hidden">
         {isLoading && (
           <div className="absolute inset-0 flex items-center justify-center bg-gray-50">
             <div className="w-8 h-8 border-4 border-[#7a1c3d] border-t-transparent rounded-full animate-spin" />
@@ -85,9 +76,9 @@ const CategoryCard = ({
         <img
           src={imgSrc}
           alt={category?.name || "Category"}
-          onError={handleImageError}
           onLoad={handleImageLoad}
-          className={`max-h-[85%] max-w-[85%] object-contain transition-transform duration-700 group-hover:scale-105 ${isLoading ? "opacity-0" : "opacity-100"}`}
+          onError={handleImageError}
+          className={`max-h-full max-w-full object-contain transition-transform duration-700 group-hover:scale-105 ${isLoading ? "opacity-0" : "opacity-100"}`}
         />
       </div>
     </div>
