@@ -1,7 +1,7 @@
 import { useState } from "react";
 import axiosInstance from "../axiosInstance";
 
-const usePost = (url) => {
+const usePost = (baseUrl = "") => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -9,7 +9,13 @@ const usePost = (url) => {
   const postData = async (payload, config = {}) => {
     try {
       setLoading(true);
-      const res = await axiosInstance.post(url, payload, config);
+
+      // ✅ SUPPORT BOTH USAGE
+      const url = payload?.url || baseUrl;
+      const body = payload?.data || payload;
+
+      const res = await axiosInstance.post(url, body, config);
+
       setData(res.data);
       return res.data;
     } catch (err) {
