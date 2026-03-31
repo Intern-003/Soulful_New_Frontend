@@ -8,22 +8,28 @@ import DashboardLayout from "../layouts/DashboardLayout";
 // Pages
 import Home from "../pages/public/Home";
 // import Login from "../pages/auth/Login";
-
+import Login from "../pages/auth/Login";
+import Register from "../pages/auth/Register";
 import Dashboard from "../pages/dashboard/Dashboard";
 import Products from "../pages/dashboard/Products";
 import Orders from "../pages/dashboard/Orders";
 import Users from "../pages/dashboard/Users";
+ import Cart from "../pages/user/Cart";
 
 const AppRoutes = () => {
   return (
     <Routes>
 
-      {/* PUBLIC ROUTES */}
-      {/* <Route path="/login" element={<Login />} /> */}
+     
+      <Route path="/login" element={<Login />} /> 
+     <Route path="/register" element={<Register />}/>
 
       {/* MAIN WEBSITE */}
       <Route element={<MainLayout />}>
         <Route path="/" element={<Home />} />
+       
+
+<Route path="/cart" element={<Cart />} />
       </Route>
 
       {/* DASHBOARD */}
