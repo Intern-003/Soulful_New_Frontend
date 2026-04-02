@@ -6,6 +6,7 @@ const initialState = {
   items: [],
   loading: false,
   error: null,
+  status: "idle",
   isAuthenticated: false // Track if wishlist requires auth
 };
 
@@ -84,20 +85,32 @@ const wishlistSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
+      // .addCase(fetchWishlist.pending, (state) => {
+      //   state.loading = true;
+      //   state.error = null;
+      // })
+      // .addCase(fetchWishlist.fulfilled, (state, action) => {
+      //   state.loading = false;
+      //   state.items = action.payload.items;
+      //   state.isAuthenticated = !action.payload.requiresAuth;
+      // })
+      // .addCase(fetchWishlist.rejected, (state, action) => {
+      //   state.loading = false;
+      //   state.error = action.payload;
+      //   state.isAuthenticated = false;
+      // })
       .addCase(fetchWishlist.pending, (state) => {
-        state.loading = true;
-        state.error = null;
-      })
-      .addCase(fetchWishlist.fulfilled, (state, action) => {
-        state.loading = false;
-        state.items = action.payload.items;
-        state.isAuthenticated = !action.payload.requiresAuth;
-      })
-      .addCase(fetchWishlist.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload;
-        state.isAuthenticated = false;
-      })
+  state.status = "loading";
+  state.error = null;
+})
+.addCase(fetchWishlist.fulfilled, (state, action) => {
+  state.status = "succeeded";
+  state.items = action.payload.items;
+})
+.addCase(fetchWishlist.rejected, (state, action) => {
+  state.status = "failed";
+  state.error = action.payload;
+})
       .addCase(addToWishlist.fulfilled, (state, action) => {
         // Wishlist will be refreshed separately
       })

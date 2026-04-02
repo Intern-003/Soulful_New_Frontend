@@ -12,26 +12,28 @@ import { useNavigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 
 import { logout as logoutAction } from "../../app/slices/authSlice";
-import { fetchCart } from "../../app/slices/cartSlice";
-import { hasPermission } from "../../utils/hasPermission";
+import usePermissions from "../../api/hooks/usePermissions";
 import { getImageUrl } from "../../utils/getImageUrl";
 import axiosInstance from "../../api/axiosInstance";
+
 
 const Header = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
-  const { user, permissions } = useSelector((state) => state.auth);
+  const { user } = useSelector((state) => state.auth);
+  const { can } = usePermissions();
   const { items: cartItems } = useSelector((state) => state.cart);
 
   // Promo Messages
-  const promoMessages = [
+  // Add this to the top of your component (outside return) for better performance
+  const promoMessages = React.useMemo(() => [
     "🎁 20% off on your first order - Use code: FIRST20",
     "🚚 Free Shipping on orders above ₹999",
     "💳 Cash on Delivery Available",
     "⭐ 100% Genuine Products",
     "📦 Easy Returns within 7 days",
-  ];
+  ], []);
 
   const [currentPromo, setCurrentPromo] = useState(0);
   const [animatePromo, setAnimatePromo] = useState(false);
@@ -46,9 +48,9 @@ const Header = () => {
   const [mobileMenu, setMobileMenu] = useState(false);
 
   // Fetch cart when user logs in/out or component mounts
-  useEffect(() => {
-    dispatch(fetchCart());
-  }, [dispatch, user]);
+  // useEffect(() => {
+  //   dispatch(fetchCart());
+  // }, [dispatch, user]);
 
   // Promo rotation
   useEffect(() => {
@@ -61,7 +63,7 @@ const Header = () => {
     }, 3000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [promoMessages.length]);
 
   // Search with debounce
   useEffect(() => {
@@ -90,7 +92,7 @@ const Header = () => {
     try {
       await axiosInstance.post("/auth/logout");
     } catch (e) {
-      console.log("Logout API failed");
+      // Handle error silently
     }
 
     dispatch(logoutAction());
@@ -98,26 +100,21 @@ const Header = () => {
     navigate("/login");
   };
 
-  const wishlistCount = 0; // Replace with Redux wishlist slice later
+  const wishlistCount = useSelector((state) => state.wishlist?.items?.length || 0);
+
+  // Add touch event handling for mobile
+  useEffect(() => {
+    const handleTouchOutside = (e) => {
+      if (profileOpen && !e.target.closest('.profile-dropdown') && !e.target.closest('.profile-trigger')) {
+        setProfileOpen(false);
+      }
+    };
+    document.addEventListener('touchstart', handleTouchOutside);
+    return () => document.removeEventListener('touchstart', handleTouchOutside);
+  }, [profileOpen]);
 
   return (
     <header className="w-full bg-white border-b shadow-sm">
-      {/* Promo Banner */}
-      <div className="bg-[#8b0d3a] text-white text-sm h-10 flex items-center justify-center overflow-hidden">
-        <div className="relative h-10 w-full flex items-center justify-center">
-          <div
-            className={`absolute transition-all duration-500 ${animatePromo ? "-translate-y-full opacity-0" : "translate-y-0 opacity-100"}`}
-          >
-            {promoMessages[currentPromo]}
-          </div>
-          <div
-            className={`absolute transition-all duration-500 ${animatePromo ? "translate-y-0 opacity-100" : "translate-y-full opacity-0"}`}
-          >
-            {promoMessages[(currentPromo + 1) % promoMessages.length]}
-          </div>
-        </div>
-      </div>
-
       {/* Top Contact Bar - Hidden on mobile */}
       <div className="hidden md:flex justify-between bg-gray-100 px-6 py-2 text-sm">
         <div className="flex gap-6">
@@ -294,13 +291,156 @@ const Header = () => {
             Soulful Special
           </span>
 
-          {hasPermission(permissions, "dashboard", "view") && (
-            <span onClick={() => navigate("/dashboard")} className="hover:text-[#7a1c3d] cursor-pointer">
+          {can("dashboard", "view") && (
+            <span
+              onClick={() => navigate("/dashboard")}
+              className="hover:text-[#7a1c3d] cursor-pointer"
+            >
               Dashboard
             </span>
           )}
         </div>
       </nav>
+
+      {/* Promo Banner - Moved BELOW the navigation */}
+      <div className="bg-[#8b0d3a] text-white text-sm h-10 flex items-center justify-center overflow-hidden">
+        <div className="relative h-10 w-full flex items-center justify-center">
+          <div
+            className={`absolute transition-all duration-500 ${animatePromo ? "-translate-y-full opacity-0" : "translate-y-0 opacity-100"
+              }`}
+          >
+            {promoMessages[currentPromo]}
+          </div>
+          <div
+            className={`absolute transition-all duration-500 ${animatePromo ? "translate-y-0 opacity-100" : "translate-y-full opacity-0"
+              }`}
+          >
+            {promoMessages[(currentPromo + 1) % promoMessages.length]}
+          </div>
+        </div>
+      </div>
+
+      {/* Mobile Menu Drawer */}
+      {mobileMenu && (
+        <>
+          <div
+            className="fixed inset-0 bg-black/50 z-40 md:hidden"
+            onClick={() => setMobileMenu(false)}
+          />
+          <div className="fixed left-0 top-0 bottom-0 w-64 bg-white shadow-xl z-50 md:hidden flex flex-col">
+            <div className="p-4 border-b flex justify-between items-center">
+              <span className="font-bold text-[#7a1c3d]">Menu</span>
+              <button onClick={() => setMobileMenu(false)}>
+                <Menu size={20} />
+              </button>
+            </div>
+            <div className="flex flex-col p-4 gap-4 text-base">
+              <span
+                onClick={() => {
+                  navigate("/");
+                  setMobileMenu(false);
+                }}
+                className="cursor-pointer hover:text-[#7a1c3d]"
+              >
+                Home
+              </span>
+              <span
+                onClick={() => {
+                  navigate("/shop");
+                  setMobileMenu(false);
+                }}
+                className="cursor-pointer hover:text-[#7a1c3d]"
+              >
+                Shop
+              </span>
+              <span
+                onClick={() => {
+                  navigate("/about");
+                  setMobileMenu(false);
+                }}
+                className="cursor-pointer hover:text-[#7a1c3d]"
+              >
+                About Us
+              </span>
+              <span
+                onClick={() => {
+                  navigate("/contact");
+                  setMobileMenu(false);
+                }}
+                className="cursor-pointer hover:text-[#7a1c3d]"
+              >
+                Contact Us
+              </span>
+              <span
+                onClick={() => {
+                  navigate("/soulful-special");
+                  setMobileMenu(false);
+                }}
+                className="cursor-pointer hover:text-[#7a1c3d]"
+              >
+                Soulful Special
+              </span>
+              {hasPermission(permissions, "dashboard", "view") && (
+                <span
+                  onClick={() => {
+                    navigate("/dashboard");
+                    setMobileMenu(false);
+                  }}
+                  className="cursor-pointer hover:text-[#7a1c3d]"
+                >
+                  Dashboard
+                </span>
+              )}
+              <hr />
+              {/* Mobile Search */}
+              <div className="relative">
+                <div className="flex border rounded-lg overflow-hidden">
+                  <input
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    className="w-full px-3 py-2 outline-none text-sm"
+                    placeholder="Search products..."
+                  />
+                  <button className="bg-[#7a1c3d] px-4 text-white">
+                    <Search size={18} />
+                  </button>
+                </div>
+                {showSuggestions && suggestions.length > 0 && (
+                  <div className="absolute left-0 right-0 bg-white shadow-xl mt-1 rounded-lg overflow-hidden z-50 max-h-64 overflow-y-auto">
+                    {suggestions.slice(0, 5).map((item) => {
+                      const imgUrl =
+                        item.images?.find((i) => i.is_primary)?.image_url ||
+                        item.images?.[0]?.image_url;
+                      return (
+                        <div
+                          key={item.id}
+                          className="flex gap-2 p-2 hover:bg-gray-50 cursor-pointer border-b"
+                          onClick={() => {
+                            navigate(`/product/${item.slug}`);
+                            setQuery("");
+                            setShowSuggestions(false);
+                            setMobileMenu(false);
+                          }}
+                        >
+                          <img
+                            src={getImageUrl(imgUrl) || "/placeholder.jpg"}
+                            alt={item.name}
+                            className="w-10 h-10 object-cover rounded"
+                          />
+                          <div>
+                            <p className="text-xs font-medium truncate">{item.name}</p>
+                            <p className="text-xs text-gray-500">₹{item.price}</p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </>
+      )}
     </header>
   );
 };

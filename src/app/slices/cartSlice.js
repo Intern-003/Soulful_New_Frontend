@@ -1,4 +1,3 @@
-// src/app/slices/cartSlice.js
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import axiosInstance from '../../api/axiosInstance';
 
@@ -6,7 +5,7 @@ const getGuestToken = () => localStorage.getItem('guest_token');
 const setGuestToken = (token) => {
   if (token) localStorage.setItem('guest_token', token);
 };
-const clearGuestToken = () => localStorage.removeItem('guest_token');
+const clearGuestTokenLS = () => localStorage.removeItem('guest_token');
 
 const initialState = {
   items: [],
@@ -16,213 +15,257 @@ const initialState = {
     discount: 0,
     total: 0
   },
-  loading: false,
+  status: "idle", // idle | loading | succeeded | failed
   error: null,
   guestToken: getGuestToken() || null,
+  // ✅ NEW
+  updatingItemId: null,
+  removingItemId: null,
 };
 
-// ✅ Fetch cart - Handle 400 error gracefully
+
+// 🔁 COMMON RESPONSE HANDLER
+const applyCartData = (state, action) => {
+  const cart = action.payload?.data?.cart;
+  const totals = action.payload?.data?.totals;
+
+  // ✅ Force new reference (VERY IMPORTANT)
+  state.items = [...(cart?.items || [])];
+  state.totals = { ...(totals || initialState.totals) };
+
+  if (action.payload?.guest_token) {
+    state.guestToken = action.payload.guest_token;
+    setGuestToken(action.payload.guest_token);
+  }
+};
+
+
+// ================= FETCH CART =================
 export const fetchCart = createAsyncThunk(
   'cart/fetchCart',
   async (_, { getState, rejectWithValue }) => {
     try {
       const { auth } = getState();
-      const guestToken = getGuestToken();
+
+
       const headers = {};
-      
-      // Only add guest token if user is not logged in AND we have a token
+      const guestToken = getGuestToken();
+
       if (!auth.user && guestToken) {
         headers['Guest-Token'] = guestToken;
       }
 
-      const response = await axiosInstance.get('/cart', { headers });
-      
-      if (response.data.guest_token) {
-        setGuestToken(response.data.guest_token);
-      }
-      
-      return response.data.data;
+      const res = await axiosInstance.get('/cart', { headers });
+      return res.data;
     } catch (error) {
-      // Handle 400 - Cart is empty or needs guest token
-      if (error.response?.status === 400) {
-        // Generate new guest token if needed
-        if (!getGuestToken()) {
-          const newToken = 'guest_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-          setGuestToken(newToken);
-        }
-        // Return empty cart
-        return { cart: { items: [] }, totals: initialState.totals };
-      }
-      return rejectWithValue(error.response?.data?.message || 'Failed to fetch cart');
+      return rejectWithValue(
+        error.response?.data?.message || 'Failed to fetch cart'
+      );
     }
   }
 );
 
-// ✅ Add to cart - Handle guest token creation
+
+// ================= ADD =================
 export const addToCart = createAsyncThunk(
   'cart/addToCart',
   async ({ product_id, quantity, variant_id = null }, { getState, rejectWithValue }) => {
     try {
       const { auth } = getState();
       let guestToken = getGuestToken();
+
       const headers = {};
-      
-      // Generate guest token if doesn't exist
+
       if (!auth.user && !guestToken) {
-        guestToken = 'guest_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+        guestToken = 'guest_' + Date.now();
         setGuestToken(guestToken);
       }
-      
+
       if (!auth.user && guestToken) {
         headers['Guest-Token'] = guestToken;
       }
 
-      const response = await axiosInstance.post('/cart/add', 
+      const res = await axiosInstance.post(
+        '/cart/add',
         { product_id, quantity, variant_id },
         { headers }
       );
-      
-      if (response.data.guest_token) {
-        setGuestToken(response.data.guest_token);
-      }
-      
-      // Refresh cart after adding
-      return response.data;
+
+      return res.data;
     } catch (error) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to add to cart');
+      return rejectWithValue(
+        error.response?.data?.message || 'Failed to add to cart'
+      );
     }
   }
 );
 
-// ✅ Update cart item
+
+// ================= UPDATE =================
 export const updateCartItem = createAsyncThunk(
   'cart/updateCartItem',
   async ({ itemId, quantity }, { getState, rejectWithValue }) => {
     try {
       const { auth } = getState();
       const guestToken = getGuestToken();
+
       const headers = {};
-      
       if (!auth.user && guestToken) {
         headers['Guest-Token'] = guestToken;
       }
 
-      const response = await axiosInstance.put(`/cart/${itemId}`, 
+      const res = await axiosInstance.put(
+        `/cart/${itemId}`,
         { quantity },
         { headers }
       );
-      
-      return response.data;
+
+      return res.data;
     } catch (error) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to update cart');
+      return rejectWithValue(
+        error.response?.data?.message || 'Failed to update cart'
+      );
     }
   }
 );
 
-// ✅ Remove cart item
+
+// ================= REMOVE =================
 export const removeCartItem = createAsyncThunk(
   'cart/removeCartItem',
   async ({ itemId }, { getState, rejectWithValue }) => {
     try {
       const { auth } = getState();
       const guestToken = getGuestToken();
+
       const headers = {};
-      
       if (!auth.user && guestToken) {
         headers['Guest-Token'] = guestToken;
       }
 
-      const response = await axiosInstance.delete(`/cart-item/${itemId}`, { headers });
-      return { itemId, ...response.data };
+      const res = await axiosInstance.delete(
+        `/cart-item/${itemId}`,
+        { headers }
+      );
+
+      return res.data;
     } catch (error) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to remove item');
+      return rejectWithValue(
+        error.response?.data?.message || 'Failed to remove item'
+      );
     }
   }
 );
 
-// ✅ Clear cart
+
+// ================= CLEAR =================
 export const clearCart = createAsyncThunk(
   'cart/clearCart',
   async (_, { getState, rejectWithValue }) => {
     try {
       const { auth } = getState();
       const guestToken = getGuestToken();
+
       const headers = {};
-      
       if (!auth.user && guestToken) {
         headers['Guest-Token'] = guestToken;
       }
 
-      await axiosInstance.delete('/cart/clear', { headers });
-      return;
+      const res = await axiosInstance.delete('/cart/clear', { headers });
+      return res.data;
     } catch (error) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to clear cart');
+      return rejectWithValue(
+        error.response?.data?.message || 'Failed to clear cart'
+      );
     }
   }
 );
 
+
+// ================= SLICE =================
 const cartSlice = createSlice({
   name: 'cart',
   initialState,
   reducers: {
     resetCartState: (state) => {
-      state.items = [];
-      state.totals = initialState.totals;
-      state.error = null;
-      state.loading = false;
+      Object.assign(state, initialState);
     },
     clearGuestToken: (state) => {
       state.guestToken = null;
-      clearGuestToken();
+      clearGuestTokenLS();
     }
   },
   extraReducers: (builder) => {
     builder
+
+      // 🔄 FETCH
       .addCase(fetchCart.pending, (state) => {
-        state.loading = true;
-        state.error = null;
+        state.status = "loading";
       })
       .addCase(fetchCart.fulfilled, (state, action) => {
-        state.loading = false;
-        state.items = action.payload.cart?.items || [];
-        state.totals = action.payload.totals || initialState.totals;
+        state.status = "succeeded";
+        applyCartData(state, action);
       })
       .addCase(fetchCart.rejected, (state, action) => {
-        state.loading = false;
+        state.status = "failed";
         state.error = action.payload;
-        // Don't throw error, just set empty cart
-        state.items = [];
-        state.totals = initialState.totals;
       })
+
+      // ➕ ADD
       .addCase(addToCart.pending, (state) => {
-        state.loading = true;
+        state.status = "loading";
       })
       .addCase(addToCart.fulfilled, (state, action) => {
-        state.loading = false;
-        if (action.payload.guest_token) {
-          state.guestToken = action.payload.guest_token;
-        }
+        state.status = "succeeded";
+        applyCartData(state, action);
       })
       .addCase(addToCart.rejected, (state, action) => {
-        state.loading = false;
+        state.status = "failed";
         state.error = action.payload;
       })
+
+      // 🔄 UPDATE
+      .addCase(updateCartItem.pending, (state, action) => {
+        state.status = "loading";
+        state.updatingItemId = action.meta.arg.itemId;
+      })
       .addCase(updateCartItem.fulfilled, (state, action) => {
-        if (action.payload.totals) {
-          state.totals = action.payload.totals;
-        }
+        state.status = "succeeded";
+        state.updatingItemId = null;
+        applyCartData(state, action);
+      })
+      .addCase(updateCartItem.rejected, (state) => {
+        state.status = "failed";
+        state.updatingItemId = null;
+      })
+      // ❌ REMOVE
+      .addCase(removeCartItem.pending, (state, action) => {
+        state.status = "loading";
+        state.removingItemId = action.meta.arg.itemId;
       })
       .addCase(removeCartItem.fulfilled, (state, action) => {
-        if (action.payload.totals) {
-          state.totals = action.payload.totals;
-        }
+        state.status = "succeeded";
+        state.removingItemId = null;
+        applyCartData(state, action);
       })
-      .addCase(clearCart.fulfilled, (state) => {
-        state.items = [];
-        state.totals = initialState.totals;
+      .addCase(removeCartItem.rejected, (state) => {
+        state.status = "failed";
+        state.removingItemId = null;
+      })
+      // 🧹 CLEAR
+      .addCase(clearCart.pending, (state) => {
+        state.status = "loading";
+      })
+      .addCase(clearCart.fulfilled, (state, action) => {
+        state.status = "succeeded";
+        applyCartData(state, action);
+      })
+      .addCase(clearCart.rejected, (state, action) => {
+        state.status = "failed";
+        state.error = action.payload;
       });
   }
 });
 
-export const { resetCartState, clearGuestToken: clearGuestTokenAction } = cartSlice.actions;
+export const { resetCartState, clearGuestToken } = cartSlice.actions;
 export default cartSlice.reducer;

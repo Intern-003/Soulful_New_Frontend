@@ -1,65 +1,94 @@
 // src/components/common/ProductCard.jsx
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { Heart, ShoppingCart, Eye } from 'lucide-react';
+import { Heart, ShoppingCart, Eye, Check } from 'lucide-react';
 import { getImageUrl } from '../../utils/getImageUrl';
 import { addToCart } from '../../app/slices/cartSlice';
 import { addToWishlist } from '../../app/slices/wishlistSlice';
 
 const ProductCard = ({ product, loading = false }) => {
+  if (!product) return null;
   const navigate = useNavigate();
   const dispatch = useDispatch();
+
   const { isAuthenticated } = useSelector((state) => state.auth);
-  const { loading: cartLoading } = useSelector((state) => state.cart);
+  const { items: cartItems } = useSelector((state) => state.cart);
+
   const [isActionLoading, setIsActionLoading] = useState(false);
+  const [added, setAdded] = useState(false);
 
-  const image = product?.images?.find((img) => img.is_primary)?.image_url ||
-                product?.images?.[0]?.image_url;
-  
-  const discount = product?.discount_price && product?.price
-    ? Math.round(((product.price - product.discount_price) / product.price) * 100)
-    : null;
+  // 🧠 Check if product already in cart
+  const isInCart = useMemo(() => {
+  if (!product) return false;
 
+  return cartItems.some(
+    (item) =>
+      item.product_id === product.id ||
+      item.product?.id === product.id
+  );
+}, [cartItems, product?.id]);
+
+  const image =
+    product?.images?.find((img) => img.is_primary)?.image_url ||
+    product?.images?.[0]?.image_url;
+
+  const discount =
+    product?.discount_price && product?.price
+      ? Math.round(
+          ((product.price - product.discount_price) / product.price) * 100
+        )
+      : null;
+
+  // ✅ ADD TO CART
   const handleAddToCart = async (e) => {
     e?.stopPropagation();
-    
+
+    if (isActionLoading || isInCart) return;
+
     setIsActionLoading(true);
+
     try {
-      await dispatch(addToCart({
-        product_id: product.id,
-        quantity: 1
-      })).unwrap();
-      alert('Added to cart ✅');
+      await dispatch(
+        addToCart({
+          product_id: product.id,
+          quantity: 1,
+        })
+      ).unwrap();
+
+      // ✅ Show "Added ✓"
+      setAdded(true);
+
+      setTimeout(() => {
+        setAdded(false);
+      }, 1500);
     } catch (err) {
-      alert('Error adding to cart ❌');
+      console.error('Add to cart failed:', err);
     } finally {
       setIsActionLoading(false);
     }
   };
 
+  // ❤️ WISHLIST
   const handleAddToWishlist = async (e) => {
     e?.stopPropagation();
-    
+
     if (!isAuthenticated) {
-      // Save intended action for after login
-      localStorage.setItem('intended_action', JSON.stringify({
-        type: 'ADD_TO_WISHLIST',
-        payload: { product_id: product.id }
-      }));
-      alert('Please login to add to wishlist');
+      localStorage.setItem(
+        'intended_action',
+        JSON.stringify({
+          type: 'ADD_TO_WISHLIST',
+          payload: { product_id: product.id },
+        })
+      );
       navigate('/login');
       return;
     }
 
-    setIsActionLoading(true);
     try {
       await dispatch(addToWishlist({ product_id: product.id })).unwrap();
-      alert('Added to wishlist ❤️');
     } catch (err) {
-      alert(err || 'Error adding to wishlist ❌');
-    } finally {
-      setIsActionLoading(false);
+      console.error(err);
     }
   };
 
@@ -68,7 +97,7 @@ const ProductCard = ({ product, loading = false }) => {
     navigate(`/product/${product.slug}`);
   };
 
-  const isLoading = isActionLoading || cartLoading;
+  const isLoading = isActionLoading;
 
   if (loading) {
     return (
@@ -87,6 +116,7 @@ const ProductCard = ({ product, loading = false }) => {
       onClick={handleViewProduct}
       className="group cursor-pointer bg-white rounded-xl shadow-sm hover:shadow-lg transition duration-300 overflow-hidden"
     >
+      {/* IMAGE */}
       <div className="relative h-[240px] bg-gray-100 flex items-center justify-center overflow-hidden">
         <img
           src={getImageUrl(image) || '/placeholder.jpg'}
@@ -94,29 +124,47 @@ const ProductCard = ({ product, loading = false }) => {
           className="h-full object-contain transition duration-500 group-hover:scale-110"
         />
 
+        {/* DISCOUNT */}
         {discount && (
           <span className="absolute top-3 left-3 bg-orange-500 text-white text-xs px-2 py-1 rounded">
             -{discount}%
           </span>
         )}
 
+        {/* ACTION BUTTONS */}
         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center gap-3">
+          
+          {/* 🛒 ADD TO CART */}
           <button
             onClick={handleAddToCart}
-            disabled={isLoading}
-            className="bg-white p-3 rounded-full hover:bg-[#7a1c3d] hover:text-white transition disabled:opacity-50"
+            disabled={isLoading || isInCart}
+            className={`p-3 rounded-full transition flex items-center justify-center
+              ${
+                added
+                  ? 'bg-green-500 text-white'
+                  : isInCart
+                  ? 'bg-gray-300 text-gray-600 cursor-not-allowed'
+                  : 'bg-white hover:bg-[#7a1c3d] hover:text-white'
+              }
+            `}
           >
-            <ShoppingCart size={18} />
+            {added ? (
+              <Check size={18} />
+            ) : (
+              <ShoppingCart size={18} />
+            )}
           </button>
 
+          {/* ❤️ WISHLIST */}
           <button
             onClick={handleAddToWishlist}
             disabled={isLoading}
-            className="bg-white p-3 rounded-full hover:bg-[#7a1c3d] hover:text-white transition disabled:opacity-50"
+            className="bg-white p-3 rounded-full hover:bg-[#7a1c3d] hover:text-white transition"
           >
             <Heart size={18} />
           </button>
 
+          {/* 👁 VIEW */}
           <button
             onClick={handleViewProduct}
             className="bg-white p-3 rounded-full hover:bg-[#7a1c3d] hover:text-white transition"
@@ -126,9 +174,12 @@ const ProductCard = ({ product, loading = false }) => {
         </div>
       </div>
 
+      {/* CONTENT */}
       <div className="p-4 text-center">
-        <h3 className="text-sm font-semibold line-clamp-1">{product?.name}</h3>
-        
+        <h3 className="text-sm font-semibold line-clamp-1">
+          {product?.name}
+        </h3>
+
         <div className="mt-1">
           <span className="text-[#7a1c3d] font-bold">
             ₹{product?.discount_price || product?.price}
@@ -140,9 +191,14 @@ const ProductCard = ({ product, loading = false }) => {
           )}
         </div>
 
-        <div className="text-yellow-500 text-sm mt-1">
-          ⭐ 4.{Math.floor(Math.random() * 5)}
-        </div>
+       
+
+        {/* ✅ OPTIONAL: show "Already in Cart" */}
+        {isInCart && !added && (
+          <p className="text-xs text-green-600 mt-1">
+            Already in cart
+          </p>
+        )}
       </div>
     </div>
   );
