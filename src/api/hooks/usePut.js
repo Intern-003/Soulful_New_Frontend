@@ -1,4 +1,6 @@
-import { useState } from "react";
+// src/api/hooks/usePut.js
+
+import { useState } from "react"; // ✅ FIX
 import axiosInstance from "../axiosInstance";
 
 const usePut = (url) => {
@@ -6,10 +8,16 @@ const usePut = (url) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  const putData = async (payload, config = {}) => {
+  const putData = async (config = {}) => {
     try {
       setLoading(true);
-      const res = await axiosInstance.put(url, payload, config);
+
+      const res = await axiosInstance.put(
+        config.url || url,   // ✅ dynamic URL fix
+        config.data,
+        config
+      );
+
       setData(res.data);
       return res.data;
     } catch (err) {

@@ -1,29 +1,10 @@
-// src/components/common/CategoryCard.jsx
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { useNavigate } from "react-router-dom";
 import { getImageUrl } from "../../utils/getImageUrl";
 
-const CategoryCard = ({ 
-  category, 
-  variant = "default", 
-}) => {
+const CategoryCard = ({ category, variant = "default" }) => {
   const navigate = useNavigate();
-
-  const [imgSrc, setImgSrc] = useState("/placeholder.jpg");
-  const [isLoading, setIsLoading] = useState(true);
-
-  // Set image source once when category changes
-  useEffect(() => {
-    if (!category?.image) {
-      setImgSrc("/placeholder.jpg");
-      setIsLoading(false);
-      return;
-    }
-
-    const url = getImageUrl(category.image);
-    setImgSrc(url || "/placeholder.jpg");
-    setIsLoading(true);
-  }, [category]);
+  const [loaded, setLoaded] = React.useState(false);
 
   const handleClick = () => {
     if (category?.slug) {
@@ -31,14 +12,9 @@ const CategoryCard = ({
     }
   };
 
-  const handleImageLoad = () => {
-    setIsLoading(false);
-  };
-
-  const handleImageError = () => {
-    setImgSrc("/placeholder.jpg");
-    setIsLoading(false);
-  };
+  const imageUrl = category?.image
+    ? getImageUrl(category.image)
+    : "/placeholder.jpg";
 
   return (
     <div
@@ -65,24 +41,46 @@ const CategoryCard = ({
         </span>
       </div>
 
-      {/* Image Area */}
       <div className="relative h-64 bg-gray-50 flex items-center justify-center p-6 overflow-hidden">
-        {isLoading && (
-          <div className="absolute inset-0 flex items-center justify-center bg-gray-50">
-            <div className="w-8 h-8 border-4 border-[#7a1c3d] border-t-transparent rounded-full animate-spin" />
-          </div>
-        )}
 
+
+        {/* Main image */}
         <img
-          src={imgSrc}
+          src={imageUrl}
           alt={category?.name || "Category"}
-          onLoad={handleImageLoad}
-          onError={handleImageError}
-          className={`max-h-full max-w-full object-contain transition-transform duration-700 group-hover:scale-105 ${isLoading ? "opacity-0" : "opacity-100"}`}
+          loading="lazy"
+          onLoad={() => setLoaded(true)}
+          onError={(e) => {
+            e.currentTarget.src = "/placeholder.jpg";
+            setLoaded(true);
+          }}
+          className={`relative max-h-full max-w-full object-contain transition-opacity duration-700 ${loaded ? "opacity-100" : "opacity-0"
+            } group-hover:scale-105 transition-transform duration-700`}
         />
       </div>
+
+      {/* Image */}
+      {/* <div className="relative h-64 bg-gray-50 flex items-center justify-center p-6 overflow-hidden">
+        <img
+          src={imageUrl}
+          alt={category?.name || "Category"}
+          loading="lazy"
+          onError={(e) => {
+            e.currentTarget.src = "/placeholder.jpg";
+          }}
+          className="max-h-full max-w-full object-contain transition-transform duration-700 group-hover:scale-105"
+        />
+      </div> */}
     </div>
   );
 };
 
-export default CategoryCard;
+
+export default React.memo(CategoryCard, (prev, next) => {
+  return (
+    prev.category.id === next.category.id &&
+    prev.category.image === next.category.image &&
+    prev.category.name === next.category.name &&
+    prev.category.description === next.category.description
+  );
+});

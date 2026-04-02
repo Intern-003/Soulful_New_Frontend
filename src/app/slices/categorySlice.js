@@ -48,6 +48,7 @@ const categorySlice = createSlice({
     children: {}, // { parentId: [children] }
     loading: false,
     error: null,
+    fetched: false,
   },
   reducers: {},
   extraReducers: (builder) => {
@@ -59,6 +60,7 @@ const categorySlice = createSlice({
       .addCase(fetchCategories.fulfilled, (state, action) => {
         state.loading = false;
         state.all = action.payload || [];
+         state.fetched = true;
       })
       .addCase(fetchCategories.rejected, (state, action) => {
         state.loading = false;

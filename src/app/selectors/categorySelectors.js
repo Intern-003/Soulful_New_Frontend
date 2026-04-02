@@ -1,9 +1,3 @@
-// export const selectParentCategories = (state) =>
-//   state.categories.all.filter((cat) => cat.parent_id === null);
-
-// export const selectChildrenByParent = (state, parentId) =>
-//   state.categories.children[parentId] || [];
-
 import { createSelector } from "@reduxjs/toolkit";
 
 // Base selector

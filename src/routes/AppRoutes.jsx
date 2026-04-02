@@ -14,22 +14,20 @@ import Dashboard from "../pages/dashboard/Dashboard";
 import Products from "../pages/dashboard/Products";
 import Orders from "../pages/dashboard/Orders";
 import Users from "../pages/dashboard/Users";
- import Cart from "../pages/user/Cart";
+import Cart from "../pages/user/Cart";
 
 const AppRoutes = () => {
   return (
     <Routes>
 
-     
-      <Route path="/login" element={<Login />} /> 
-     <Route path="/register" element={<Register />}/>
+
+      <Route path="/login" element={<Login />} />
+      <Route path="/register" element={<Register />} />
 
       {/* MAIN WEBSITE */}
       <Route element={<MainLayout />}>
         <Route path="/" element={<Home />} />
-       
-
-<Route path="/cart" element={<Cart />} />
+        <Route path="/cart" element={<Cart />} />
       </Route>
 
       {/* DASHBOARD */}
