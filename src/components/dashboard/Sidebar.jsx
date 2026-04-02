@@ -43,6 +43,18 @@ const Sidebar = () => {
       icon: Users,
       permission: PERMISSIONS.MANAGE_USERS,
     },
+    {
+      name: "Categories",
+      path: "/dashboard/categories",
+      icon: Package,
+      permission: PERMISSIONS.MANAGE_CATEGORIES,
+    },
+    {
+      name: "Roles & Permissions",
+      path: "/dashboard/roles",
+      icon: Users,
+      permission: PERMISSIONS.MANAGE_ROLES,
+    },
   ];
 
   return (

@@ -1,17 +1,23 @@
-// export const hasPermission = (role, permission) => {
-//   if (!role) return false;
+export const hasPermission = (input, module, action) => {
+  if (!input) return false;
 
-//   const permissions = {
-//     admin: ["view_dashboard", "manage_products", "manage_orders", "manage_users"],
-//     vendor: ["view_dashboard", "manage_products", "manage_orders"],
-//   };
+  // 🔹 CASE 1: role string
+  if (typeof input === "string") {
+    const map = {
+      admin: ["all"],
+      vendor: ["products_view", "products_create"],
+    };
 
-//   return permissions[role]?.includes(permission);
-// };
+    return map[input]?.includes("all") || map[input]?.includes(module);
+  }
 
+  // 🔹 CASE 2: permissions array
+  if (Array.isArray(input)) {
+    return input.some(
+      (perm) =>
+        perm.module === module && perm.action === action
+    );
+  }
 
-export const hasPermission = (permissions, module, action) => {
-  return permissions?.some(
-    (perm) => perm.module === module && perm.action === action
-  );
+  return false;
 };
