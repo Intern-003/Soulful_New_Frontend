@@ -4,6 +4,8 @@ export const PERMISSIONS = {
   MANAGE_PRODUCTS: "manage_products",
   MANAGE_ORDERS: "manage_orders",
   MANAGE_USERS: "manage_users",
+  MANAGE_CATEGORIES: "manage_categories",
+
 };
 
 export const ROLE_PERMISSIONS = {
