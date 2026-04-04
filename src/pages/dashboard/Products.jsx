@@ -3,8 +3,8 @@
   import useDelete from "../../api/hooks/useDelete";
   import { getImageUrl } from "../../utils/getImageUrl";
 
-  import ProductForm from "../../components/dashboard/ProductForm";
-  import EditProductModal from "../../components/dashboard/EditProductModal";
+import ProductForm from "../../components/dashboard/products/ProductForm";
+  import EditProductModal from "../../components/dashboard/products/EditProductModal";
 
   const Products = () => {
     const { data, loading, error, refetch } = useGet("/products");

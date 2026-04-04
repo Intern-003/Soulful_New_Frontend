@@ -1,7 +1,7 @@
 import { useState } from "react";
 import useGet from "../../api/hooks/useGet";
 import usePost from "../../api/hooks/usePost";
-
+import UserRow from "../../components/dashboard/users/UserRow";
 import UserTable from "../../components/dashboard/users/UserTable";
 
 const Users = () => {

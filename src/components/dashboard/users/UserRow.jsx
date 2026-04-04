@@ -1,5 +1,5 @@
-import usePut from "../../api/hooks/usePut";
-import usePost from "../../api/hooks/usePost";
+import usePut from "../../../api/hooks/usePut";
+import usePost from "../../../api/hooks/usePost";
 
 const UserRow = ({ user, roles, onRefresh }) => {
   const { putData } = usePut();
