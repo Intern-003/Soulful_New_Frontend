@@ -1,5 +1,6 @@
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useDispatch, useSelector } from "react-redux";
+import { useSearchParams } from "react-router-dom";
 
 import { fetchCategories } from "../../app/slices/categorySlice";
 import { selectParentCategories } from "../../app/selectors/categorySelectors";
@@ -12,124 +13,118 @@ import useGet from "../../api/hooks/useGet";
 
 const ShopPage = () => {
   const dispatch = useDispatch();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const parentCategories = useSelector(selectParentCategories);
-  const { loading: categoryLoading } = useSelector((state) => state.categories);
+  const { loading } = useSelector((state) => state.categories);
 
   const [showFilters, setShowFilters] = useState(false);
-  const [viewMode, setViewMode] = useState("grid");
 
-  // ✅ FETCH DATA ONLY ONCE
-  const { data: productResponse, loading: productsLoading } = useGet("/products");
-  const { data: brandResponse } = useGet("/brands");
+  // ✅ PRODUCTS
+  const {
+    data: productResponse,
+    loading: productsLoading,
+    error,
+    refetch,
+  } = useGet("/products", { autoFetch: false });
 
   const products = Array.isArray(productResponse?.data?.data)
     ? productResponse.data.data
     : [];
-  
 
-  const brands = Array.isArray(brandResponse?.data)
-    ? brandResponse.data
+  // ✅ BRANDS
+  const { data: brandResponse } = useGet("/brands");
+  const brands = Array.isArray(brandResponse?.data?.data)
+    ? brandResponse.data.data
     : [];
-    console.log(brands)
 
   // ✅ FILTER STATE
-  const [filters, setFilters] = useState({
+  const initialFilters = {
     category: null,
     brands: [],
     color: null,
-    price: [0, 1000000],
+    price: [0, 5000],
     search: "",
     sort: "",
-  });
+  };
+
+  const [filters, setFilters] = useState(initialFilters);
 
   // ✅ FETCH CATEGORIES
   useEffect(() => {
     dispatch(fetchCategories());
   }, [dispatch]);
 
-  // ✅ UPDATE FILTER
-  const updateFilter = (key, value) => {
-    setFilters((prev) => ({
-      ...prev,
-      [key]: value,
-    }));
+  // ✅ API CALL
+  const fetchProducts = useCallback((customFilters) => {
+    const f = customFilters || filters;
+
+    let url = "/products";
+    let params = {};
+
+    if (f.search) {
+      url = "/products/search";
+      params.q = f.search;
+    } else {
+      params.price_min = f.price[0];
+      params.price_max = f.price[1];
+
+      if (f.category) params.category_id = f.category;
+
+      if (f.brands.length) {
+        params["brands[]"] = f.brands;
+      }
+
+      if (f.color) params.color = f.color;
+      if (f.sort) params.sort = f.sort;
+    }
+
+    refetch({ url, params });
+  }, [filters, refetch]);
+
+  // ✅ APPLY FILTERS (MAIN FIX)
+  const handleApplyFilters = () => {
+    // 👉 update URL ONLY when applying
+    const params = {};
+
+    if (filters.category) params.category = filters.category;
+    if (filters.brands.length)
+      params.brands = filters.brands.join(",");
+    if (filters.color) params.color = filters.color;
+
+    params.price_min = filters.price[0];
+    params.price_max = filters.price[1];
+
+    if (filters.search) params.q = filters.search;
+    if (filters.sort) params.sort = filters.sort;
+
+    setSearchParams(params);
+
+    fetchProducts();
+    setShowFilters(false); // close mobile drawer
   };
 
   // ✅ CLEAR FILTERS
   const handleClearFilters = () => {
-    setFilters({
-      category: null,
-      brands: [],
-      color: null,
-      price: [0, 1000000],
-      search: "",
-      sort: "",
-    });
+    setFilters(initialFilters);
+    setSearchParams({});
+    refetch({ url: "/products", params: {} });
   };
 
-  // ✅ DEBOUNCED SEARCH
-  const [debouncedSearch, setDebouncedSearch] = useState("");
-
+  // ✅ SEARCH (debounced)
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedSearch(filters.search.toLowerCase());
+    if (!filters.search) return;
+
+    const delay = setTimeout(() => {
+      fetchProducts(filters);
     }, 400);
 
-    return () => clearTimeout(timer);
+    return () => clearTimeout(delay);
   }, [filters.search]);
 
-  // ✅ FILTER + SORT LOGIC (CLIENT SIDE)
-  const filteredProducts = useMemo(() => {
-  let result = [...products];
-
-  // SEARCH
-  if (debouncedSearch) {
-    result = result.filter((p) =>
-      p.name?.toLowerCase().includes(debouncedSearch)
-    );
-  }
-
-  // CATEGORY
-  if (filters.category) {
-    result = result.filter(
-      (p) => Number(p.category_id) === Number(filters.category)
-    );
-  }
-
-  // BRANDS
-  if (filters.brands.length) {
-    result = result.filter((p) =>
-      filters.brands.includes(Number(p.brand_id))
-    );
-  }
-
-  // COLOR (if exists)
-  if (filters.color) {
-    result = result.filter(
-      (p) => p.color?.toLowerCase() === filters.color
-    );
-  }
-
-  // ✅ PRICE (IMPORTANT: convert to number)
-  result = result.filter(
-    (p) => {
-      const price = Number(p.price);
-      return price >= filters.price[0] && price <= filters.price[1];
-    }
-  );
-
-  // SORT
-  if (filters.sort === "price_asc") {
-    result.sort((a, b) => Number(a.price) - Number(b.price));
-  }
-
-  if (filters.sort === "price_desc") {
-    result.sort((a, b) => Number(b.price) - Number(a.price));
-  }
-
-  return result;
-}, [products, filters, debouncedSearch]);
+  // ✅ HANDLER
+  const updateFilter = (key, value) =>
+    setFilters((prev) => ({ ...prev, [key]: value }));
 
   return (
     <div className="bg-gray-100 min-h-screen px-3 sm:px-4 lg:px-6 py-4">
@@ -156,7 +151,7 @@ const ShopPage = () => {
             <Sidebar
               categories={parentCategories}
               brands={brands}
-              loading={categoryLoading}
+              loading={loading}
               selectedCategory={filters.category}
               selectedBrands={filters.brands}
               selectedColor={filters.color}
@@ -165,7 +160,7 @@ const ShopPage = () => {
               onBrandChange={(v) => updateFilter("brands", v)}
               onColorChange={(v) => updateFilter("color", v)}
               onPriceChange={(v) => updateFilter("price", v)}
-              onApplyFilters={() => setShowFilters(false)}
+              onApplyFilters={handleApplyFilters}
               onClearFilters={handleClearFilters}
             />
           </div>
@@ -182,7 +177,7 @@ const ShopPage = () => {
                 <Sidebar
                   categories={parentCategories}
                   brands={brands}
-                  loading={categoryLoading}
+                  loading={loading}
                   selectedCategory={filters.category}
                   selectedBrands={filters.brands}
                   selectedColor={filters.color}
@@ -191,7 +186,7 @@ const ShopPage = () => {
                   onBrandChange={(v) => updateFilter("brands", v)}
                   onColorChange={(v) => updateFilter("color", v)}
                   onPriceChange={(v) => updateFilter("price", v)}
-                  onApplyFilters={() => setShowFilters(false)}
+                  onApplyFilters={handleApplyFilters}
                   onClearFilters={handleClearFilters}
                 />
               </div>
@@ -203,23 +198,25 @@ const ShopPage = () => {
             </div>
           )}
 
-          {/* MAIN CONTENT */}
+          {/* MAIN */}
           <div className="flex-1">
 
             <ShopHeader
               searchValue={filters.search}
-              sortValue={filters.sort}
-              viewMode={viewMode}
               onSearch={(v) => updateFilter("search", v)}
               onSortChange={(v) => updateFilter("sort", v)}
-              onViewChange={setViewMode}
             />
 
+            {error && (
+              <p className="text-red-500 mb-3">
+                Failed to load products
+              </p>
+            )}
+
             <ProductGrid
-              products={filteredProducts}
+              products={products}
               loading={productsLoading}
               columns={4}
-              viewMode={viewMode}
             />
 
           </div>
