@@ -1,4 +1,3 @@
-// src/components/common/ProductCard.jsx
 import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
@@ -9,6 +8,7 @@ import { addToWishlist } from '../../app/slices/wishlistSlice';
 
 const ProductCard = ({ product, loading = false }) => {
   if (!product) return null;
+
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
@@ -18,16 +18,15 @@ const ProductCard = ({ product, loading = false }) => {
   const [isActionLoading, setIsActionLoading] = useState(false);
   const [added, setAdded] = useState(false);
 
-  // 🧠 Check if product already in cart
   const isInCart = useMemo(() => {
-  if (!product) return false;
+    if (!product) return false;
 
-  return cartItems.some(
-    (item) =>
-      item.product_id === product.id ||
-      item.product?.id === product.id
-  );
-}, [cartItems, product?.id]);
+    return cartItems.some(
+      (item) =>
+        item.product_id === product.id ||
+        item.product?.id === product.id
+    );
+  }, [cartItems, product?.id]);
 
   const image =
     product?.images?.find((img) => img.is_primary)?.image_url ||
@@ -40,7 +39,6 @@ const ProductCard = ({ product, loading = false }) => {
         )
       : null;
 
-  // ✅ ADD TO CART
   const handleAddToCart = async (e) => {
     e?.stopPropagation();
 
@@ -56,12 +54,9 @@ const ProductCard = ({ product, loading = false }) => {
         })
       ).unwrap();
 
-      // ✅ Show "Added ✓"
       setAdded(true);
 
-      setTimeout(() => {
-        setAdded(false);
-      }, 1500);
+      setTimeout(() => setAdded(false), 1500);
     } catch (err) {
       console.error('Add to cart failed:', err);
     } finally {
@@ -69,7 +64,6 @@ const ProductCard = ({ product, loading = false }) => {
     }
   };
 
-  // ❤️ WISHLIST
   const handleAddToWishlist = async (e) => {
     e?.stopPropagation();
 
@@ -97,13 +91,11 @@ const ProductCard = ({ product, loading = false }) => {
     navigate(`/product/${product.slug}`);
   };
 
-  const isLoading = isActionLoading;
-
   if (loading) {
     return (
       <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-        <div className="h-[240px] bg-gray-200 animate-pulse" />
-        <div className="p-4 space-y-2">
+        <div className="h-40 sm:h-52 md:h-[240px] bg-gray-200 animate-pulse" />
+        <div className="p-3 sm:p-4 space-y-2">
           <div className="h-4 bg-gray-200 animate-pulse rounded w-3/4 mx-auto" />
           <div className="h-4 bg-gray-200 animate-pulse rounded w-1/2 mx-auto" />
         </div>
@@ -117,28 +109,28 @@ const ProductCard = ({ product, loading = false }) => {
       className="group cursor-pointer bg-white rounded-xl shadow-sm hover:shadow-lg transition duration-300 overflow-hidden"
     >
       {/* IMAGE */}
-      <div className="relative h-[240px] bg-gray-100 flex items-center justify-center overflow-hidden">
+      <div className="relative h-40 sm:h-52 md:h-[240px] bg-gray-100 flex items-center justify-center overflow-hidden">
         <img
           src={getImageUrl(image) || '/placeholder.jpg'}
           alt={product?.name}
-          className="h-full object-contain transition duration-500 group-hover:scale-110"
+          className="h-full object-contain transition duration-500 group-hover:scale-105"
         />
 
         {/* DISCOUNT */}
         {discount && (
-          <span className="absolute top-3 left-3 bg-orange-500 text-white text-xs px-2 py-1 rounded">
+          <span className="absolute top-2 left-2 sm:top-3 sm:left-3 bg-orange-500 text-white text-[10px] sm:text-xs px-2 py-1 rounded">
             -{discount}%
           </span>
         )}
 
         {/* ACTION BUTTONS */}
-        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center gap-3">
+        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center gap-2 sm:gap-3">
           
-          {/* 🛒 ADD TO CART */}
+          {/* ADD TO CART */}
           <button
             onClick={handleAddToCart}
-            disabled={isLoading || isInCart}
-            className={`p-3 rounded-full transition flex items-center justify-center
+            disabled={isActionLoading || isInCart}
+            className={`p-2 sm:p-3 rounded-full transition flex items-center justify-center
               ${
                 added
                   ? 'bg-green-500 text-white'
@@ -148,54 +140,48 @@ const ProductCard = ({ product, loading = false }) => {
               }
             `}
           >
-            {added ? (
-              <Check size={18} />
-            ) : (
-              <ShoppingCart size={18} />
-            )}
+            {added ? <Check size={16} /> : <ShoppingCart size={16} />}
           </button>
 
-          {/* ❤️ WISHLIST */}
+          {/* WISHLIST */}
           <button
             onClick={handleAddToWishlist}
-            disabled={isLoading}
-            className="bg-white p-3 rounded-full hover:bg-[#7a1c3d] hover:text-white transition"
+            disabled={isActionLoading}
+            className="bg-white p-2 sm:p-3 rounded-full hover:bg-[#7a1c3d] hover:text-white transition"
           >
-            <Heart size={18} />
+            <Heart size={16} />
           </button>
 
-          {/* 👁 VIEW */}
+          {/* VIEW */}
           <button
             onClick={handleViewProduct}
-            className="bg-white p-3 rounded-full hover:bg-[#7a1c3d] hover:text-white transition"
+            className="bg-white p-2 sm:p-3 rounded-full hover:bg-[#7a1c3d] hover:text-white transition"
           >
-            <Eye size={18} />
+            <Eye size={16} />
           </button>
         </div>
       </div>
 
       {/* CONTENT */}
-      <div className="p-4 text-center">
-        <h3 className="text-sm font-semibold line-clamp-1">
+      <div className="p-3 sm:p-4 text-center">
+        <h3 className="text-xs sm:text-sm font-semibold line-clamp-1">
           {product?.name}
         </h3>
 
         <div className="mt-1">
-          <span className="text-[#7a1c3d] font-bold">
+          <span className="text-[#7a1c3d] font-bold text-sm sm:text-base">
             ₹{product?.discount_price || product?.price}
           </span>
+
           {product?.discount_price && (
-            <span className="text-gray-400 line-through ml-2 text-sm">
+            <span className="text-gray-400 line-through ml-2 text-xs sm:text-sm">
               ₹{product?.price}
             </span>
           )}
         </div>
 
-       
-
-        {/* ✅ OPTIONAL: show "Already in Cart" */}
         {isInCart && !added && (
-          <p className="text-xs text-green-600 mt-1">
+          <p className="text-[10px] sm:text-xs text-green-600 mt-1">
             Already in cart
           </p>
         )}
