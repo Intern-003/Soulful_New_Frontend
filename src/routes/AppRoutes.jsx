@@ -4,6 +4,7 @@ import { Routes, Route, Navigate } from "react-router-dom";
 // Layouts
 import MainLayout from "../components/common/MainLayout";
 import DashboardLayout from "../layouts/DashboardLayout";
+import Attributes from "../pages/dashboard/Attributes";
 
 // Pages
 import Home from "../pages/public/Home";
@@ -41,6 +42,7 @@ const AppRoutes = () => {
         <Route path="users" element={<Users />} />
         <Route path="categories" element={<Categories />} />
         <Route path="roles" element={<Roles />} />
+        <Route path="attributes" element={<Attributes />} />
       </Route>
 
       {/* FALLBACK */}

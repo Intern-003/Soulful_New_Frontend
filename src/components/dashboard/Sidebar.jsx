@@ -55,6 +55,12 @@ const Sidebar = () => {
       icon: Users,
       permission: PERMISSIONS.MANAGE_ROLES,
     },
+    {
+      name: "Attributes",
+      path: "/dashboard/attributes",
+      icon: Package,
+      permission: PERMISSIONS.MANAGE_ATTRIBUTES,
+    }
   ];
 
   return (
