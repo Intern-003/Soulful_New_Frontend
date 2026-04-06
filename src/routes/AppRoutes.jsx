@@ -15,8 +15,9 @@ import Products from "../pages/dashboard/Products";
 import Orders from "../pages/dashboard/Orders";
 import Users from "../pages/dashboard/Users";
 import Categories from "../pages/dashboard/Categories";
- import Cart from "../pages/user/Cart";
+import Cart from "../pages/user/Cart";
 import Roles from "../pages/dashboard/Roles";
+import ShopPage from "../pages/public/ShopPage";
 const AppRoutes = () => {
   return (
     <Routes>
@@ -29,6 +30,7 @@ const AppRoutes = () => {
       <Route element={<MainLayout />}>
         <Route path="/" element={<Home />} />
         <Route path="/cart" element={<Cart />} />
+        <Route path="/shop" element={<ShopPage />} />
       </Route>
 
       {/* DASHBOARD */}
