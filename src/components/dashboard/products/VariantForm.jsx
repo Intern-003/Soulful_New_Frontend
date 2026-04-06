@@ -5,13 +5,24 @@ import usePost from "../../../api/hooks/usePost";
 import usePut from "../../../api/hooks/usePut";
 import AttributeSelector from "./AttributeSelector";
 
-const generateSKU = (values = []) => {
-  return values.map((v) => v.value?.toUpperCase()).join("-");
+// 🔥 REAL SKU GENERATOR (FIXED)
+const generateSKU = (values = [], attributes = []) => {
+  return values
+    .map((id) => {
+      const attr = attributes.find((a) =>
+        a.values.some((v) => v.id === id)
+      );
+      const val = attr?.values.find((v) => v.id === id);
+      return val?.value?.toUpperCase().replace(/\s/g, "");
+    })
+    .join("-");
 };
 
 const VariantForm = ({ productId, data, onClose, onSuccess }) => {
-  const { postData } = usePost();
-  const { putData } = usePut();
+  const { postData, loading: postLoading } = usePost();
+  const { putData, loading: putLoading } = usePut();
+
+  const [attributes, setAttributes] = useState([]);
 
   const [form, setForm] = useState({
     sku: data?.sku || "",
@@ -23,10 +34,33 @@ const VariantForm = ({ productId, data, onClose, onSuccess }) => {
     image: null,
   });
 
-  // 🔥 GROUPED STATE (IMPORTANT)
+  const [preview, setPreview] = useState(
+    data?.image
+      ? `http://localhost:8000/storage/${data.image}`
+      : null
+  );
+
+  // 🔥 GROUPED STATE
   const [selectedValues, setSelectedValues] = useState({});
 
-  // 🔹 Convert edit data → grouped format
+  // 🔹 LOAD ATTRIBUTES (IMPORTANT)
+  useEffect(() => {
+    const fetchAttributes = async () => {
+      try {
+        const res = await fetch(
+          "http://localhost:8000/api/admin/attributes-with-values"
+        );
+        const json = await res.json();
+        setAttributes(json.data || []);
+      } catch (err) {
+        console.error(err);
+      }
+    };
+
+    fetchAttributes();
+  }, []);
+
+  // 🔹 EDIT MODE → GROUPED FORMAT
   useEffect(() => {
     if (data?.attribute_values) {
       const grouped = {};
@@ -42,15 +76,19 @@ const VariantForm = ({ productId, data, onClose, onSuccess }) => {
     }
   }, [data]);
 
-  // 🔹 Handle input change
+  // 🔹 INPUT CHANGE
   const handleChange = (e) => {
     const { name, value, files } = e.target;
 
     if (name === "image") {
+      const file = files[0];
+
       setForm((prev) => ({
         ...prev,
-        image: files[0],
+        image: file,
       }));
+
+      setPreview(URL.createObjectURL(file));
     } else {
       setForm((prev) => ({
         ...prev,
@@ -59,44 +97,70 @@ const VariantForm = ({ productId, data, onClose, onSuccess }) => {
     }
   };
 
-  // 🔹 Flatten grouped → array for API
+  // 🔹 FLATTEN VALUES
   const getFlatValues = () => {
     return Object.values(selectedValues).flat();
   };
 
-  // 🔥 AUTO SKU (optional auto-fill)
+  // 🔥 AUTO SKU FIXED
   useEffect(() => {
     if (!data) {
       const flat = getFlatValues();
-      if (flat.length) {
+
+      if (flat.length && attributes.length) {
         setForm((prev) => ({
           ...prev,
-          sku: generateSKU(
-            flat.map((id) => ({ value: id })) // simple fallback
-          ),
+          sku: generateSKU(flat, attributes),
         }));
       }
     }
-  }, [selectedValues]);
+  }, [selectedValues, attributes]);
 
-  // 🔹 Submit
+  // 🔹 SUBMIT
   const handleSubmit = async () => {
     try {
       if (data) {
         // ✅ UPDATE
-        await putData({
-          url: `/vendor/product-variants/${data.id}`,
-          data: form,
-        });
-      } else {
-        // ✅ CREATE (with image support)
         const formData = new FormData();
 
-        Object.keys(form).forEach((key) => {
-          if (form[key] !== null) {
-            formData.append(key, form[key]);
-          }
+        formData.append("price", Number(form.price));
+        formData.append(
+          "discount_price",
+          Number(form.discount_price || 0)
+        );
+        formData.append("stock", Number(form.stock));
+        formData.append("weight", Number(form.weight || 0));
+        formData.append("barcode", form.barcode || "");
+
+        if (form.image) {
+          formData.append("image", form.image);
+        }
+
+        await putData({
+          url: `/vendor/product-variants/${data.id}`,
+          data: formData,
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
         });
+
+      } else {
+        // ✅ CREATE
+        const formData = new FormData();
+
+        formData.append("sku", form.sku);
+        formData.append("barcode", form.barcode || "");
+        formData.append("price", Number(form.price));
+        formData.append(
+          "discount_price",
+          Number(form.discount_price || 0)
+        );
+        formData.append("stock", Number(form.stock));
+        formData.append("weight", Number(form.weight || 0));
+
+        if (form.image) {
+          formData.append("image", form.image);
+        }
 
         getFlatValues().forEach((id) => {
           formData.append("attribute_value_ids[]", id);
@@ -105,35 +169,40 @@ const VariantForm = ({ productId, data, onClose, onSuccess }) => {
         await postData({
           url: `/vendor/products/${productId}/variants`,
           data: formData,
-          isFormData: true,
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
         });
       }
 
+      alert("Variant Saved ✅");
       onSuccess();
       onClose();
+
     } catch (err) {
       console.error("Variant Error:", err);
+      alert("Something went wrong");
     }
   };
 
   return (
     <div className="fixed inset-0 bg-black/50 flex justify-center items-center z-50">
+
       <div className="bg-white p-6 rounded-2xl w-full max-w-2xl shadow-lg">
 
-        {/* 🔹 HEADER */}
+        {/* HEADER */}
         <h2 className="text-xl font-bold mb-4">
           {data ? "Edit Variant" : "Create Variant"}
         </h2>
 
-        {/* 🔹 FORM */}
+        {/* FORM */}
         <div className="grid grid-cols-2 gap-3">
 
           <input
             name="sku"
             value={form.sku}
-            onChange={handleChange}
-            placeholder="SKU"
-            className="border p-2 rounded"
+            readOnly
+            className="border p-2 rounded bg-gray-100"
           />
 
           <input
@@ -178,22 +247,28 @@ const VariantForm = ({ productId, data, onClose, onSuccess }) => {
 
         </div>
 
-        {/* 🔥 IMAGE UPLOAD */}
-        {!data && (
-          <div className="mt-4">
-            <label className="text-sm font-medium text-gray-600">
-              Variant Image
-            </label>
-            <input
-              type="file"
-              name="image"
-              onChange={handleChange}
-              className="mt-1"
-            />
-          </div>
-        )}
+        {/* IMAGE */}
+        <div className="mt-4">
+          <label className="text-sm font-medium">
+            Variant Image
+          </label>
 
-        {/* 🔥 ATTRIBUTE SELECTOR */}
+          <input
+            type="file"
+            name="image"
+            onChange={handleChange}
+            className="mt-1"
+          />
+
+          {preview && (
+            <img
+              src={preview}
+              className="mt-2 h-24 rounded border"
+            />
+          )}
+        </div>
+
+        {/* ATTRIBUTES */}
         {!data && (
           <div className="mt-5">
             <h3 className="text-sm font-semibold mb-2">
@@ -207,7 +282,7 @@ const VariantForm = ({ productId, data, onClose, onSuccess }) => {
           </div>
         )}
 
-        {/* 🔹 ACTIONS */}
+        {/* ACTIONS */}
         <div className="flex justify-end gap-3 mt-6">
 
           <button
@@ -219,9 +294,16 @@ const VariantForm = ({ productId, data, onClose, onSuccess }) => {
 
           <button
             onClick={handleSubmit}
+            disabled={postLoading || putLoading}
             className="bg-[#7a1c3d] text-white px-5 py-2 rounded-lg"
           >
-            {data ? "Update Variant" : "Create Variant"}
+            {data
+              ? putLoading
+                ? "Updating..."
+                : "Update Variant"
+              : postLoading
+              ? "Creating..."
+              : "Create Variant"}
           </button>
 
         </div>

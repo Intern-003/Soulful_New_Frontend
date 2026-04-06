@@ -5,7 +5,9 @@ import usePost from "../../../api/hooks/usePost";
 
 // 🔥 SKU GENERATOR
 const generateSKU = (values = []) => {
-  return values.map((v) => v.value?.toUpperCase()).join("-");
+  return values
+    .map((v) => v.value?.toUpperCase().replace(/\s/g, ""))
+    .join("-");
 };
 
 // 🔥 COMBINATION LOGIC
@@ -19,40 +21,84 @@ const generateCombinations = (arrays) => {
   );
 };
 
-const VariantGenerator = ({ productId, attributes, selectedValues }) => {
+const VariantGenerator = ({
+  productId,
+  attributes,
+  selectedValues,
+  selectedAttributes,
+}) => {
   const [variants, setVariants] = useState([]);
   const { postData, loading } = usePost();
 
+  const [bulk, setBulk] = useState({
+    price: "",
+    stock: "",
+    discount_price: "",
+  });
+
+  // ✅ HANDLE ALL TYPES OF INPUT
+  const selected = selectedValues || selectedAttributes || [];
+
   // 🔹 GENERATE VARIANTS
   const generate = () => {
+    console.log("SELECTED:", selected);
+
+    if (
+      !selected ||
+      (Array.isArray(selected) && selected.length === 0) ||
+      (typeof selected === "object" &&
+        !Array.isArray(selected) &&
+        Object.keys(selected).length === 0)
+    ) {
+      alert("Please select attributes first");
+      return;
+    }
+
     const grouped = {};
 
-    // ✅ FIXED (grouped structure)
     attributes.forEach((attr) => {
-      const selectedIds = selectedValues[attr.id] || [];
+      let vals = [];
 
-      const vals = attr.values.filter((v) =>
-        selectedIds.includes(v.id)
-      );
+      // ✅ CASE 1: FLAT ARRAY ( [1,2] OR [{id:1}] )
+      if (Array.isArray(selected)) {
+        vals = attr.values.filter((v) =>
+          selected.some((s) =>
+            typeof s === "object" ? s.id === v.id : s === v.id
+          )
+        );
+      }
+
+      // ✅ CASE 2: GROUPED OBJECT ( { color:[1], size:[2] } )
+      else if (typeof selected === "object") {
+        const selectedIds = selected[attr.id] || [];
+
+        vals = attr.values.filter((v) =>
+          selectedIds.includes(v.id)
+        );
+      }
 
       if (vals.length) {
         grouped[attr.id] = vals;
       }
     });
 
-    const arrays = Object.values(grouped);
+    const combos = generateCombinations(Object.values(grouped));
 
-    const combos = generateCombinations(arrays);
+    if (!combos.length) {
+      alert("No valid combinations generated");
+      return;
+    }
 
     const result = combos.map((combo) => ({
       values: combo,
-      sku: generateSKU(combo), // 🔥 AUTO SKU
+      sku: generateSKU(combo),
       price: "",
       discount_price: "",
       stock: "",
       weight: "",
       barcode: "",
       image: null,
+      preview: null,
     }));
 
     setVariants(result);
@@ -68,16 +114,22 @@ const VariantGenerator = ({ productId, attributes, selectedValues }) => {
   // 🔥 IMAGE HANDLER
   const handleImageChange = (index, file) => {
     const updated = [...variants];
+
     updated[index].image = file;
+    updated[index].preview = URL.createObjectURL(file);
+
     setVariants(updated);
   };
 
   // 🔥 BULK APPLY
-  const applyBulk = (field, value) => {
+  const applyBulk = () => {
     const updated = variants.map((v) => ({
       ...v,
-      [field]: value,
+      price: bulk.price || v.price,
+      stock: bulk.stock || v.stock,
+      discount_price: bulk.discount_price || v.discount_price,
     }));
+
     setVariants(updated);
   };
 
@@ -89,10 +141,13 @@ const VariantGenerator = ({ productId, attributes, selectedValues }) => {
 
         formData.append("sku", v.sku);
         formData.append("barcode", v.barcode || "");
-        formData.append("price", v.price);
-        formData.append("discount_price", v.discount_price || 0);
-        formData.append("stock", v.stock);
-        formData.append("weight", v.weight || 0);
+        formData.append("price", Number(v.price || 0));
+        formData.append(
+          "discount_price",
+          Number(v.discount_price || 0)
+        );
+        formData.append("stock", Number(v.stock || 0));
+        formData.append("weight", Number(v.weight || 0));
 
         if (v.image) {
           formData.append("image", v.image);
@@ -105,14 +160,16 @@ const VariantGenerator = ({ productId, attributes, selectedValues }) => {
         await postData({
           url: `/vendor/products/${productId}/variants`,
           data: formData,
-          isFormData: true,
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
         });
       }
 
       alert("Variants Created Successfully 🚀");
     } catch (err) {
       console.error(err);
-      alert("Error saving variants");
+      alert(err?.response?.data?.message || "Error saving variants");
     }
   };
 
@@ -131,18 +188,44 @@ const VariantGenerator = ({ productId, attributes, selectedValues }) => {
       {variants.length > 0 && (
         <div className="mt-4 space-y-4">
 
-          {/* 🔥 BULK CONTROLS */}
-          <div className="flex gap-2">
+          {/* BULK */}
+          <div className="flex gap-2 p-3 border rounded bg-gray-50">
             <input
               placeholder="Bulk Price"
-              onBlur={(e) => applyBulk("price", e.target.value)}
+              value={bulk.price}
+              onChange={(e) =>
+                setBulk({ ...bulk, price: e.target.value })
+              }
               className="border p-2 rounded"
             />
+
+            <input
+              placeholder="Bulk Discount"
+              value={bulk.discount_price}
+              onChange={(e) =>
+                setBulk({
+                  ...bulk,
+                  discount_price: e.target.value,
+                })
+              }
+              className="border p-2 rounded"
+            />
+
             <input
               placeholder="Bulk Stock"
-              onBlur={(e) => applyBulk("stock", e.target.value)}
+              value={bulk.stock}
+              onChange={(e) =>
+                setBulk({ ...bulk, stock: e.target.value })
+              }
               className="border p-2 rounded"
             />
+
+            <button
+              onClick={applyBulk}
+              className="bg-blue-600 text-white px-4 rounded"
+            >
+              Apply
+            </button>
           </div>
 
           {variants.map((v, i) => (
@@ -158,11 +241,8 @@ const VariantGenerator = ({ productId, attributes, selectedValues }) => {
 
                 <input
                   value={v.sku}
-                  onChange={(e) =>
-                    handleChange(i, "sku", e.target.value)
-                  }
-                  placeholder="SKU"
-                  className="border p-2 rounded"
+                  readOnly
+                  className="border p-2 rounded bg-gray-100"
                 />
 
                 <input
@@ -175,7 +255,7 @@ const VariantGenerator = ({ productId, attributes, selectedValues }) => {
                 />
 
                 <input
-                  value={v.price}
+                  value={v.price ?? ""}
                   onChange={(e) =>
                     handleChange(i, "price", e.target.value)
                   }
@@ -184,7 +264,7 @@ const VariantGenerator = ({ productId, attributes, selectedValues }) => {
                 />
 
                 <input
-                  value={v.discount_price}
+                  value={v.discount_price ?? ""}
                   onChange={(e) =>
                     handleChange(i, "discount_price", e.target.value)
                   }
@@ -193,7 +273,7 @@ const VariantGenerator = ({ productId, attributes, selectedValues }) => {
                 />
 
                 <input
-                  value={v.stock}
+                  value={v.stock ?? ""}
                   onChange={(e) =>
                     handleChange(i, "stock", e.target.value)
                   }
@@ -202,7 +282,7 @@ const VariantGenerator = ({ productId, attributes, selectedValues }) => {
                 />
 
                 <input
-                  value={v.weight}
+                  value={v.weight ?? ""}
                   onChange={(e) =>
                     handleChange(i, "weight", e.target.value)
                   }
@@ -212,7 +292,7 @@ const VariantGenerator = ({ productId, attributes, selectedValues }) => {
 
               </div>
 
-              {/* 🔥 IMAGE */}
+              {/* IMAGE */}
               <div className="mt-3">
                 <input
                   type="file"
@@ -220,6 +300,13 @@ const VariantGenerator = ({ productId, attributes, selectedValues }) => {
                     handleImageChange(i, e.target.files[0])
                   }
                 />
+
+                {v.preview && (
+                  <img
+                    src={v.preview}
+                    className="mt-2 h-20 rounded"
+                  />
+                )}
               </div>
 
             </div>
