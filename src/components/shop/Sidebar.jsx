@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useMemo } from "react";
 
 const Sidebar = ({
   categories = [],
@@ -17,6 +17,20 @@ const Sidebar = ({
   onApplyFilters,
   onClearFilters,
 }) => {
+
+  // ✅ LOCAL SEARCH STATE (FIXED ERROR)
+  const [search, setSearch] = useState("");
+
+  // ✅ FILTERED CATEGORIES
+  const filteredCategories = useMemo(() => {
+    if (!search) return categories;
+
+    return categories.filter((cat) =>
+      cat.name.toLowerCase().includes(search.toLowerCase())
+    );
+  }, [categories, search]);
+
+  // ✅ BRAND TOGGLE
   const handleBrandToggle = (brandId) => {
     const id = Number(brandId);
 
@@ -30,24 +44,34 @@ const Sidebar = ({
   return (
     <div className="space-y-4 w-full">
 
-      {/* Categories */}
+      {/* 🔍 CATEGORY SEARCH */}
       <div className="bg-white p-4 rounded shadow">
-        <h3 className="font-semibold mb-3">Categories</h3>
+        <input
+          type="text"
+          placeholder="Search categories..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="w-full border px-3 py-2 rounded mb-3 text-sm focus:ring-2 focus:ring-[#7a1c3d]"
+        />
 
         {loading ? (
           <p className="text-sm text-gray-400">Loading...</p>
         ) : (
           <ul className="space-y-2 text-sm max-h-60 overflow-y-auto">
+
+            {/* ALL */}
             <li
               onClick={() => onCategoryChange(null)}
               className={`cursor-pointer ${
-                !selectedCategory ? "text-[#7a1c3d] font-semibold" : "hover:text-[#7a1c3d]"
+                !selectedCategory
+                  ? "text-[#7a1c3d] font-semibold"
+                  : "hover:text-[#7a1c3d]"
               }`}
             >
               All
             </li>
 
-            {categories.map((cat) => (
+            {filteredCategories.map((cat) => (
               <li
                 key={cat.id}
                 onClick={() => onCategoryChange(cat.id)}
@@ -64,27 +88,7 @@ const Sidebar = ({
         )}
       </div>
 
-      <div>
-  {/* Search Input */}
-  <input
-    type="text"
-    placeholder="Search categories..."
-    value={search}
-    onChange={(e) => setSearch(e.target.value)}
-    className="w-full border px-2 py-1 mb-3"
-  />
-
-  {/* Category Tree */}
-  {filteredCategories.map((cat) => (
-    <CategoryItem
-      key={cat.id}
-      category={cat}
-      onSelect={(id) => onCategoryChange(id)}
-    />
-  ))}
-</div>
-
-      {/* Price */}
+      {/* 💰 PRICE */}
       <div className="bg-white p-4 rounded shadow">
         <h3 className="font-semibold mb-3">Price Range</h3>
 
@@ -105,7 +109,7 @@ const Sidebar = ({
         </div>
       </div>
 
-      {/* Colors */}
+      {/* 🎨 COLORS */}
       <div className="bg-white p-4 rounded shadow">
         <h3 className="font-semibold mb-3">Colors</h3>
 
@@ -120,13 +124,12 @@ const Sidebar = ({
                   : "border-gray-300"
               }`}
               style={{ backgroundColor: color }}
-              title={color}
             />
           ))}
         </div>
       </div>
 
-      {/* Brands */}
+      {/* 🏷 BRANDS (API) */}
       <div className="bg-white p-4 rounded shadow">
         <h3 className="font-semibold mb-3">Brands</h3>
 
@@ -152,8 +155,9 @@ const Sidebar = ({
         </div>
       </div>
 
-      {/* ACTION BUTTONS */}
+      {/* 🚀 ACTION BUTTONS */}
       <div className="bg-white p-4 rounded shadow sticky bottom-0">
+
         <button
           onClick={onApplyFilters}
           className="w-full bg-[#7a1c3d] text-white py-2 rounded mb-2 hover:opacity-90"
@@ -167,8 +171,8 @@ const Sidebar = ({
         >
           Clear All
         </button>
-      </div>
 
+      </div>
     </div>
   );
 };
