@@ -15,7 +15,7 @@ const ProductForm = ({ data, onClose, onSuccess }) => {
   const isEdit = !!data;
 
   const { data: categoryData } = useGet("/categories");
-  const { data: brandData } = useGet("/admin/brands");
+  const { data: brandData } = useGet("/brands");
   const { data: userData } = useGet("/auth/me");
   const { data: attributeData } = useGet("/admin/attributes-with-values");
 
@@ -27,7 +27,7 @@ const ProductForm = ({ data, onClose, onSuccess }) => {
   const { putData, loading: putLoading } = usePut();
 
   const [productId, setProductId] = useState(data?.id || null);
-  const [selectedAttributes, setSelectedAttributes] = useState([]);
+const [selectedAttributes, setSelectedAttributes] = useState({});
 
   const [form, setForm] = useState({
     name: "",
@@ -314,7 +314,7 @@ const ProductForm = ({ data, onClose, onSuccess }) => {
             onChange={setSelectedAttributes}
           />
 
-          {productId && selectedAttributes.length > 0 && (
+          {productId && Object.keys(selectedAttributes).length > 0 && (
             <VariantGenerator
               productId={productId}
               attributes={attributes}
