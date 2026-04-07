@@ -13,12 +13,16 @@ import Login from "../pages/auth/Login";
 import Register from "../pages/auth/Register";
 import Dashboard from "../pages/dashboard/Dashboard";
 import Products from "../pages/dashboard/Products";
-import Orders from "../pages/dashboard/Orders";
 import Users from "../pages/dashboard/Users";
 import Categories from "../pages/dashboard/Categories";
 import Cart from "../pages/user/Cart";
 import Roles from "../pages/dashboard/Roles";
 import ShopPage from "../pages/public/ShopPage";
+import VendorOrdersPage from "../pages/dashboard/VendorOrdersPage";
+import VendorOrderDetailsPage from "../pages/dashboard/VendorOrderDetailsPage";
+import AdminOrderDetailsPage from "../pages/dashboard/AdminOrderDetailsPage";
+import AdminOrdersPage from "../pages/dashboard/AdminOrdersPage";
+
 const AppRoutes = () => {
   return (
     <Routes>
@@ -38,11 +42,14 @@ const AppRoutes = () => {
       <Route path="/dashboard" element={<DashboardLayout />}>
         <Route index element={<Dashboard />} />
         <Route path="products" element={<Products />} />
-        <Route path="orders" element={<Orders />} />
+        <Route path="orders" element={<VendorOrdersPage />} />
+        <Route path="orders/:id" element={<VendorOrderDetailsPage />} />
         <Route path="users" element={<Users />} />
         <Route path="categories" element={<Categories />} />
         <Route path="roles" element={<Roles />} />
         <Route path="attributes" element={<Attributes />} />
+        <Route path="admin/orders" element={<AdminOrdersPage />} />
+        <Route path="admin/orders/:id" element={<AdminOrderDetailsPage />} />
       </Route>
 
       {/* FALLBACK */}
