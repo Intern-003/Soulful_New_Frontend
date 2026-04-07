@@ -23,7 +23,7 @@ const generateCombinations = (arrays) => {
 
 const VariantGenerator = ({
   productId,
-  attributes,
+  attributes = [],
   selectedValues,
   selectedAttributes,
 }) => {
@@ -36,46 +36,26 @@ const VariantGenerator = ({
     discount_price: "",
   });
 
-  // ✅ HANDLE ALL TYPES OF INPUT
-  const selected = selectedValues || selectedAttributes || [];
+  // ✅ HANDLE BOTH TYPES
+  const selected = selectedValues || selectedAttributes || {};
 
-  // 🔹 GENERATE VARIANTS
+  // =========================
+  // 🔥 AUTO GENERATE
+  // =========================
   const generate = () => {
-    console.log("SELECTED:", selected);
-
-    if (
-      !selected ||
-      (Array.isArray(selected) && selected.length === 0) ||
-      (typeof selected === "object" &&
-        !Array.isArray(selected) &&
-        Object.keys(selected).length === 0)
-    ) {
-      alert("Please select attributes first");
+    if (!selected || Object.keys(selected).length === 0) {
+      alert("Select attributes first");
       return;
     }
 
     const grouped = {};
 
     attributes.forEach((attr) => {
-      let vals = [];
+      const selectedIds = selected[attr.id] || [];
 
-      // ✅ CASE 1: FLAT ARRAY ( [1,2] OR [{id:1}] )
-      if (Array.isArray(selected)) {
-        vals = attr.values.filter((v) =>
-          selected.some((s) =>
-            typeof s === "object" ? s.id === v.id : s === v.id
-          )
-        );
-      }
-
-      // ✅ CASE 2: GROUPED OBJECT ( { color:[1], size:[2] } )
-      else if (typeof selected === "object") {
-        const selectedIds = selected[attr.id] || [];
-
-        vals = attr.values.filter((v) =>
-          selectedIds.includes(v.id)
-        );
-      }
+      const vals = attr.values.filter((v) =>
+        selectedIds.includes(v.id)
+      );
 
       if (vals.length) {
         grouped[attr.id] = vals;
@@ -85,7 +65,7 @@ const VariantGenerator = ({
     const combos = generateCombinations(Object.values(grouped));
 
     if (!combos.length) {
-      alert("No valid combinations generated");
+      alert("No combinations generated");
       return;
     }
 
@@ -104,24 +84,79 @@ const VariantGenerator = ({
     setVariants(result);
   };
 
-  // 🔹 HANDLE INPUT
-  const handleChange = (index, field, value) => {
+  // =========================
+  // 🔥 ADD CUSTOM VARIANT
+  // =========================
+  const addVariant = () => {
+    setVariants([
+      ...variants,
+      {
+        values: [],
+        sku: "",
+        price: "",
+        stock: "",
+        discount_price: "",
+        weight: "",
+        barcode: "",
+        image: null,
+        preview: null,
+      },
+    ]);
+  };
+
+  // =========================
+  // 🔥 SELECT VALUE PER ATTRIBUTE
+  // =========================
+  const handleSelect = (variantIndex, attrId, valueId) => {
     const updated = [...variants];
-    updated[index][field] = value;
+
+    const attr = attributes.find((a) => a.id === attrId);
+
+    // remove old value of same attribute
+    updated[variantIndex].values =
+      updated[variantIndex].values.filter(
+        (v) => !attr.values.map((x) => x.id).includes(v.id)
+      );
+
+    // add new value
+    const selectedVal = attr.values.find(
+      (v) => v.id === Number(valueId)
+    );
+
+    if (selectedVal) {
+      updated[variantIndex].values.push(selectedVal);
+    }
+
+    // regenerate SKU
+    updated[variantIndex].sku = generateSKU(
+      updated[variantIndex].values
+    );
+
     setVariants(updated);
   };
 
-  // 🔥 IMAGE HANDLER
-  const handleImageChange = (index, file) => {
+  // =========================
+  // 🔥 HANDLE INPUT
+  // =========================
+  const handleChange = (i, field, value) => {
     const updated = [...variants];
-
-    updated[index].image = file;
-    updated[index].preview = URL.createObjectURL(file);
-
+    updated[i][field] = value;
     setVariants(updated);
   };
 
+  // =========================
+  // 🔥 IMAGE
+  // =========================
+  const handleImageChange = (i, file) => {
+    const updated = [...variants];
+    updated[i].image = file;
+    updated[i].preview = URL.createObjectURL(file);
+    setVariants(updated);
+  };
+
+  // =========================
   // 🔥 BULK APPLY
+  // =========================
   const applyBulk = () => {
     const updated = variants.map((v) => ({
       ...v,
@@ -133,21 +168,20 @@ const VariantGenerator = ({
     setVariants(updated);
   };
 
-  // 🔹 SAVE ALL VARIANTS
+  // =========================
+  // 🔥 SAVE
+  // =========================
   const handleSaveAll = async () => {
     try {
       for (const v of variants) {
         const formData = new FormData();
 
         formData.append("sku", v.sku);
-        formData.append("barcode", v.barcode || "");
         formData.append("price", Number(v.price || 0));
-        formData.append(
-          "discount_price",
-          Number(v.discount_price || 0)
-        );
+        formData.append("discount_price", Number(v.discount_price || 0));
         formData.append("stock", Number(v.stock || 0));
         formData.append("weight", Number(v.weight || 0));
+        formData.append("barcode", v.barcode || "");
 
         if (v.image) {
           formData.append("image", v.image);
@@ -166,23 +200,33 @@ const VariantGenerator = ({
         });
       }
 
-      alert("Variants Created Successfully 🚀");
+      alert("Variants Created 🚀");
+      setVariants([]);
     } catch (err) {
       console.error(err);
-      alert(err?.response?.data?.message || "Error saving variants");
+      alert("Error saving variants");
     }
   };
 
   return (
     <div className="mt-6">
 
-      {/* GENERATE */}
-      <button
-        onClick={generate}
-        className="bg-green-600 text-white px-4 py-2 rounded"
-      >
-        Generate Variants
-      </button>
+      {/* ACTION BUTTONS */}
+      <div className="flex gap-3">
+        <button
+          onClick={generate}
+          className="bg-blue-600 text-white px-4 py-2 rounded"
+        >
+          Auto Generate
+        </button>
+
+        <button
+          onClick={addVariant}
+          className="bg-green-600 text-white px-4 py-2 rounded"
+        >
+          + Add Variant
+        </button>
+      </div>
 
       {/* VARIANTS */}
       {variants.length > 0 && (
@@ -196,129 +240,87 @@ const VariantGenerator = ({
               onChange={(e) =>
                 setBulk({ ...bulk, price: e.target.value })
               }
-              className="border p-2 rounded"
+              className="border p-2"
             />
-
-            <input
-              placeholder="Bulk Discount"
-              value={bulk.discount_price}
-              onChange={(e) =>
-                setBulk({
-                  ...bulk,
-                  discount_price: e.target.value,
-                })
-              }
-              className="border p-2 rounded"
-            />
-
             <input
               placeholder="Bulk Stock"
               value={bulk.stock}
               onChange={(e) =>
                 setBulk({ ...bulk, stock: e.target.value })
               }
-              className="border p-2 rounded"
+              className="border p-2"
             />
-
             <button
               onClick={applyBulk}
-              className="bg-blue-600 text-white px-4 rounded"
+              className="bg-black text-white px-3"
             >
               Apply
             </button>
           </div>
 
           {variants.map((v, i) => (
-            <div key={i} className="border p-4 rounded-xl">
+            <div key={i} className="border p-4 rounded">
 
-              {/* VALUES */}
-              <div className="font-medium mb-3 text-[#7a1c3d]">
-                {v.values.map((x) => x.value).join(" / ")}
+              {/* ATTRIBUTE SELECTORS */}
+              <div className="grid grid-cols-3 gap-2 mb-3">
+                {attributes.map((attr) => (
+                  <select
+                    key={attr.id}
+                    onChange={(e) =>
+                      handleSelect(i, attr.id, e.target.value)
+                    }
+                    className="border p-2"
+                  >
+                    <option>Select {attr.name}</option>
+                    {attr.values.map((val) => (
+                      <option key={val.id} value={val.id}>
+                        {val.value}
+                      </option>
+                    ))}
+                  </select>
+                ))}
               </div>
 
-              {/* FORM */}
-              <div className="grid grid-cols-3 gap-2">
+              {/* SKU */}
+              <div className="text-sm mb-2">
+                SKU: {v.sku}
+              </div>
 
+              <div className="grid grid-cols-2 gap-2">
                 <input
-                  value={v.sku}
-                  readOnly
-                  className="border p-2 rounded bg-gray-100"
-                />
-
-                <input
-                  value={v.barcode}
-                  onChange={(e) =>
-                    handleChange(i, "barcode", e.target.value)
-                  }
-                  placeholder="Barcode"
-                  className="border p-2 rounded"
-                />
-
-                <input
+                  placeholder="Price"
                   value={v.price ?? ""}
                   onChange={(e) =>
                     handleChange(i, "price", e.target.value)
                   }
-                  placeholder="Price"
-                  className="border p-2 rounded"
+                  className="border p-2"
                 />
-
                 <input
-                  value={v.discount_price ?? ""}
-                  onChange={(e) =>
-                    handleChange(i, "discount_price", e.target.value)
-                  }
-                  placeholder="Discount Price"
-                  className="border p-2 rounded"
-                />
-
-                <input
+                  placeholder="Stock"
                   value={v.stock ?? ""}
                   onChange={(e) =>
                     handleChange(i, "stock", e.target.value)
                   }
-                  placeholder="Stock"
-                  className="border p-2 rounded"
+                  className="border p-2"
                 />
-
-                <input
-                  value={v.weight ?? ""}
-                  onChange={(e) =>
-                    handleChange(i, "weight", e.target.value)
-                  }
-                  placeholder="Weight"
-                  className="border p-2 rounded"
-                />
-
               </div>
 
-              {/* IMAGE */}
-              <div className="mt-3">
-                <input
-                  type="file"
-                  onChange={(e) =>
-                    handleImageChange(i, e.target.files[0])
-                  }
-                />
-
-                {v.preview && (
-                  <img
-                    src={v.preview}
-                    className="mt-2 h-20 rounded"
-                  />
-                )}
-              </div>
+              <input
+                type="file"
+                onChange={(e) =>
+                  handleImageChange(i, e.target.files[0])
+                }
+                className="mt-2"
+              />
 
             </div>
           ))}
 
-          {/* SAVE */}
           <button
             onClick={handleSaveAll}
-            disabled={loading}
-            className="bg-[#7a1c3d] text-white px-5 py-2 rounded"
+            className="bg-purple-700 text-white px-5 py-2 rounded"
           >
-            {loading ? "Saving..." : "Save All Variants"}
+            Save Variants
           </button>
 
         </div>
