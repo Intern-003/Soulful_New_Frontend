@@ -16,7 +16,6 @@ import usePermissions from "../../api/hooks/usePermissions";
 import { getImageUrl } from "../../utils/getImageUrl";
 import axiosInstance from "../../api/axiosInstance";
 
-
 const Header = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
@@ -27,13 +26,16 @@ const Header = () => {
 
   // Promo Messages
   // Add this to the top of your component (outside return) for better performance
-  const promoMessages = React.useMemo(() => [
-    "🎁 20% off on your first order - Use code: FIRST20",
-    "🚚 Free Shipping on orders above ₹999",
-    "💳 Cash on Delivery Available",
-    "⭐ 100% Genuine Products",
-    "📦 Easy Returns within 7 days",
-  ], []);
+  const promoMessages = React.useMemo(
+    () => [
+      "🎁 20% off on your first order - Use code: FIRST20",
+      "🚚 Free Shipping on orders above ₹999",
+      "💳 Cash on Delivery Available",
+      "⭐ 100% Genuine Products",
+      "📦 Easy Returns within 7 days",
+    ],
+    [],
+  );
 
   const [currentPromo, setCurrentPromo] = useState(0);
   const [animatePromo, setAnimatePromo] = useState(false);
@@ -100,17 +102,23 @@ const Header = () => {
     navigate("/login");
   };
 
-  const wishlistCount = useSelector((state) => state.wishlist?.items?.length || 0);
+  const wishlistCount = useSelector(
+    (state) => state.wishlist?.items?.length || 0,
+  );
 
   // Add touch event handling for mobile
   useEffect(() => {
     const handleTouchOutside = (e) => {
-      if (profileOpen && !e.target.closest('.profile-dropdown') && !e.target.closest('.profile-trigger')) {
+      if (
+        profileOpen &&
+        !e.target.closest(".profile-dropdown") &&
+        !e.target.closest(".profile-trigger")
+      ) {
         setProfileOpen(false);
       }
     };
-    document.addEventListener('touchstart', handleTouchOutside);
-    return () => document.removeEventListener('touchstart', handleTouchOutside);
+    document.addEventListener("touchstart", handleTouchOutside);
+    return () => document.removeEventListener("touchstart", handleTouchOutside);
   }, [profileOpen]);
 
   return (
@@ -148,54 +156,6 @@ const Header = () => {
           Soulful Overseas
         </h1>
 
-        {/* Search Bar - Hidden on mobile */}
-        <div className="hidden md:block flex-1 max-w-2xl mx-6 relative">
-          <div className="flex border rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-[#7a1c3d]">
-            <input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              className="w-full px-4 py-2.5 outline-none text-sm"
-              placeholder="Search products..."
-            />
-            <button className="bg-[#7a1c3d] px-6 text-white">
-              <Search size={20} />
-            </button>
-          </div>
-
-          {/* Search Suggestions */}
-          {showSuggestions && suggestions.length > 0 && (
-            <div className="absolute w-full bg-white shadow-xl mt-1 rounded-lg overflow-hidden z-50 max-h-96 overflow-y-auto">
-              {suggestions.map((item) => {
-                const imgUrl =
-                  item.images?.find((i) => i.is_primary)?.image_url ||
-                  item.images?.[0]?.image_url;
-
-                return (
-                  <div
-                    key={item.id}
-                    className="flex gap-3 p-3 hover:bg-gray-50 cursor-pointer border-b last:border-0"
-                    onClick={() => {
-                      navigate(`/product/${item.slug}`);
-                      setQuery("");
-                      setShowSuggestions(false);
-                    }}
-                  >
-                    <img
-                      src={getImageUrl(imgUrl) || "/placeholder.jpg"}
-                      alt={item.name}
-                      className="w-12 h-12 object-cover rounded"
-                    />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{item.name}</p>
-                      <p className="text-xs text-gray-500">₹{item.price}</p>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-
         {/* Right Side Icons */}
         <div className="flex items-center gap-5 md:gap-8">
           {/* Account */}
@@ -215,7 +175,7 @@ const Header = () => {
                 {user ? (
                   <>
                     <div
-                      onClick={() => navigate("/profile")}
+                      onClick={() => navigate("/account")}
                       className="px-4 py-2.5 hover:bg-gray-100 cursor-pointer"
                     >
                       My Profile
@@ -278,16 +238,28 @@ const Header = () => {
           >
             Home
           </span>
-          <span onClick={() => navigate("/shop")} className="hover:text-[#7a1c3d] cursor-pointer">
+          <span
+            onClick={() => navigate("/shop")}
+            className="hover:text-[#7a1c3d] cursor-pointer"
+          >
             Shop
           </span>
-          <span onClick={() => navigate("/about")} className="hover:text-[#7a1c3d] cursor-pointer">
+          <span
+            onClick={() => navigate("/about")}
+            className="hover:text-[#7a1c3d] cursor-pointer"
+          >
             About Us
           </span>
-          <span onClick={() => navigate("/contact")} className="hover:text-[#7a1c3d] cursor-pointer">
+          <span
+            onClick={() => navigate("/contact")}
+            className="hover:text-[#7a1c3d] cursor-pointer"
+          >
             Contact Us
           </span>
-          <span onClick={() => navigate("/soulful-special")} className="hover:text-[#7a1c3d] cursor-pointer">
+          <span
+            onClick={() => navigate("/soulful-special")}
+            className="hover:text-[#7a1c3d] cursor-pointer"
+          >
             Soulful Special
           </span>
 
@@ -306,14 +278,20 @@ const Header = () => {
       <div className="bg-[#8b0d3a] text-white text-sm h-10 flex items-center justify-center overflow-hidden">
         <div className="relative h-10 w-full flex items-center justify-center">
           <div
-            className={`absolute transition-all duration-500 ${animatePromo ? "-translate-y-full opacity-0" : "translate-y-0 opacity-100"
-              }`}
+            className={`absolute transition-all duration-500 ${
+              animatePromo
+                ? "-translate-y-full opacity-0"
+                : "translate-y-0 opacity-100"
+            }`}
           >
             {promoMessages[currentPromo]}
           </div>
           <div
-            className={`absolute transition-all duration-500 ${animatePromo ? "translate-y-0 opacity-100" : "translate-y-full opacity-0"
-              }`}
+            className={`absolute transition-all duration-500 ${
+              animatePromo
+                ? "translate-y-0 opacity-100"
+                : "translate-y-full opacity-0"
+            }`}
           >
             {promoMessages[(currentPromo + 1) % promoMessages.length]}
           </div>
@@ -428,8 +406,12 @@ const Header = () => {
                             className="w-10 h-10 object-cover rounded"
                           />
                           <div>
-                            <p className="text-xs font-medium truncate">{item.name}</p>
-                            <p className="text-xs text-gray-500">₹{item.price}</p>
+                            <p className="text-xs font-medium truncate">
+                              {item.name}
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              ₹{item.price}
+                            </p>
                           </div>
                         </div>
                       );
