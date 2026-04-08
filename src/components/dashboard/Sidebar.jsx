@@ -31,7 +31,62 @@ const Sidebar = () => {
   const { can } = usePermissions();
   const [openOrders, setOpenOrders] = useState(false);
 
-  // Permissions
+  // 
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  Permissions
   const canAdminOrders = can("order_admin", "view");
   const canVendorOrders = can("order_vendor", "view");
   const showOrderDropdown = canAdminOrders && canVendorOrders;
@@ -75,9 +130,7 @@ const Sidebar = () => {
 
       {/* HEADER */}
       <div className="p-5 border-b">
-        <h2 className="text-xl font-bold text-[#7a1c3d]">
-          Admin Panel
-        </h2>
+        <h2 className="text-xl font-bold text-[#7a1c3d]">Admin Panel</h2>
       </div>
 
       {/* MENU */}
