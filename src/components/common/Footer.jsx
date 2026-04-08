@@ -1,19 +1,16 @@
 import React from "react";
+import { useNavigate } from "react-router-dom";
+
 import { MapPin, Phone, Mail, Clock } from "lucide-react";
-import {
-  FaFacebookF,
-  FaInstagram,
-  FaTwitter,
-  FaYoutube,
-} from "react-icons/fa";
+import { FaFacebookF, FaInstagram, FaTwitter, FaYoutube } from "react-icons/fa";
 
 const Footer = () => {
+  const navigate = useNavigate();
+
   return (
     <footer className="w-full bg-[#f7f3f5] text-gray-700 mt-10">
-
       {/* MAIN FOOTER */}
       <div className="w-full px-6 md:px-10 lg:px-16 py-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10">
-
         {/* LEFT */}
         <div>
           <h2 className="text-2xl font-semibold text-[#7a1c3d] mb-4">
@@ -66,19 +63,20 @@ const Footer = () => {
 
           <ul className="space-y-2 text-sm">
             {[
-              "New Arrivals",
-              "Bestsellers",
-              "Women's Clothing",
-              "Men's Clothing",
-              "Accessories",
-              "Sale",
+              { label: "New Arrivals", path: "/shop" },
+              { label: "Bestsellers", path: "/shop" },
+              { label: "Women's Clothing", path: "/shop" },
+              { label: "Men's Clothing", path: "/shop" },
+              { label: "Accessories", path: "/shop" },
+              { label: "Sale", path: "/shop" },
             ].map((item, i) => (
               <li
                 key={i}
+                onClick={() => navigate(item.path)}
                 className="hover:text-[#7a1c3d] cursor-pointer transition-all duration-300 hover:translate-x-1"
               >
                 <span className="text-[#7a1c3d] mr-2">→</span>
-                {item}
+                {item.label}
               </li>
             ))}
           </ul>
@@ -93,19 +91,20 @@ const Footer = () => {
 
           <ul className="space-y-2 text-sm">
             {[
-              "Help Center",
-              "Order Status",
-              "Shipping Info",
-              "Returns & Exchanges",
-              "Size Guide",
-              "Contact Us",
+              { label: "Help Center", path: "/support" },
+              { label: "Order Status", path: "/account" },
+              { label: "Shipping Info", path: "/shipping" },
+              { label: "Returns & Exchanges", path: "/returns" },
+              { label: "Size Guide", path: "/size-guide" },
+              { label: "Contact Us", path: "/contact" },
             ].map((item, i) => (
               <li
                 key={i}
+                onClick={() => navigate(item.path)}
                 className="hover:text-[#7a1c3d] cursor-pointer transition-all duration-300 hover:translate-x-1"
               >
                 <span className="text-[#7a1c3d] mr-2">→</span>
-                {item}
+                {item.label}
               </li>
             ))}
           </ul>
@@ -144,13 +143,13 @@ const Footer = () => {
             </li>
           </ul>
         </div>
-
       </div>
 
       {/* BOTTOM */}
       <div className="border-t text-sm py-4 px-6 flex flex-col md:flex-row justify-between items-center text-gray-500">
         <p>
-          © 2026 <span className="font-semibold">Soulful Overseas</span>. All Rights Reserved.
+          © 2026 <span className="font-semibold">Soulful Overseas</span>. All
+          Rights Reserved.
         </p>
 
         <div className="flex gap-6 mt-2 md:mt-0">
