@@ -1,89 +1,237 @@
-// src/components/dashboard/Sidebar.jsx
-
+import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { useSelector } from "react-redux";
-import { hasPermission } from "../../utils/hasPermission";
-import { PERMISSIONS } from "../../config/rbac";
+import usePermissions from "../../api/hooks/usePermissions";
 
-import { LayoutDashboard, Package, ShoppingCart, Users } from "lucide-react";
+import {
+  LayoutDashboard,
+  Package,
+  ShoppingCart,
+  Users,
+} from "lucide-react";
+
+/* ✅ Reusable Menu Item */
+const MenuItem = ({ to, icon: Icon, label, isActive }) => {
+  return (
+    <Link
+      to={to}
+      className={`flex items-center gap-3 px-4 py-2 rounded-lg transition-all ${
+        isActive
+          ? "bg-[#7a1c3d] text-white shadow"
+          : "text-gray-700 hover:bg-gray-100"
+      }`}
+    >
+      <Icon size={18} />
+      <span className="text-sm font-medium">{label}</span>
+    </Link>
+  );
+};
 
 const Sidebar = () => {
   const location = useLocation();
-  const { user } = useSelector((state) => state.auth);
+  const { can } = usePermissions();
+  const [openOrders, setOpenOrders] = useState(false);
 
-  const role = user?.role || "admin";
+  // 
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  Permissions
+  const canAdminOrders = can("order_admin", "view");
+  const canVendorOrders = can("order_vendor", "view");
+  const showOrderDropdown = canAdminOrders && canVendorOrders;
 
+  // Menu config
   const menu = [
     {
-      name: "Dashboard",
+      label: "Dashboard",
       path: "/dashboard",
       icon: LayoutDashboard,
-      permission: PERMISSIONS.VIEW_DASHBOARD,
+      module: "dashboard",
     },
     {
-      name: "Products",
+      label: "Products",
       path: "/dashboard/products",
       icon: Package,
-      permission: PERMISSIONS.MANAGE_PRODUCTS,
+      module: "product",
     },
     {
-      name: "Orders",
-      path: "/dashboard/orders",
-      icon: ShoppingCart,
-      permission: PERMISSIONS.MANAGE_ORDERS,
-    },
-    {
-      name: "Users",
+      label: "Users",
       path: "/dashboard/users",
       icon: Users,
-      permission: PERMISSIONS.MANAGE_USERS,
+      module: "user",
     },
     {
-      name: "Categories",
+      label: "Categories",
       path: "/dashboard/categories",
       icon: Package,
-      permission: PERMISSIONS.MANAGE_CATEGORIES,
+      module: "category",
     },
     {
-      name: "Roles & Permissions",
-      path: "/dashboard/roles",
-      icon: Users,
-      permission: PERMISSIONS.MANAGE_ROLES,
+      label: "Attributes",
+      path: "/dashboard/attributes",
+      icon: Package,
+      module: "attribute",
     },
   ];
 
   return (
     <div className="w-64 bg-white border-r shadow-sm flex flex-col h-screen">
-      {/* LOGO / TITLE */}
+
+      {/* HEADER */}
       <div className="p-5 border-b">
         <h2 className="text-xl font-bold text-[#7a1c3d]">Admin Panel</h2>
       </div>
 
       {/* MENU */}
       <div className="flex-1 overflow-y-auto p-3 space-y-1">
-        {menu.map((item) => {
-          if (!hasPermission(role, item.permission)) return null;
 
-          const Icon = item.icon;
+        {/* Dynamic Menu */}
+        {menu.map((item) => {
+          if (!can(item.module, "view")) return null;
+
           const isActive =
             location.pathname === item.path ||
             location.pathname.startsWith(item.path + "/");
 
           return (
-            <Link
+            <MenuItem
               key={item.path}
               to={item.path}
-              className={`flex items-center gap-3 px-4 py-2 rounded-lg transition-all duration-200 ${
-                isActive
-                  ? "bg-[#7a1c3d] text-white shadow"
-                  : "text-gray-700 hover:bg-gray-100"
-              }`}
-            >
-              <Icon size={18} />
-              <span className="text-sm font-medium">{item.name}</span>
-            </Link>
+              icon={item.icon}
+              label={item.label}
+              isActive={isActive}
+            />
           );
         })}
+
+        {/* ORDERS SECTION */}
+        {(canAdminOrders || canVendorOrders) && (
+          <div>
+            {showOrderDropdown ? (
+              <>
+                <button
+                  onClick={() => setOpenOrders(!openOrders)}
+                  className="flex items-center justify-between w-full px-4 py-2 rounded-lg hover:bg-gray-100 text-gray-700"
+                >
+                  <div className="flex items-center gap-3">
+                    <ShoppingCart size={18} />
+                    <span className="text-sm font-medium">Orders</span>
+                  </div>
+                  <span>{openOrders ? "▲" : "▼"}</span>
+                </button>
+
+                {openOrders && (
+                  <div className="ml-8 mt-1 space-y-1">
+                    {canAdminOrders && (
+                      <Link
+                        to="/dashboard/orders/admin"
+                        className={`block px-3 py-2 text-sm rounded hover:bg-gray-100 ${
+                          location.pathname.startsWith(
+                            "/dashboard/orders/admin"
+                          )
+                            ? "text-[#7a1c3d] font-semibold"
+                            : "text-gray-700"
+                        }`}
+                      >
+                        Admin Orders
+                      </Link>
+                    )}
+
+                    {canVendorOrders && (
+                      <Link
+                        to="/dashboard/orders/vendor"
+                        className={`block px-3 py-2 text-sm rounded hover:bg-gray-100 ${
+                          location.pathname.startsWith(
+                            "/dashboard/orders/vendor"
+                          )
+                            ? "text-[#7a1c3d] font-semibold"
+                            : "text-gray-700"
+                        }`}
+                      >
+                        Vendor Orders
+                      </Link>
+                    )}
+                  </div>
+                )}
+              </>
+            ) : (
+              <>
+                {canAdminOrders && !canVendorOrders && (
+                  <MenuItem
+                    to="/dashboard/orders/admin"
+                    icon={ShoppingCart}
+                    label="Orders"
+                    isActive={location.pathname.startsWith(
+                      "/dashboard/orders/admin"
+                    )}
+                  />
+                )}
+
+                {canVendorOrders && !canAdminOrders && (
+                  <MenuItem
+                    to="/dashboard/orders/vendor"
+                    icon={ShoppingCart}
+                    label="Orders"
+                    isActive={location.pathname.startsWith(
+                      "/dashboard/orders/vendor"
+                    )}
+                  />
+                )}
+              </>
+            )}
+          </div>
+        )}
       </div>
 
       {/* FOOTER */}

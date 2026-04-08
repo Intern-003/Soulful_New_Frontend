@@ -1,6 +1,6 @@
 // src/components/dashboard/products/VariantManager.jsx
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import useGet from "../../../api/hooks/useGet";
 import useDelete from "../../../api/hooks/useDelete";
 import VariantForm from "./VariantForm";
@@ -9,13 +9,21 @@ const VariantManager = ({ productId }) => {
   const { data, loading, refetch } = useGet(
     `/vendor/products/${productId}`
   );
+
   const { deleteData } = useDelete();
 
-  const variants = data?.data?.variants || [];
-
+  const [variants, setVariants] = useState([]);
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState(null);
 
+  // 🔥 SYNC DATA
+  useEffect(() => {
+    if (data?.data?.variants) {
+      setVariants(data.data.variants);
+    }
+  }, [data]);
+
+  // 🔥 DELETE (INSTANT UI)
   const handleDelete = async (id) => {
     if (!window.confirm("Delete variant?")) return;
 
@@ -24,10 +32,18 @@ const VariantManager = ({ productId }) => {
         url: `/vendor/product-variants/${id}`,
       });
 
-      refetch();
+      // ✅ instant remove
+      setVariants((prev) => prev.filter((v) => v.id !== id));
+
+      alert("Variant Deleted ❌");
     } catch (err) {
       console.error(err);
     }
+  };
+
+  // 🔥 HANDLE SUCCESS (CREATE / UPDATE)
+  const handleSuccess = () => {
+    refetch(); // keep backend sync
   };
 
   return (
@@ -52,10 +68,12 @@ const VariantManager = ({ productId }) => {
 
       {/* LOADING */}
       {loading && (
-        <p className="text-sm text-gray-500">Loading variants...</p>
+        <p className="text-sm text-gray-500">
+          Loading variants...
+        </p>
       )}
 
-      {/* EMPTY STATE */}
+      {/* EMPTY */}
       {!loading && variants.length === 0 && (
         <div className="text-center text-gray-500 py-10 border rounded-lg">
           No variants found. Create your first variant.
@@ -87,16 +105,20 @@ const VariantManager = ({ productId }) => {
                     {v.image ? (
                       <img
                         src={`http://127.0.0.1:8000/storage/${v.image}`}
-                        alt=""
-                        className="h-12 w-12 object-cover rounded"
+                        alt="variant"
+                        className="h-12 w-12 object-cover rounded border"
                       />
                     ) : (
-                      <div className="h-12 w-12 bg-gray-200 rounded" />
+                      <div className="h-12 w-12 bg-gray-200 rounded flex items-center justify-center text-xs text-gray-400">
+                        No Img
+                      </div>
                     )}
                   </td>
 
                   {/* SKU */}
-                  <td className="p-3 font-medium">{v.sku}</td>
+                  <td className="p-3 font-medium text-gray-800">
+                    {v.sku}
+                  </td>
 
                   {/* ATTRIBUTES */}
                   <td className="p-3">
@@ -114,10 +136,13 @@ const VariantManager = ({ productId }) => {
 
                   {/* PRICE */}
                   <td className="p-3">
-                    ₹{v.price}
+                    <div className="font-semibold text-gray-800">
+                      ₹{v.discount_price || v.price}
+                    </div>
+
                     {v.discount_price && (
                       <div className="text-xs text-gray-400 line-through">
-                        ₹{v.discount_price}
+                        ₹{v.price}
                       </div>
                     )}
                   </td>
@@ -131,7 +156,9 @@ const VariantManager = ({ productId }) => {
                           : "bg-red-100 text-red-700"
                       }`}
                     >
-                      {v.stock}
+                      {v.stock > 0
+                        ? `${v.stock} in stock`
+                        : "Out of stock"}
                     </span>
                   </td>
 
@@ -143,14 +170,14 @@ const VariantManager = ({ productId }) => {
                         setSelected(v);
                         setOpen(true);
                       }}
-                      className="bg-blue-500 text-white px-3 py-1 rounded text-xs"
+                      className="bg-blue-500 text-white px-3 py-1 rounded text-xs hover:opacity-90"
                     >
                       Edit
                     </button>
 
                     <button
                       onClick={() => handleDelete(v.id)}
-                      className="bg-red-500 text-white px-3 py-1 rounded text-xs"
+                      className="bg-red-500 text-white px-3 py-1 rounded text-xs hover:opacity-90"
                     >
                       Delete
                     </button>
@@ -171,7 +198,7 @@ const VariantManager = ({ productId }) => {
           productId={productId}
           data={selected}
           onClose={() => setOpen(false)}
-          onSuccess={refetch}
+          onSuccess={handleSuccess}
         />
       )}
 
