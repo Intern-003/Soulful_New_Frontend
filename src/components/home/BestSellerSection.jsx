@@ -2,8 +2,7 @@
 import React from 'react';
 import useGet from '../../api/hooks/useGet';
 import SectionHeader from '../common/SectionHeader';
-import ProductGrid from '../common/ProductGrid';
-
+import ProductGrid from "../dashboard/products/ProductGrid";
 const BestSellerSection = () => {
   const { data, loading } = useGet('/products/best-sellers');
   

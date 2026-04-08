@@ -4,6 +4,7 @@ const Sidebar = ({
   categories = [],
   brands = [],
   loading,
+  priceBounds = [0, 100000],
 
   selectedCategory,
   selectedBrands = [],
@@ -17,20 +18,18 @@ const Sidebar = ({
   onApplyFilters,
   onClearFilters,
 }) => {
-
-  // ✅ LOCAL SEARCH STATE (FIXED ERROR)
   const [search, setSearch] = useState("");
 
-  // ✅ FILTERED CATEGORIES
+  // ✅ CATEGORY SEARCH FILTER
   const filteredCategories = useMemo(() => {
     if (!search) return categories;
 
     return categories.filter((cat) =>
-      cat.name.toLowerCase().includes(search.toLowerCase())
+      cat.name?.toLowerCase().includes(search.toLowerCase()),
     );
   }, [categories, search]);
 
-  // ✅ BRAND TOGGLE
+  // ✅ BRAND TOGGLE (FIXED NUMBER ISSUE)
   const handleBrandToggle = (brandId) => {
     const id = Number(brandId);
 
@@ -43,8 +42,7 @@ const Sidebar = ({
 
   return (
     <div className="space-y-4 w-full">
-
-      {/* 🔍 CATEGORY SEARCH */}
+      {/* 🔍 CATEGORY */}
       <div className="bg-white p-4 rounded shadow">
         <input
           type="text"
@@ -58,7 +56,6 @@ const Sidebar = ({
           <p className="text-sm text-gray-400">Loading...</p>
         ) : (
           <ul className="space-y-2 text-sm max-h-60 overflow-y-auto">
-
             {/* ALL */}
             <li
               onClick={() => onCategoryChange(null)}
@@ -74,9 +71,9 @@ const Sidebar = ({
             {filteredCategories.map((cat) => (
               <li
                 key={cat.id}
-                onClick={() => onCategoryChange(cat.id)}
-                className={`cursor-pointer transition ${
-                  selectedCategory === cat.id
+                onClick={() => onCategoryChange(Number(cat.id))} // ✅ FIX
+                className={`cursor-pointer ${
+                  selectedCategory === Number(cat.id)
                     ? "text-[#7a1c3d] font-semibold"
                     : "hover:text-[#7a1c3d]"
                 }`}
@@ -92,18 +89,19 @@ const Sidebar = ({
       <div className="bg-white p-4 rounded shadow">
         <h3 className="font-semibold mb-3">Price Range</h3>
 
+        {/* SLIDER */}
         <input
           type="range"
-          min="0"
-          max="1000000"
+          min={priceBounds[0]}
+          max={priceBounds[1]}
           value={priceRange[1]}
           onChange={(e) =>
-            onPriceChange([0, Number(e.target.value)])
+            onPriceChange([priceRange[0], Number(e.target.value)])
           }
           className="w-full"
         />
 
-        <div className="flex justify-between text-sm mt-2">
+        <div className="flex justify-between text-xs mt-2 text-gray-500">
           <span>₹{priceRange[0]}</span>
           <span>₹{priceRange[1]}</span>
         </div>
@@ -117,10 +115,14 @@ const Sidebar = ({
           {["black", "red", "blue", "green", "yellow"].map((color) => (
             <div
               key={color}
-              onClick={() => onColorChange(color)}
+              onClick={() =>
+                onColorChange(
+                  selectedColor === color ? null : color, // ✅ TOGGLE FIX
+                )
+              }
               className={`w-6 h-6 rounded-full cursor-pointer border-2 ${
                 selectedColor === color
-                  ? "border-[#7a1c3d]"
+                  ? "border-[#7a1c3d] scale-110"
                   : "border-gray-300"
               }`}
               style={{ backgroundColor: color }}
@@ -129,7 +131,7 @@ const Sidebar = ({
         </div>
       </div>
 
-      {/* 🏷 BRANDS (API) */}
+      {/* 🏷 BRANDS */}
       <div className="bg-white p-4 rounded shadow">
         <h3 className="font-semibold mb-3">Brands</h3>
 
@@ -155,12 +157,11 @@ const Sidebar = ({
         </div>
       </div>
 
-      {/* 🚀 ACTION BUTTONS */}
+      {/* 🚀 ACTIONS */}
       <div className="bg-white p-4 rounded shadow sticky bottom-0">
-
         <button
           onClick={onApplyFilters}
-          className="w-full bg-[#7a1c3d] text-white py-2 rounded mb-2 hover:opacity-90"
+          className="w-full bg-[#7a1c3d] text-white py-2 rounded mb-2"
         >
           Apply Filters
         </button>
@@ -171,7 +172,6 @@ const Sidebar = ({
         >
           Clear All
         </button>
-
       </div>
     </div>
   );

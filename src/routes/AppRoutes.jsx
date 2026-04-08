@@ -14,10 +14,14 @@ import Register from "../pages/auth/Register";
 import Dashboard from "../pages/dashboard/Dashboard";
 import Products from "../pages/dashboard/Products";
 import Users from "../pages/dashboard/Users";
-import Categories from "../pages/dashboard/Categories";
+import Categories from "../pages/dashboard/categories";
+import SubCategoryProducts from "../pages/dashboard/categories/SubCategoryProducts";
+import SubCategoryPage from "../pages/dashboard/categories/SubCategoryPage";
 import Cart from "../pages/user/Cart";
 import Roles from "../pages/dashboard/Roles";
 import ShopPage from "../pages/public/ShopPage";
+import Wishlist from "../pages/public/Wishlist";
+import Contact from "../pages/public/Contact";
 import VendorOrdersPage from "../pages/dashboard/VendorOrdersPage";
 import VendorOrderDetailsPage from "../pages/dashboard/VendorOrderDetailsPage";
 import AdminOrderDetailsPage from "../pages/dashboard/AdminOrderDetailsPage";
@@ -29,8 +33,6 @@ const AppRoutes = () => {
     <>
     <Toaster position="top-right" />
     <Routes>
-
-
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
 
@@ -39,6 +41,8 @@ const AppRoutes = () => {
         <Route path="/" element={<Home />} />
         <Route path="/cart" element={<Cart />} />
         <Route path="/shop" element={<ShopPage />} />
+        <Route path="/wishlist" element={<Wishlist />} />
+        <Route path="/contact" element={<Contact />} />
       </Route>
 
       {/* DASHBOARD */}
@@ -57,7 +61,14 @@ const AppRoutes = () => {
 
       {/* FALLBACK */}
       <Route path="*" element={<Navigate to="/" replace />} />
-
+      <Route
+  path="/dashboard/subcategories/:id/products"
+  element={<SubCategoryProducts />}
+/>
+  <Route
+        path="/dashboard/categories/:id"
+        element={<SubCategoryPage />}
+      />
     </Routes>
     </>
   );

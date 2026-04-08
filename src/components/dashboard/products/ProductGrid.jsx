@@ -1,19 +1,29 @@
-import React from 'react';
-import ProductCard from './ProductCard';
+import React from "react";
+import ProductCard from "./ProductCard";
 
-const ProductGrid = ({ products = [], loading, columns = 4 }) => {
-  const columnClasses = {
-    2: 'grid-cols-1 sm:grid-cols-2',
-    3: 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3',
-    4: 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4',
+const ProductGrid = ({
+  products = [],
+  loading,
+  columns = 4,
+  viewMode = "grid",
+}) => {
+  const gridClasses = {
+    2: "grid-cols-1 sm:grid-cols-2",
+    3: "grid-cols-1 sm:grid-cols-2 md:grid-cols-3",
+    4: "grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4",
   };
 
   const skeletonCount = 8;
 
   return (
-    <div className={`grid ${columnClasses[columns]} gap-4 sm:gap-6`}>
-      
-      {/* LOADING SKELETONS */}
+    <div
+      className={`grid gap-4 sm:gap-6 ${
+        viewMode === "grid"
+          ? gridClasses[columns] // normal grid
+          : "grid-cols-1" // list view
+      }`}
+    >
+      {/* LOADING */}
       {loading &&
         Array.from({ length: skeletonCount }).map((_, index) => (
           <div
@@ -31,7 +41,11 @@ const ProductGrid = ({ products = [], loading, columns = 4 }) => {
       {/* PRODUCTS */}
       {!loading &&
         products?.filter(Boolean).map((item) => (
-          <ProductCard key={item.id} product={item} />
+          <ProductCard
+            key={item.id}
+            product={item}
+            viewMode={viewMode} // pass to card
+          />
         ))}
     </div>
   );

@@ -47,7 +47,7 @@ export const addToWishlist = createAsyncThunk(
       }
 
       const res = await axiosInstance.post('/wishlist', { product_id });
-      return res.data.data; // ✅ return only item
+      return res.data?.data || res.data;
     } catch (error) {
       return rejectWithValue(
         error.response?.data?.message || 'Failed to add to wishlist'
@@ -57,6 +57,7 @@ export const addToWishlist = createAsyncThunk(
 );
 
 // ================= REMOVE =================
+
 export const removeFromWishlist = createAsyncThunk(
   'wishlist/removeFromWishlist',
   async ({ product_id }, { getState, rejectWithValue }) => {
@@ -68,7 +69,8 @@ export const removeFromWishlist = createAsyncThunk(
       }
 
       await axiosInstance.delete(`/wishlist/${product_id}`);
-      return { product_id }; // ✅ consistent payload
+
+      return { product_id };
     } catch (error) {
       return rejectWithValue(
         error.response?.data?.message || 'Failed to remove'
@@ -93,10 +95,19 @@ const wishlistSlice = createSlice({
       .addCase(fetchWishlist.pending, (state) => {
         state.status = "loading";
       })
+      // .addCase(fetchWishlist.fulfilled, (state, action) => {
+      //   state.status = "succeeded";
+      //   state.items = action.payload;
+      // })
       .addCase(fetchWishlist.fulfilled, (state, action) => {
         state.status = "succeeded";
-        state.items = action.payload;
+
+        state.items = (action.payload || []).map((item) => ({
+          ...item,
+          product_id: item.product_id || item.product?.id,
+        }));
       })
+
       .addCase(fetchWishlist.rejected, (state, action) => {
         state.status = "failed";
         state.error = action.payload;
@@ -106,12 +117,28 @@ const wishlistSlice = createSlice({
       .addCase(addToWishlist.pending, (state, action) => {
         state.addingProductId = action.meta.arg.product_id;
       })
+      // .addCase(addToWishlist.fulfilled, (state, action) => {
+      //   state.addingProductId = null;
+
+      //   // ✅ instant UI update
+      //   state.items.push(action.payload);
+      // })
       .addCase(addToWishlist.fulfilled, (state, action) => {
         state.addingProductId = null;
 
-        // ✅ instant UI update
-        state.items.push(action.payload);
+        const newItem = action.payload;
+
+        const exists = state.items.some(
+          (item) =>
+            item.product_id === newItem.product_id ||
+            item.product?.id === newItem.product_id
+        );
+
+        if (!exists) {
+          state.items.push(newItem);
+        }
       })
+
       .addCase(addToWishlist.rejected, (state) => {
         state.addingProductId = null;
       })
@@ -120,11 +147,18 @@ const wishlistSlice = createSlice({
       .addCase(removeFromWishlist.pending, (state, action) => {
         state.removingProductId = action.meta.arg.product_id;
       })
+      // .addCase(removeFromWishlist.fulfilled, (state, action) => {
+      //   state.removingProductId = null;
+
+      //   state.items = state.items.filter(
+      //     item => item.product_id !== action.payload.product_id
+      //   );
+      // })
       .addCase(removeFromWishlist.fulfilled, (state, action) => {
         state.removingProductId = null;
 
         state.items = state.items.filter(
-          item => item.product_id !== action.payload.product_id
+          (item) => item.product_id !== action.payload.product_id
         );
       })
       .addCase(removeFromWishlist.rejected, (state) => {
