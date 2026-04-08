@@ -6,14 +6,15 @@ import { getImageUrl } from '../../../utils/getImageUrl';
 import { addToCart } from '../../../app/slices/cartSlice';
 import { addToWishlist } from '../../../app/slices/wishlistSlice';
 
-const ProductCard = ({ product, loading = false }) => {
+const ProductCard = ({ product, loading = false, viewMode = "grid" }) => {
   if (!product) return null;
 
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
-  const { isAuthenticated } = useSelector((state) => state.auth);
+  const { user } = useSelector((state) => state.auth);
   const { items: cartItems } = useSelector((state) => state.cart);
+  const { items: wishlistItems } = useSelector((state) => state.wishlist);
 
   const [isActionLoading, setIsActionLoading] = useState(false);
   const [added, setAdded] = useState(false);
@@ -23,10 +24,16 @@ const ProductCard = ({ product, loading = false }) => {
 
     return cartItems.some(
       (item) =>
-        item.product_id === product.id ||
-        item.product?.id === product.id
+        item.product_id === product.id || item.product?.id === product.id,
     );
   }, [cartItems, product?.id]);
+
+  const isInWishlist = useMemo(() => {
+    return wishlistItems.some(
+      (item) =>
+        item.product_id === product.id || item.product?.id === product.id,
+    );
+  }, [wishlistItems, product.id]);
 
   const image =
     product?.images?.find((img) => img.is_primary)?.image_url ||
@@ -35,7 +42,7 @@ const ProductCard = ({ product, loading = false }) => {
   const discount =
     product?.discount_price && product?.price
       ? Math.round(
-          ((product.price - product.discount_price) / product.price) * 100
+          ((product.price - product.discount_price) / product.price) * 100,
         )
       : null;
 
@@ -51,14 +58,14 @@ const ProductCard = ({ product, loading = false }) => {
         addToCart({
           product_id: product.id,
           quantity: 1,
-        })
+        }),
       ).unwrap();
 
       setAdded(true);
 
       setTimeout(() => setAdded(false), 1500);
     } catch (err) {
-      console.error('Add to cart failed:', err);
+      console.error("Add to cart failed:", err);
     } finally {
       setIsActionLoading(false);
     }
@@ -67,22 +74,24 @@ const ProductCard = ({ product, loading = false }) => {
   const handleAddToWishlist = async (e) => {
     e?.stopPropagation();
 
-    if (!isAuthenticated) {
+    if (!user) {
       localStorage.setItem(
-        'intended_action',
+        "intended_action",
         JSON.stringify({
-          type: 'ADD_TO_WISHLIST',
+          type: "ADD_TO_WISHLIST",
           payload: { product_id: product.id },
-        })
+        }),
       );
-      navigate('/login');
+      navigate("/login");
       return;
     }
+
+    if (isInWishlist) return; // ✅ duplicate rokega
 
     try {
       await dispatch(addToWishlist({ product_id: product.id })).unwrap();
     } catch (err) {
-      console.error(err);
+      console.error("Wishlist error:", err);
     }
   };
 
@@ -106,12 +115,22 @@ const ProductCard = ({ product, loading = false }) => {
   return (
     <div
       onClick={handleViewProduct}
-      className="group cursor-pointer bg-white rounded-xl shadow-sm hover:shadow-lg transition duration-300 overflow-hidden"
+      // className="group cursor-pointer bg-white rounded-xl shadow-sm hover:shadow-lg transition duration-300 overflow-hidden"
+      className={`group cursor-pointer bg-white rounded-xl shadow-sm hover:shadow-lg transition duration-300 overflow-hidden ${
+        viewMode === "list" ? "flex gap-4 p-4 items-center" : ""
+      }`}
     >
       {/* IMAGE */}
-      <div className="relative h-40 sm:h-52 md:h-[240px] bg-gray-100 flex items-center justify-center overflow-hidden">
+      {/* <div className="relative h-40 sm:h-52 md:h-[240px] bg-gray-100 flex items-center justify-center overflow-hidden"> */}
+      <div
+        className={`relative bg-gray-100 flex items-center justify-center overflow-hidden ${
+          viewMode === "list"
+            ? "w-32 h-32 flex-shrink-0"
+            : "h-40 sm:h-52 md:h-[240px]"
+        }`}
+      >
         <img
-          src={getImageUrl(image) || '/placeholder.jpg'}
+          src={getImageUrl(image) || "/placeholder.jpg"}
           alt={product?.name}
           className="h-full object-contain transition duration-500 group-hover:scale-105"
         />
@@ -124,8 +143,12 @@ const ProductCard = ({ product, loading = false }) => {
         )}
 
         {/* ACTION BUTTONS */}
-        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center gap-2 sm:gap-3">
-          
+        {/* <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center gap-2 sm:gap-3"> */}
+        <div
+          className={`absolute inset-0 bg-black/40 opacity-0 transition items-center justify-center gap-2 sm:gap-3 ${
+            viewMode === "grid" ? "group-hover:opacity-100 flex" : "hidden"
+          }`}
+        >
           {/* ADD TO CART */}
           <button
             onClick={handleAddToCart}
@@ -133,10 +156,10 @@ const ProductCard = ({ product, loading = false }) => {
             className={`p-2 sm:p-3 rounded-full transition flex items-center justify-center
               ${
                 added
-                  ? 'bg-green-500 text-white'
+                  ? "bg-green-500 text-white"
                   : isInCart
-                  ? 'bg-gray-300 text-gray-600 cursor-not-allowed'
-                  : 'bg-white hover:bg-[#7a1c3d] hover:text-white'
+                    ? "bg-gray-300 text-gray-600 cursor-not-allowed"
+                    : "bg-white hover:bg-[#7a1c3d] hover:text-white"
               }
             `}
           >
@@ -146,10 +169,14 @@ const ProductCard = ({ product, loading = false }) => {
           {/* WISHLIST */}
           <button
             onClick={handleAddToWishlist}
-            disabled={isActionLoading}
+            // disabled={isActionLoading}
+            disabled={isActionLoading || isInWishlist}
             className="bg-white p-2 sm:p-3 rounded-full hover:bg-[#7a1c3d] hover:text-white transition"
           >
-            <Heart size={16} />
+            <Heart
+              size={16}
+              className={isInWishlist ? "fill-red-500 text-red-500" : ""}
+            />
           </button>
 
           {/* VIEW */}
@@ -163,7 +190,14 @@ const ProductCard = ({ product, loading = false }) => {
       </div>
 
       {/* CONTENT */}
-      <div className="p-3 sm:p-4 text-center">
+      {/* <div className="p-3 sm:p-4 text-center"> */}
+      <div
+        className={`p-3 sm:p-4 ${
+          viewMode === "list"
+            ? "flex flex-col justify-between flex-1"
+            : "text-center"
+        }`}
+      >
         <h3 className="text-xs sm:text-sm font-semibold line-clamp-1">
           {product?.name}
         </h3>
@@ -184,6 +218,25 @@ const ProductCard = ({ product, loading = false }) => {
           <p className="text-[10px] sm:text-xs text-green-600 mt-1">
             Already in cart
           </p>
+        )}
+
+        {viewMode === "list" && (
+          <div className="mt-3 flex gap-2">
+            <button
+              onClick={handleAddToCart}
+              disabled={isInCart}
+              className="px-3 py-1 text-xs bg-[#7a1c3d] text-white rounded"
+            >
+              {isInCart ? "In Cart" : "Add to Cart"}
+            </button>
+
+            <button
+              onClick={handleAddToWishlist}
+              className="px-3 py-1 text-xs border rounded"
+            >
+              Wishlist
+            </button>
+          </div>
         )}
       </div>
     </div>

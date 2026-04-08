@@ -11,7 +11,6 @@ const ShopHeader = ({
 }) => {
   return (
     <div className="bg-white p-4 rounded shadow mb-4 flex flex-col md:flex-row gap-4 md:items-center md:justify-between">
-
       {/* SEARCH */}
       <input
         type="text"
@@ -35,6 +34,8 @@ const ShopHeader = ({
         <option value="">Default</option>
         <option value="price_asc">Price Low to High</option>
         <option value="price_desc">Price High to Low</option>
+        <option value="name_asc">Name A-Z</option>
+        <option value="name_desc">Name Z-A</option>
       </select>
 
       {/* VIEW TOGGLE */}
