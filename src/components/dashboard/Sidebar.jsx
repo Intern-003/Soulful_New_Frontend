@@ -5,12 +5,7 @@ import { useSelector } from "react-redux";
 import { hasPermission } from "../../utils/hasPermission";
 import { PERMISSIONS } from "../../config/rbac";
 
-import {
-  LayoutDashboard,
-  Package,
-  ShoppingCart,
-  Users,
-} from "lucide-react";
+import { LayoutDashboard, Package, ShoppingCart, Users } from "lucide-react";
 
 const Sidebar = () => {
   const location = useLocation();
@@ -59,17 +54,13 @@ const Sidebar = () => {
 
   return (
     <div className="w-64 bg-white border-r shadow-sm flex flex-col h-screen">
-
       {/* LOGO / TITLE */}
       <div className="p-5 border-b">
-        <h2 className="text-xl font-bold text-[#7a1c3d]">
-          Admin Panel
-        </h2>
+        <h2 className="text-xl font-bold text-[#7a1c3d]">Admin Panel</h2>
       </div>
 
       {/* MENU */}
       <div className="flex-1 overflow-y-auto p-3 space-y-1">
-
         {menu.map((item) => {
           if (!hasPermission(role, item.permission)) return null;
 
@@ -89,20 +80,16 @@ const Sidebar = () => {
               }`}
             >
               <Icon size={18} />
-              <span className="text-sm font-medium">
-                {item.name}
-              </span>
+              <span className="text-sm font-medium">{item.name}</span>
             </Link>
           );
         })}
-
       </div>
 
       {/* FOOTER */}
       <div className="p-4 border-t text-xs text-gray-400 text-center">
         © 2026 Admin Panel
       </div>
-
     </div>
   );
 };

@@ -1,6 +1,5 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { useSearchParams } from "react-router-dom";
 
 import { fetchCategories } from "../../app/slices/categorySlice";
 import { selectParentCategories } from "../../app/selectors/categorySelectors";
@@ -13,32 +12,28 @@ import useGet from "../../api/hooks/useGet";
 
 const ShopPage = () => {
   const dispatch = useDispatch();
-  const [searchParams, setSearchParams] = useSearchParams();
 
   const parentCategories = useSelector(selectParentCategories);
   const { loading } = useSelector((state) => state.categories);
 
   const [showFilters, setShowFilters] = useState(false);
 
-  // ✅ PRODUCTS
+  // PRODUCTS (ONLY ONE API)
   const {
     data: productResponse,
     loading: productsLoading,
     error,
-    refetch,
-  } = useGet("/products", { autoFetch: false });
+  } = useGet("/products");
 
-  const products = Array.isArray(productResponse?.data?.data)
+  const allProducts = Array.isArray(productResponse?.data?.data)
     ? productResponse.data.data
     : [];
 
-  // ✅ BRANDS
+  // BRANDS
   const { data: brandResponse } = useGet("/brands");
-  const brands = Array.isArray(brandResponse?.data?.data)
-    ? brandResponse.data.data
-    : [];
+  const brands = Array.isArray(brandResponse?.data) ? brandResponse.data : [];
 
-  // ✅ FILTER STATE
+  // FILTER STATE
   const initialFilters = {
     category: null,
     brands: [],
@@ -49,90 +44,109 @@ const ShopPage = () => {
   };
 
   const [filters, setFilters] = useState(initialFilters);
+  const [priceBounds, setPriceBounds] = useState([0, 0]);
+  const [viewMode, setViewMode] = useState("grid");
 
-  // ✅ FETCH CATEGORIES
+  // FETCH CATEGORIES
   useEffect(() => {
     dispatch(fetchCategories());
   }, [dispatch]);
 
-  // ✅ API CALL
-  const fetchProducts = useCallback((customFilters) => {
-    const f = customFilters || filters;
-
-    let url = "/products";
-    let params = {};
-
-    if (f.search) {
-      url = "/products/search";
-      params.q = f.search;
-    } else {
-      params.price_min = f.price[0];
-      params.price_max = f.price[1];
-
-      if (f.category) params.category_id = f.category;
-
-      if (f.brands.length) {
-        params["brands[]"] = f.brands;
-      }
-
-      if (f.color) params.color = f.color;
-      if (f.sort) params.sort = f.sort;
-    }
-
-    refetch({ url, params });
-  }, [filters, refetch]);
-
-  // ✅ APPLY FILTERS (MAIN FIX)
-  const handleApplyFilters = () => {
-    // 👉 update URL ONLY when applying
-    const params = {};
-
-    if (filters.category) params.category = filters.category;
-    if (filters.brands.length)
-      params.brands = filters.brands.join(",");
-    if (filters.color) params.color = filters.color;
-
-    params.price_min = filters.price[0];
-    params.price_max = filters.price[1];
-
-    if (filters.search) params.q = filters.search;
-    if (filters.sort) params.sort = filters.sort;
-
-    setSearchParams(params);
-
-    fetchProducts();
-    setShowFilters(false); // close mobile drawer
-  };
-
-  // ✅ CLEAR FILTERS
-  const handleClearFilters = () => {
-    setFilters(initialFilters);
-    setSearchParams({});
-    refetch({ url: "/products", params: {} });
-  };
-
-  // ✅ SEARCH (debounced)
   useEffect(() => {
-    if (!filters.search) return;
+    if (!allProducts.length) return;
 
-    const delay = setTimeout(() => {
-      fetchProducts(filters);
-    }, 400);
+    const prices = allProducts.map((p) => Number(p.price) || 0);
 
-    return () => clearTimeout(delay);
-  }, [filters.search]);
+    const min = Math.min(...prices);
+    const max = Math.max(...prices);
 
-  // ✅ HANDLER
-  const updateFilter = (key, value) =>
+    setPriceBounds([min, max]); // system range
+
+    setFilters((prev) => ({
+      ...prev,
+      price: [min, max], // user range
+    }));
+  }, [allProducts]);
+
+  // FRONTEND FILTER LOGIC (MAIN)
+  const filteredProducts = useMemo(() => {
+    return allProducts
+      .filter((p) => {
+        const price = Number(p.price) || 0;
+        const categoryId = Number(p.category_id);
+        const brandId = Number(p.brand_id);
+        const color = p.color?.toLowerCase();
+
+        //  SEARCH
+        if (
+          filters.search &&
+          !p.name?.toLowerCase().includes(filters.search.toLowerCase())
+        ) {
+          return false;
+        }
+
+        //  CATEGORY
+        if (filters.category && categoryId !== Number(filters.category)) {
+          return false;
+        }
+
+        //  BRANDS
+        if (filters.brands.length && !filters.brands.includes(brandId)) {
+          return false;
+        }
+
+        //  COLOR
+        if (filters.color && color !== filters.color) {
+          return false;
+        }
+
+        //  PRICE
+        if (price < filters.price[0] || price > filters.price[1]) {
+          return false;
+        }
+
+        return true;
+      })
+      .sort((a, b) => {
+        const priceA = Number(a.price) || 0;
+        const priceB = Number(b.price) || 0;
+
+        if (filters.sort === "price_asc") return priceA - priceB;
+        if (filters.sort === "price_desc") return priceB - priceA;
+
+        if (filters.sort === "name_asc") return a.name.localeCompare(b.name);
+
+        if (filters.sort === "name_desc") return b.name.localeCompare(a.name);
+
+        return 0;
+      });
+  }, [allProducts, filters]);
+
+  // HANDLER
+  const updateFilter = (key, value) => {
     setFilters((prev) => ({ ...prev, [key]: value }));
+  };
+
+  // CLEAR FILTERS
+  const handleClearFilters = () => {
+    if (!allProducts.length) return;
+
+    const prices = allProducts.map((p) => Number(p.price) || 0);
+
+    setFilters({
+      category: null,
+      brands: [],
+      color: null,
+      price: [Math.min(...prices), Math.max(...prices)],
+      search: "",
+      sort: "",
+    });
+  };
 
   return (
     <div className="bg-gray-100 min-h-screen px-3 sm:px-4 lg:px-6 py-4">
       <div className="max-w-7xl mx-auto">
-
-        <h2 className="text-lg sm:text-xl font-semibold mb-4">
-          Shop Products
-        </h2>
+        <h2 className="text-lg sm:text-xl font-semibold mb-4">Shop Products</h2>
 
         {/* MOBILE FILTER BUTTON */}
         <div className="lg:hidden mb-4">
@@ -145,7 +159,6 @@ const ShopPage = () => {
         </div>
 
         <div className="flex flex-col lg:flex-row gap-6">
-
           {/* DESKTOP SIDEBAR */}
           <div className="hidden lg:block w-[260px]">
             <Sidebar
@@ -156,11 +169,12 @@ const ShopPage = () => {
               selectedBrands={filters.brands}
               selectedColor={filters.color}
               priceRange={filters.price}
+              priceBounds={priceBounds}
               onCategoryChange={(v) => updateFilter("category", v)}
               onBrandChange={(v) => updateFilter("brands", v)}
               onColorChange={(v) => updateFilter("color", v)}
               onPriceChange={(v) => updateFilter("price", v)}
-              onApplyFilters={handleApplyFilters}
+              onApplyFilters={() => {}} // no API call needed
               onClearFilters={handleClearFilters}
             />
           </div>
@@ -186,39 +200,36 @@ const ShopPage = () => {
                   onBrandChange={(v) => updateFilter("brands", v)}
                   onColorChange={(v) => updateFilter("color", v)}
                   onPriceChange={(v) => updateFilter("price", v)}
-                  onApplyFilters={handleApplyFilters}
+                  onApplyFilters={() => setShowFilters(false)}
                   onClearFilters={handleClearFilters}
                 />
               </div>
 
-              <div
-                className="flex-1"
-                onClick={() => setShowFilters(false)}
-              />
+              <div className="flex-1" onClick={() => setShowFilters(false)} />
             </div>
           )}
 
           {/* MAIN */}
           <div className="flex-1">
-
             <ShopHeader
               searchValue={filters.search}
+              sortValue={filters.sort}
+              viewMode={viewMode}
               onSearch={(v) => updateFilter("search", v)}
               onSortChange={(v) => updateFilter("sort", v)}
+              onViewChange={(mode) => setViewMode(mode)} // IMPORTANT
             />
 
             {error && (
-              <p className="text-red-500 mb-3">
-                Failed to load products
-              </p>
+              <p className="text-red-500 mb-3">Failed to load products</p>
             )}
 
             <ProductGrid
-              products={products}
+              products={filteredProducts}
               loading={productsLoading}
-              columns={4}
+              columns={viewMode === "grid" ? 4 : 1} // switch layout
+              viewMode={viewMode} // optional for styling
             />
-
           </div>
         </div>
       </div>
