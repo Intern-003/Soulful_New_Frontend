@@ -15,7 +15,9 @@ import Dashboard from "../pages/dashboard/Dashboard";
 import Products from "../pages/dashboard/Products";
 import Orders from "../pages/dashboard/Orders";
 import Users from "../pages/dashboard/Users";
-import Categories from "../pages/dashboard/Categories";
+import Categories from "../pages/dashboard/categories";
+import SubCategoryProducts from "../pages/dashboard/categories/SubCategoryProducts";
+import SubCategoryPage from "../pages/dashboard/categories/SubCategoryPage";
 import Cart from "../pages/user/Cart";
 import Roles from "../pages/dashboard/Roles";
 import ShopPage from "../pages/public/ShopPage";
@@ -47,7 +49,14 @@ const AppRoutes = () => {
 
       {/* FALLBACK */}
       <Route path="*" element={<Navigate to="/" replace />} />
-
+      <Route
+  path="/dashboard/subcategories/:id/products"
+  element={<SubCategoryProducts />}
+/>
+  <Route
+        path="/dashboard/categories/:id"
+        element={<SubCategoryPage />}
+      />
     </Routes>
   );
 };

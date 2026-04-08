@@ -3,8 +3,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import useGet from '../../api/hooks/useGet';
 import SectionHeader from '../common/SectionHeader';
-import ProductGrid from '../common/ProductGrid';
-
+import ProductGrid from "../dashboard/products/ProductGrid";
 const FeaturedProductsSection = () => {
   const navigate = useNavigate();
   const { data, loading } = useGet('/products/featured');

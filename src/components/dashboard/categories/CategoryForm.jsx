@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
-import usePost from "../../api/hooks/usePost";
-import usePut from "../../api/hooks/usePut";
+import usePost from "../../../api/hooks/usePost";
+import usePut from "../../../api/hooks/usePut";
 import axios from "axios";
 
-const CategoryForm = ({ data, onClose, onSuccess }) => {
+const CategoryForm = ({ data, parentId = null, onClose, onSuccess }) => {
   const { postData } = usePost();
   const { putData } = usePut();
 
@@ -16,7 +16,7 @@ const CategoryForm = ({ data, onClose, onSuccess }) => {
     name: data?.name || "",
     description: data?.description || "",
     position: data?.position || "",
-    parent_id: data?.parent_id || "",
+    parent_id: data?.parent_id || parentId || "",
     image: null,
   });
 
@@ -24,7 +24,7 @@ const CategoryForm = ({ data, onClose, onSuccess }) => {
     data?.image ? `http://127.0.0.1:8000/storage/${data.image}` : null
   );
 
-  // Fetch categories
+  // ✅ Fetch only main categories (for parent dropdown)
   useEffect(() => {
     fetchCategories();
   }, []);
@@ -32,20 +32,25 @@ const CategoryForm = ({ data, onClose, onSuccess }) => {
   const fetchCategories = async () => {
     try {
       const res = await axios.get(
-        "http://127.0.0.1:8000/api/admin/categories"
+        "http://127.0.0.1:8000/api/categories"
       );
-      setCategories(res.data.data || []);
+
+      // only parent categories
+      const parents = res.data.data.filter((c) => !c.parent_id);
+      setCategories(parents);
     } catch (err) {
-      console.error("Failed to load categories", err);
+      console.error(err);
     }
   };
 
+  // ✅ handle input change
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm({ ...form, [name]: value });
     setErrors({ ...errors, [name]: "" });
   };
 
+  // ✅ image handler
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     setForm({ ...form, image: file });
@@ -55,17 +60,22 @@ const CategoryForm = ({ data, onClose, onSuccess }) => {
     }
   };
 
-  // Validation
+  // ✅ validation
   const validate = () => {
     let newErrors = {};
 
     if (!form.name) newErrors.name = "Name is required";
-    if (!form.position) newErrors.position = "Position is required";
+
+    // only category needs position
+    if (!form.parent_id && !form.position) {
+      newErrors.position = "Position is required";
+    }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
+  // ✅ submit
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSuccessMsg("");
@@ -78,7 +88,10 @@ const CategoryForm = ({ data, onClose, onSuccess }) => {
       const formData = new FormData();
       formData.append("name", form.name);
       formData.append("description", form.description);
-      formData.append("position", form.position);
+
+      if (!form.parent_id) {
+        formData.append("position", form.position);
+      }
 
       if (form.parent_id) {
         formData.append("parent_id", form.parent_id);
@@ -88,34 +101,33 @@ const CategoryForm = ({ data, onClose, onSuccess }) => {
         formData.append("image", form.image);
       }
 
-      const isSubCategory = !!form.parent_id;
+      const isSub = !!form.parent_id;
 
       if (data) {
         await putData({
-          url: isSubCategory
+          url: isSub
             ? `/admin/subcategories/${data.id}`
             : `/admin/categories/${data.id}`,
           data: formData,
           isFormData: true,
         });
-        setSuccessMsg("Category updated successfully");
+        setSuccessMsg("Updated successfully");
       } else {
         await postData({
-          url: isSubCategory
+          url: isSub
             ? "/admin/subcategories"
             : "/admin/categories",
           data: formData,
           isFormData: true,
         });
-        setSuccessMsg("Category created successfully");
+        setSuccessMsg("Created successfully");
       }
 
       onSuccess();
 
-      // Auto close after short delay
       setTimeout(() => {
         onClose();
-      }, 1000);
+      }, 800);
     } catch (err) {
       console.error(err);
 
@@ -133,17 +145,18 @@ const CategoryForm = ({ data, onClose, onSuccess }) => {
     <div className="fixed inset-0 bg-black/40 flex justify-center items-center z-50">
       <div className="bg-white p-6 rounded-2xl w-[420px] shadow-lg">
         <h2 className="text-xl font-semibold mb-4">
-          {data ? "Edit" : "Create"} Category
+          {data ? "Edit" : "Create"}{" "}
+          {form.parent_id ? "Subcategory" : "Category"}
         </h2>
 
-        {/* SUCCESS MESSAGE */}
+        {/* SUCCESS */}
         {successMsg && (
           <div className="bg-green-100 text-green-700 p-2 rounded mb-3 text-sm">
             {successMsg}
           </div>
         )}
 
-        {/* GENERAL ERROR */}
+        {/* ERROR */}
         {errors.general && (
           <div className="bg-red-100 text-red-600 p-2 rounded mb-3 text-sm">
             {errors.general}
@@ -156,7 +169,7 @@ const CategoryForm = ({ data, onClose, onSuccess }) => {
             <input
               type="text"
               name="name"
-              placeholder="Category Name"
+              placeholder="Name"
               value={form.name}
               onChange={handleChange}
               className="border w-full p-2 rounded"
@@ -175,22 +188,26 @@ const CategoryForm = ({ data, onClose, onSuccess }) => {
             className="border w-full p-2 rounded"
           />
 
-          {/* POSITION */}
-          <div>
-            <input
-              type="number"
-              name="position"
-              placeholder="Position"
-              value={form.position}
-              onChange={handleChange}
-              className="border w-full p-2 rounded"
-            />
-            {errors.position && (
-              <p className="text-red-500 text-sm">{errors.position}</p>
-            )}
-          </div>
+          {/* POSITION (ONLY FOR CATEGORY) */}
+          {!form.parent_id && (
+            <div>
+              <input
+                type="number"
+                name="position"
+                placeholder="Position"
+                value={form.position}
+                onChange={handleChange}
+                className="border w-full p-2 rounded"
+              />
+              {errors.position && (
+                <p className="text-red-500 text-sm">
+                  {errors.position}
+                </p>
+              )}
+            </div>
+          )}
 
-          {/* PARENT CATEGORY */}
+          {/* PARENT SELECT */}
           <select
             name="parent_id"
             value={form.parent_id}
@@ -207,12 +224,11 @@ const CategoryForm = ({ data, onClose, onSuccess }) => {
 
           {/* IMAGE */}
           <div>
-            <input type="file" accept="image/*" onChange={handleImageChange} />
+            <input type="file" onChange={handleImageChange} />
             {preview && (
               <img
                 src={preview}
-                alt="preview"
-                className="mt-2 h-20 w-20 object-cover rounded"
+                className="h-20 w-20 mt-2 object-cover rounded"
               />
             )}
           </div>
@@ -220,7 +236,7 @@ const CategoryForm = ({ data, onClose, onSuccess }) => {
           {/* BUTTON */}
           <button
             disabled={loading}
-            className="bg-blue-600 text-white w-full py-2 rounded hover:bg-blue-700"
+            className="bg-blue-600 text-white w-full py-2 rounded"
           >
             {loading ? "Saving..." : "Save"}
           </button>
@@ -228,7 +244,7 @@ const CategoryForm = ({ data, onClose, onSuccess }) => {
 
         <button
           onClick={onClose}
-          className="mt-3 text-red-500 text-sm hover:underline"
+          className="mt-3 text-red-500 text-sm"
         >
           Cancel
         </button>
