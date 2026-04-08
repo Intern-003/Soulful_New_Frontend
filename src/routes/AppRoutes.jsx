@@ -26,9 +26,12 @@ import VendorOrdersPage from "../pages/dashboard/VendorOrdersPage";
 import VendorOrderDetailsPage from "../pages/dashboard/VendorOrderDetailsPage";
 import AdminOrderDetailsPage from "../pages/dashboard/AdminOrderDetailsPage";
 import AdminOrdersPage from "../pages/dashboard/AdminOrdersPage";
+import { Toaster } from "react-hot-toast";
 
 const AppRoutes = () => {
   return (
+    <>
+    <Toaster position="top-right" />
     <Routes>
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
@@ -67,6 +70,7 @@ const AppRoutes = () => {
         element={<SubCategoryPage />}
       />
     </Routes>
+    </>
   );
 };
 
