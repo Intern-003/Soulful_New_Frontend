@@ -6,8 +6,7 @@ import { selectParentCategories } from "../../app/selectors/categorySelectors";
 
 import Sidebar from "../../components/shop/Sidebar";
 import ShopHeader from "../../components/shop/ShopHeader";
-import ProductGrid from "../../components/common/ProductGrid";
-
+import ProductGrid from "../../components/dashboard/products/ProductGrid";
 import useGet from "../../api/hooks/useGet";
 
 const ShopPage = () => {

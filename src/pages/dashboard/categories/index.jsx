@@ -1,11 +1,15 @@
 import { useState } from "react";
-import useGet from "../../api/hooks/useGet";
-import useDelete from "../../api/hooks/useDelete";
+import { useNavigate } from "react-router-dom";
 
-import CategoryTable from "../../components/dashboard/CategoryTable";
-import CategoryForm from "../../components/dashboard/CategoryForm";
+import useGet from "../../../api/hooks/useGet";
+import useDelete from "../../../api/hooks/useDelete";
+
+import CategoryItem from "../../../components/dashboard/categories/CategoryItem";
+import CategoryForm from "../../../components/dashboard/categories/CategoryForm";
 
 const Categories = () => {
+  const navigate = useNavigate();
+
   const { data, loading, refetch } = useGet("/categories");
   const { deleteData } = useDelete();
 
@@ -14,16 +18,16 @@ const Categories = () => {
 
   const categories = data?.data || [];
 
+  // ✅ DELETE
   const handleDelete = async (item) => {
     try {
       if (!window.confirm(`Delete "${item.name}"?`)) return;
 
-      if (item.parent_id) {
-        await deleteData({ url: `/admin/subcategories/${item.id}` });
-      } else {
-        await deleteData({ url: `/admin/categories/${item.id}` });
-      }
+      const url = item.parent_id
+        ? `/admin/subcategories/${item.id}`
+        : `/admin/categories/${item.id}`;
 
+      await deleteData({ url });
       refetch();
     } catch (err) {
       console.error(err);
@@ -40,7 +44,7 @@ const Categories = () => {
             Categories
           </h1>
           <p className="text-sm text-gray-500">
-            Manage all categories and subcategories
+            Manage all categories
           </p>
         </div>
 
@@ -49,18 +53,16 @@ const Categories = () => {
             setSelected(null);
             setOpen(true);
           }}
-          className="bg-[#7a1c3d] text-white px-4 py-2 rounded-lg shadow hover:opacity-90 transition"
+          className="bg-[#7a1c3d] text-white px-4 py-2 rounded-lg"
         >
           + Add Category
         </button>
       </div>
 
-      {/* CARD CONTAINER */}
-      <div className="bg-white rounded-2xl shadow-sm border overflow-hidden">
-
-        {/* LOADING */}
+      {/* LIST */}
+      <div className="bg-white rounded-xl border overflow-hidden">
         {loading ? (
-          <div className="p-6 space-y-4">
+          <div className="p-6 space-y-3">
             {[1, 2, 3].map((i) => (
               <div
                 key={i}
@@ -69,27 +71,24 @@ const Categories = () => {
             ))}
           </div>
         ) : categories.length === 0 ? (
-          /* EMPTY STATE */
-          <div className="p-10 text-center">
-            <p className="text-gray-500 mb-4">
-              No categories found
-            </p>
-            <button
-              onClick={() => setOpen(true)}
-              className="bg-blue-500 text-white px-4 py-2 rounded"
-            >
-              Create First Category
-            </button>
+          <div className="p-10 text-center text-gray-500">
+            No categories found
           </div>
         ) : (
-          <CategoryTable
-            data={categories}
-            onEdit={(item) => {
-              setSelected(item);
-              setOpen(true);
-            }}
-            onDelete={handleDelete}
-          />
+          categories.map((cat) => (
+            <CategoryItem
+              key={cat.id}
+              item={cat}
+              onClick={() =>
+                navigate(`/dashboard/categories/${cat.id}`)
+              }
+              onEdit={(item) => {
+                setSelected(item);
+                setOpen(true);
+              }}
+              onDelete={handleDelete}
+            />
+          ))
         )}
       </div>
 

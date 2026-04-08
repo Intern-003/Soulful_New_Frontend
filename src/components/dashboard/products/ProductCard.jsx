@@ -1,10 +1,10 @@
-import React, { useState, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
-import { useDispatch, useSelector } from "react-redux";
-import { Heart, ShoppingCart, Eye, Check } from "lucide-react";
-import { getImageUrl } from "../../utils/getImageUrl";
-import { addToCart } from "../../app/slices/cartSlice";
-import { addToWishlist } from "../../app/slices/wishlistSlice";
+import React, { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useDispatch, useSelector } from 'react-redux';
+import { Heart, ShoppingCart, Eye, Check } from 'lucide-react';
+import { getImageUrl } from '../../../utils/getImageUrl';
+import { addToCart } from '../../../app/slices/cartSlice';
+import { addToWishlist } from '../../../app/slices/wishlistSlice';
 
 const ProductCard = ({ product, loading = false, viewMode = "grid" }) => {
   if (!product) return null;
