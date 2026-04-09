@@ -12,13 +12,9 @@ const Cart = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
-  const {
-    items,
-    totals,
-    status,
-    updatingItemId,
-    removingItemId,
-  } = useSelector((state) => state.cart);
+  const { items, totals, status, updatingItemId, removingItemId } = useSelector(
+    (state) => state.cart,
+  );
 
   // useEffect(() => {
   //   dispatch(fetchCart());
@@ -47,15 +43,11 @@ const Cart = () => {
 
   return (
     <div className="max-w-7xl mx-auto px-4 md:px-6 py-8">
-      <h1 className="text-2xl md:text-3xl font-bold mb-6">
-        Shopping Cart
-      </h1>
+      <h1 className="text-2xl md:text-3xl font-bold mb-6">Shopping Cart</h1>
 
       {items.length === 0 ? (
         <div className="text-center py-20">
-          <h2 className="text-xl font-semibold mb-4">
-            Your cart is empty
-          </h2>
+          <h2 className="text-xl font-semibold mb-4">Your cart is empty</h2>
           <button
             onClick={() => navigate("/shop")}
             className="bg-[#7a1c3d] text-white px-6 py-2 rounded"
@@ -80,8 +72,9 @@ const Cart = () => {
               return (
                 <div
                   key={item.id}
-                  className={`flex flex-col md:flex-row gap-4 border p-4 rounded-lg relative ${isRemoving ? "opacity-50" : ""
-                    }`}
+                  className={`flex flex-col md:flex-row gap-4 border p-4 rounded-lg relative ${
+                    isRemoving ? "opacity-50" : ""
+                  }`}
                 >
                   {/* IMAGE */}
                   <img
@@ -92,13 +85,9 @@ const Cart = () => {
 
                   {/* DETAILS */}
                   <div className="flex-1">
-                    <h3 className="font-semibold text-lg">
-                      {product?.name}
-                    </h3>
+                    <h3 className="font-semibold text-lg">{product?.name}</h3>
 
-                    <p className="text-gray-500 text-sm">
-                      ₹{item.price}
-                    </p>
+                    <p className="text-gray-500 text-sm">₹{item.price}</p>
 
                     {/* QTY */}
                     <div className="flex items-center gap-3 mt-3">
@@ -145,9 +134,7 @@ const Cart = () => {
                   {/* OVERLAY LOADER */}
                   {isUpdating && (
                     <div className="absolute inset-0 bg-white/50 flex items-center justify-center">
-                      <span className="text-sm text-gray-600">
-                        Updating...
-                      </span>
+                      <span className="text-sm text-gray-600">Updating...</span>
                     </div>
                   )}
                 </div>
@@ -157,9 +144,7 @@ const Cart = () => {
 
           {/* RIGHT - SUMMARY */}
           <div className="border p-5 rounded-lg h-fit">
-            <h2 className="text-lg font-semibold mb-4">
-              Order Summary
-            </h2>
+            <h2 className="text-lg font-semibold mb-4">Order Summary</h2>
 
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
