@@ -1,7 +1,6 @@
-import { useState } from "react";
 import toast from "react-hot-toast";
 
-const VariantGenerator = ({ attributes, selectedValues, onGenerated, existingVariants = [] }) => {
+const VariantGenerator = ({ attributes, selectedValues, onGenerated, disabled, existingVariants = [] }) => {
   const generateCombinations = (arrays) => {
     return arrays.reduce(
       (acc, curr) => acc.flatMap((a) => curr.map((b) => [...a, b])),
@@ -10,9 +9,10 @@ const VariantGenerator = ({ attributes, selectedValues, onGenerated, existingVar
   };
 
   const generate = () => {
-    // Check if attributes are selected
-    const hasSelectedAttributes = Object.values(selectedValues).some(arr => arr.length > 0);
-    
+    const hasSelectedAttributes = Object.values(selectedValues).some(
+      (arr) => arr.length > 0
+    );
+
     if (!hasSelectedAttributes) {
       toast.error("Please select at least one attribute value");
       return;
@@ -33,37 +33,40 @@ const VariantGenerator = ({ attributes, selectedValues, onGenerated, existingVar
       return;
     }
 
-    const result = combos.map((combo) => ({
+    // 🔥 existing SKU set (case-insensitive)
+    const existingSkuSet = new Set(
+  existingVariants.map((v) => v.sku.toLowerCase())
+);
+
+// ALSO consider already generated but unsaved variants
+const generatedSkuSet = new Set(
+  (existingVariants || []).map((v) => v.sku.toLowerCase())
+);
+
+const result = combos
+  .map((combo) => {
+    const sku = combo.map((c) => c.value).join("-");
+
+    return {
       attribute_value_ids: combo.map((c) => c.id),
-      sku: combo.map((c) => c.value).join("-"),
+      sku,
       price: "",
       discount_price: "",
       stock: "",
       weight: "",
       barcode: "",
       image: null,
-    }));
-
-    // Check for duplicates with existing variants
-    if (existingVariants.length > 0) {
-      const existingSkus = new Set(existingVariants.map(v => v.sku));
-      const duplicates = result.filter(v => existingSkus.has(v.sku));
-      
-      if (duplicates.length > 0) {
-        toast.warning(`${duplicates.length} variant(s) already exist and will be skipped`);
-        
-        // Filter out duplicates
-        const uniqueResult = result.filter(v => !existingSkus.has(v.sku));
-        
-        if (uniqueResult.length === 0) {
-          toast.error("All generated variants already exist!");
-          return;
-        }
-        
-        onGenerated(uniqueResult);
-        toast.success(`${uniqueResult.length} new variant(s) generated 🚀`);
-        return;
-      }
+      preview: null,
+    };
+  })
+  .filter((v) => {
+    const skuLower = v.sku.toLowerCase();
+    return !existingSkuSet.has(skuLower);
+  });
+  
+    if (result.length === 0) {
+      toast.error("All generated variants already exist");
+      return;
     }
 
     onGenerated(result);
@@ -72,11 +75,12 @@ const VariantGenerator = ({ attributes, selectedValues, onGenerated, existingVar
 
   return (
     <div className="mt-4">
-      <button 
-        onClick={generate} 
-        className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-colors font-medium"
+      <button
+        onClick={generate}
+        disabled={disabled}
+        className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg disabled:opacity-50"
       >
-        Generate Variants
+        Confirm Variants
       </button>
     </div>
   );
