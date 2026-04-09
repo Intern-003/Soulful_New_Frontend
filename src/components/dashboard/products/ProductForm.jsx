@@ -8,7 +8,6 @@ import AttributeSelector from "./AttributeSelector";
 import VariantGenerator from "./VariantGenerator";
 import toast from "react-hot-toast";
 
-
 const ProductForm = ({ data, onClose, onSuccess }) => {
   const isEdit = !!data;
 
@@ -23,9 +22,15 @@ const ProductForm = ({ data, onClose, onSuccess }) => {
   const { postData } = usePost();
   const { putData } = usePut();
 
-  const [productId, setProductId] = useState(data?.id || null);
+  // ✅ FIXED REFS
   const variantRef = useRef(null);
+  const variantScrollRef = useRef(null);
+
+  const [pendingVariants, setPendingVariants] = useState([]);
+
+  const [productId, setProductId] = useState(data?.id || null);
   const [isLocked, setIsLocked] = useState(false);
+
   const [form, setForm] = useState({
     name: "",
     short_description: "",
@@ -42,15 +47,15 @@ const ProductForm = ({ data, onClose, onSuccess }) => {
     height: "",
     is_featured: false,
   });
-
+  const [existingVariants, setExistingVariants] = useState([]);
   const [parentCategory, setParentCategory] = useState("");
   const [images, setImages] = useState([]);
   const [preview, setPreview] = useState([]);
 
   const [selectedAttributeValues, setSelectedAttributeValues] = useState({});
-  const [generatedVariants, setGeneratedVariants] = useState([]);
-
-  // PREFILL
+  const [submitting, setSubmitting] = useState(false);
+  const [uploadingImages, setUploadingImages] = useState(false);
+  // ✅ PREFILL
   useEffect(() => {
     if (data) {
       setForm({
@@ -66,6 +71,14 @@ const ProductForm = ({ data, onClose, onSuccess }) => {
       setProductId(data.id);
     }
   }, [data]);
+
+  // ✅ SAFE VARIANT INJECTION
+  useEffect(() => {
+    if (pendingVariants.length > 0) {
+      variantRef.current?.addVariants(pendingVariants);
+      setPendingVariants([]);
+    }
+  }, [pendingVariants]);
 
   const handleCategoryChange = async (e) => {
     const id = e.target.value;
@@ -104,6 +117,7 @@ const ProductForm = ({ data, onClose, onSuccess }) => {
     }));
   };
 
+  // ✅ IMAGE HANDLING
   const handleImageChange = (e) => {
     const files = Array.from(e.target.files);
     setImages((prev) => [...prev, ...files]);
@@ -120,15 +134,23 @@ const ProductForm = ({ data, onClose, onSuccess }) => {
     setPreview((prev) => prev.filter((_, i) => i !== index));
   };
 
+  const handleExistingVariants = (variants) => {
+    setExistingVariants(variants);
+  };
+
+  // ✅ SUBMIT
   const handleSubmit = async () => {
+    if (submitting) return; // 🚫 prevent double click
+
     if (!form.name || !form.category_id || !form.price) {
       alert("Please fill required fields");
       return;
     }
 
+    setSubmitting(true);
+
     const payload = {
       ...form,
-
       price: Number(form.price || 0),
       discount_price: Number(form.discount_price || 0),
       cost_price: Number(form.cost_price || 0),
@@ -137,11 +159,7 @@ const ProductForm = ({ data, onClose, onSuccess }) => {
       width: Number(form.width || 0),
       height: Number(form.height || 0),
       weight: Number(form.weight || 0),
-
-      // ✅ ONLY vendor-controlled field
       is_featured: form.is_featured ? 1 : 0,
-
-      // 🔐 FORCE APPROVAL SYSTEM
       is_approved: 0,
       status: 0,
     };
@@ -165,8 +183,10 @@ const ProductForm = ({ data, onClose, onSuccess }) => {
         setProductId(id);
       }
 
-      // IMAGE UPLOAD
+      // ✅ IMAGE UPLOAD WITH LOADER
       if (images.length > 0) {
+        setUploadingImages(true);
+
         const fd = new FormData();
         images.forEach((file) => fd.append("images[]", file));
         fd.append("is_primary", 1);
@@ -176,21 +196,24 @@ const ProductForm = ({ data, onClose, onSuccess }) => {
           data: fd,
           headers: { "Content-Type": "multipart/form-data" },
         });
+
+        setUploadingImages(false);
       }
+
       toast.success("Product submitted for approval ✅");
+      setIsLocked(true);
 
-      setIsLocked(true); // 🔒 lock form
-
-      // ✅ auto scroll to variants
       setTimeout(() => {
-        variantRef.current?.scrollIntoView({ behavior: "smooth" });
+        variantScrollRef.current?.scrollIntoView({ behavior: "smooth" });
       }, 300);
 
       onSuccess();
-
     } catch (err) {
       console.error(err);
-      alert("Error saving product");
+      toast.error("Error saving product");
+    } finally {
+      setSubmitting(false);
+      setUploadingImages(false);
     }
   };
 
@@ -207,7 +230,7 @@ const ProductForm = ({ data, onClose, onSuccess }) => {
           {isEdit ? "Edit Product" : "Add Product"}
         </h2>
 
-        {/* FORM */}
+        {/* ✅ FULL FORM */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
           <input name="name" value={form.name} onChange={handleChange} placeholder="Product Name" disabled={isLocked && !isEdit} className="border p-2" />
@@ -245,21 +268,14 @@ const ProductForm = ({ data, onClose, onSuccess }) => {
 
           <div className="md:col-span-2 grid grid-cols-4 gap-2">
             <input name="length" value={form.length} onChange={handleChange} disabled={isLocked && !isEdit} placeholder="Length" className="border p-2" />
-            <input name="width" value={form.width} onChange={handleChange} placeholder="Width" disabled={isLocked && !isEdit} className="border p-2" />
-            <input name="height" value={form.height} onChange={handleChange} placeholder="Height" disabled={isLocked && !isEdit} className="border p-2" />
-            <input name="weight" value={form.weight} onChange={handleChange} placeholder="Weight" disabled={isLocked && !isEdit} className="border p-2" />
+            <input name="width" value={form.width} onChange={handleChange} disabled={isLocked && !isEdit} placeholder="Width" className="border p-2" />
+            <input name="height" value={form.height} onChange={handleChange} disabled={isLocked && !isEdit} placeholder="Height" className="border p-2" />
+            <input name="weight" value={form.weight} onChange={handleChange} disabled={isLocked && !isEdit} placeholder="Weight" className="border p-2" />
           </div>
 
-          {/* ✅ ONLY FEATURED */}
           <div className="md:col-span-2 flex gap-6">
             <label className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                name="is_featured"
-                checked={form.is_featured}
-                onChange={handleChange}
-                disabled={isLocked && !isEdit}
-              />
+              <input type="checkbox" name="is_featured" checked={form.is_featured} onChange={handleChange} disabled={isLocked && !isEdit} />
               Featured
             </label>
           </div>
@@ -274,18 +290,23 @@ const ProductForm = ({ data, onClose, onSuccess }) => {
               </div>
             ))}
           </div>
-
         </div>
 
-        {/* ✅ CREATE BUTTON MOVED HERE */}
+        {/* ACTIONS */}
         <div className="flex justify-end gap-3 mt-6">
           <button onClick={onClose}>Cancel</button>
           <button
             onClick={handleSubmit}
-            className="bg-[#7a1c3d] text-white px-4 py-2"
-            disabled={isLocked && !isEdit}
+            disabled={isLocked && !isEdit || submitting || uploadingImages}
+            className="bg-[#7a1c3d] text-white px-4 py-2 disabled:opacity-50"
           >
-            {isEdit ? "Update Product" : "Create Product"}
+            {submitting
+              ? "Saving..."
+              : uploadingImages
+                ? "Uploading Images..."
+                : isEdit
+                  ? "Update Product"
+                  : "Create Product"}
           </button>
         </div>
 
@@ -297,26 +318,21 @@ const ProductForm = ({ data, onClose, onSuccess }) => {
         />
 
         {/* VARIANTS */}
-
         {productId && (
           <>
             <VariantGenerator
               attributes={attributes}
               selectedValues={selectedAttributeValues}
-              onGenerated={setGeneratedVariants}
-              existingVariants={generatedVariants} // Pass current variants for duplicate check
+              onGenerated={(v) => setPendingVariants(v)}
+              disabled={!productId || submitting}
+              existingVariants={existingVariants}
             />
 
-            <div ref={variantRef}>
-              <VariantSection
-                productId={productId}
-                generatedVariants={generatedVariants}
-                onVariantsChange={setGeneratedVariants} // Keep variants in sync
-              />
+            <div ref={variantScrollRef}>
+              <VariantSection ref={variantRef} productId={productId} onVariantsLoaded={handleExistingVariants} />
             </div>
           </>
         )}
-
       </div>
     </div>
   );
