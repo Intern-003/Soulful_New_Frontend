@@ -10,7 +10,6 @@ import { fetchCategories } from "../../app/slices/categorySlice";
 const Home = () => {
   const dispatch = useDispatch();
 
-
   const { all: categories, fetched } = useSelector((state) => state.categories);
 
   useEffect(() => {
