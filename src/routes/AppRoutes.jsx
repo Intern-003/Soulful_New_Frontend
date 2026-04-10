@@ -33,6 +33,7 @@ import AdminOrderDetailsPage from "../pages/dashboard/AdminOrderDetailsPage";
 import AdminOrdersPage from "../pages/dashboard/AdminOrdersPage";
 import { Toaster } from "react-hot-toast";
 
+
 const AppRoutes = () => {
   return (
     <>

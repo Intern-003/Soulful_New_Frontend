@@ -8,33 +8,35 @@ const useGet = (url, options = {}) => {
   const [loading, setLoading] = useState(!cache[url] && (options.autoFetch ?? true));
   const [error, setError] = useState(null);
 
-  const fetchData = useCallback(async (customOptions = {}) => {
-    try {
-      setLoading(true);
+  // In your useGet hook, add proper error handling
+const fetchData = useCallback(async (customOptions = {}) => {
+  try {
+    setLoading(true);
+    setError(null); // ✅ Clear previous errors
 
-      const finalUrl = customOptions.url || url;
+    const finalUrl = customOptions.url || url;
+    const force = customOptions.force || false;
 
-      // ✅ Return cached data if exists
-      if (cache[finalUrl]) {
-        setData(cache[finalUrl]);
-        setLoading(false);
-        return cache[finalUrl];
-      }
-
-      const res = await axiosInstance.get(finalUrl, {
-        params: customOptions.params || options.params || {},
-      });
-
-      cache[finalUrl] = res.data; // ✅ store in cache
-      setData(res.data);
-
-      return res.data;
-    } catch (err) {
-      setError(err.response?.data || err.message);
-    } finally {
+    if (!force && cache[finalUrl]) {
+      setData(cache[finalUrl]);
       setLoading(false);
+      return cache[finalUrl];
     }
-  }, [url]);
+
+    const res = await axiosInstance.get(finalUrl, {
+      params: customOptions.params || options.params || {},
+    });
+
+    cache[finalUrl] = res.data;
+    setData(res.data);
+    return res.data;
+  } catch (err) {
+    setError(err.response?.data || err.message);
+    throw err; // ✅ Re-throw so caller knows it failed
+  } finally {
+    setLoading(false);
+  }
+},  [url, options.params, options.autoFetch]);
 
   useEffect(() => {
     if (options.autoFetch !== false) {

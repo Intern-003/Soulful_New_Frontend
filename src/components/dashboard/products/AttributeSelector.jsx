@@ -1,169 +1,64 @@
-// // src/components/dashboard/products/AttributeSelector.jsx
-
-// import { useEffect } from "react";
-// import useGet from "../../../api/hooks/useGet";
-
-// const AttributeSelector = ({ selected = {}, onChange }) => {
-//   // const { data, loading } = useGet("/admin/attributes-with-values");
-
-//   const attributes = data?.data || [];
-
-//   // 🔹 Toggle value inside attribute
-//   const toggle = (attrId, valueId) => {
-//     const existing = selected[attrId] || [];
-
-//     let updatedValues;
-
-//     if (existing.includes(valueId)) {
-//       updatedValues = existing.filter((id) => id !== valueId);
-//     } else {
-//       updatedValues = [...existing, valueId];
-//     }
-
-//     onChange({
-//       ...selected,
-//       [attrId]: updatedValues,
-//     });
-//   };
-
-//   // 🔹 Remove empty attributes
-//   useEffect(() => {
-//     const cleaned = {};
-
-//     Object.keys(selected).forEach((key) => {
-//       if (selected[key]?.length) {
-//         cleaned[key] = selected[key];
-//       }
-//     });
-
-//     if (JSON.stringify(cleaned) !== JSON.stringify(selected)) {
-//       onChange(cleaned);
-//     }
-//   }, [selected]);
-
-//   if (loading) {
-//     return <p className="text-sm text-gray-500">Loading attributes...</p>;
-//   }
-
-//   return (
-//     <div className="space-y-6">
-
-//       {attributes.map((attr) => (
-//         <div key={attr.id}>
-
-//           {/* 🔹 Attribute Title */}
-//           <h3 className="text-sm font-semibold text-gray-700 mb-2 uppercase tracking-wide">
-//             {attr.name}
-//           </h3>
-
-//           {/* 🔹 Values */}
-//           <div className="flex flex-wrap gap-2">
-//             {attr.values.map((val) => {
-//               const isSelected = selected[attr.id]?.includes(val.id);
-
-//               return (
-//                 <button
-//                   key={val.id}
-//                   type="button"
-//                   onClick={() => toggle(attr.id, val.id)}
-//                   className={`px-3 py-1.5 rounded-full text-sm border transition-all duration-200 ${
-//                     isSelected
-//                       ? "bg-[#7a1c3d] text-white border-[#7a1c3d] shadow"
-//                       : "bg-gray-100 text-gray-700 hover:bg-gray-200 border-gray-200"
-//                   }`}
-//                 >
-//                   {val.value}
-//                 </button>
-//               );
-//             })}
-//           </div>
-
-//         </div>
-//       ))}
-
-//     </div>
-//   );
-// };
-
-// export default AttributeSelector;
-
-// src/components/dashboard/products/AttributeSelector.jsx
-
 import { useEffect } from "react";
+import { Check, Tag } from "lucide-react";
 
-const AttributeSelector = ({
-  selected = {},
-  onChange,
-  attributes = [],
-  loading = false,
-}) => {
-
+const AttributeSelector = ({ selected = {}, onChange, attributes = [], loading = false }) => {
   const toggle = (attrId, valueId) => {
     const existing = selected[attrId] || [];
-
-    let updatedValues;
-
-    if (existing.includes(valueId)) {
-      updatedValues = existing.filter((id) => id !== valueId);
-    } else {
-      updatedValues = [...existing, valueId];
-    }
-
-    onChange({
-      ...selected,
-      [attrId]: updatedValues,
-    });
+    const updatedValues = existing.includes(valueId) 
+      ? existing.filter((id) => id !== valueId)
+      : [...existing, valueId];
+    
+    onChange({ ...selected, [attrId]: updatedValues });
   };
 
-  // 🔹 Clean empty attributes
   useEffect(() => {
     const cleaned = {};
-
     Object.keys(selected).forEach((key) => {
-      if (selected[key]?.length) {
-        cleaned[key] = selected[key];
-      }
+      if (selected[key]?.length) cleaned[key] = selected[key];
     });
-
-    if (JSON.stringify(cleaned) !== JSON.stringify(selected)) {
-      onChange(cleaned);
-    }
+    if (JSON.stringify(cleaned) !== JSON.stringify(selected)) onChange(cleaned);
   }, [selected]);
 
-  if (loading) {
-    return <p className="text-sm text-gray-500">Loading attributes...</p>;
-  }
+  if (loading) return <div className="text-center py-8 text-gray-500">Loading attributes...</div>;
+  if (!attributes.length) return <div className="text-center py-8 text-gray-500">No attributes available</div>;
+
+  const totalSelected = Object.values(selected).reduce((sum, arr) => sum + (arr?.length || 0), 0);
 
   return (
     <div className="space-y-6">
-      {attributes.map((attr) => (
-        <div key={attr.id}>
-          <h3 className="text-sm font-semibold mb-2 uppercase">
-            {attr.name}
-          </h3>
+      <div className="flex justify-between items-center mb-4">
+        <h3 className="font-semibold text-lg flex items-center gap-2">
+          <Tag size={20} />
+          Product Attributes
+        </h3>
+        <span className="text-sm bg-gray-100 px-3 py-1 rounded-full">{totalSelected} value(s) selected</span>
+      </div>
 
-          <div className="flex flex-wrap gap-2">
-            {attr.values.map((val) => {
-              const isSelected = selected[attr.id]?.includes(val.id);
-
-              return (
-                <button
-                  key={val.id}
-                  type="button"
-                  onClick={() => toggle(attr.id, val.id)}
-                  className={`px-3 py-1 rounded border ${
-                    isSelected
-                      ? "bg-[#7a1c3d] text-white"
-                      : "bg-gray-100"
-                  }`}
-                >
-                  {val.value}
-                </button>
-              );
-            })}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {attributes.map((attr) => (
+          <div key={attr.id} className="border rounded-xl p-4 bg-gray-50">
+            <h4 className="font-semibold mb-3 text-gray-800">{attr.name}</h4>
+            <div className="flex flex-wrap gap-2">
+              {attr.values.map((val) => {
+                const isSelected = selected[attr.id]?.includes(val.id);
+                return (
+                  <button
+                    key={val.id}
+                    type="button"
+                    onClick={() => toggle(attr.id, val.id)}
+                    className={`px-3 py-2 rounded-lg text-sm transition-all flex items-center gap-2 ${
+                      isSelected ? "bg-[#7a1c3d] text-white shadow-md" : "bg-white border hover:border-[#7a1c3d] hover:shadow"
+                    }`}
+                  >
+                    {isSelected && <Check size={14} />}
+                    {val.value}
+                  </button>
+                );
+              })}
+            </div>
           </div>
-        </div>
-      ))}
+        ))}
+      </div>
     </div>
   );
 };
