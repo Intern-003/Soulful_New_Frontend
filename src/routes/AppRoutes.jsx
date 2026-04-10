@@ -23,6 +23,7 @@ import Orders from "../components/account/sections/Orders";
 
 import Roles from "../pages/dashboard/Roles";
 import ShopPage from "../pages/public/ShopPage";
+import ProductDetails from "../pages/public/ProductDetails";
 import Wishlist from "../pages/public/Wishlist";
 import Contact from "../pages/public/Contact";
 import Support from "../pages/public/Support";
@@ -35,40 +36,41 @@ import { Toaster } from "react-hot-toast";
 const AppRoutes = () => {
   return (
     <>
-    <Toaster position="top-right" />
-    <Routes>
-      <Route path="/login" element={<Login />} />
-      <Route path="/register" element={<Register />} />
+      <Toaster position="top-right" />
+      <Routes>
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
 
-      {/* MAIN WEBSITE */}
-      <Route element={<MainLayout />}>
-        <Route path="/" element={<Home />} />
-        <Route path="/cart" element={<Cart />} />
-        <Route path="/checkout" element={<Checkout />} />
-        <Route path="/account" element={<AccountPage />} />
-        <Route path="/shop" element={<ShopPage />} />
-        <Route path="/wishlist" element={<Wishlist />} />
-        <Route path="/contact" element={<Contact />} />
-        <Route path="/support" element={<Support />} />
-      </Route>
+        {/* MAIN WEBSITE */}
+        <Route element={<MainLayout />}>
+          <Route path="/" element={<Home />} />
+          <Route path="/cart" element={<Cart />} />
+          <Route path="/checkout" element={<Checkout />} />
+          <Route path="/account" element={<AccountPage />} />
+          <Route path="/shop" element={<ShopPage />} />
+          <Route path="/wishlist" element={<Wishlist />} />
+          <Route path="/product/:slug" element={<ProductDetails />} />
+          <Route path="/contact" element={<Contact />} />
+          <Route path="/support" element={<Support />} />
+        </Route>
 
-      {/* DASHBOARD */}
-      <Route path="/dashboard" element={<DashboardLayout />}>
-        <Route index element={<Dashboard />} />
-        <Route path="products" element={<Products />} />
-        <Route path="orders" element={<VendorOrdersPage />} />
-        <Route path="orders/:id" element={<VendorOrderDetailsPage />} />
-        <Route path="users" element={<Users />} />
-        <Route path="categories" element={<Categories />} />
-        <Route path="roles" element={<Roles />} />
-        <Route path="attributes" element={<Attributes />} />
-        <Route path="admin/orders" element={<AdminOrdersPage />} />
-        <Route path="admin/orders/:id" element={<AdminOrderDetailsPage />} />
-      </Route>
+        {/* DASHBOARD */}
+        <Route path="/dashboard" element={<DashboardLayout />}>
+          <Route index element={<Dashboard />} />
+          <Route path="products" element={<Products />} />
+          <Route path="orders" element={<VendorOrdersPage />} />
+          <Route path="orders/:id" element={<VendorOrderDetailsPage />} />
+          <Route path="users" element={<Users />} />
+          <Route path="categories" element={<Categories />} />
+          <Route path="roles" element={<Roles />} />
+          <Route path="attributes" element={<Attributes />} />
+          <Route path="admin/orders" element={<AdminOrdersPage />} />
+          <Route path="admin/orders/:id" element={<AdminOrderDetailsPage />} />
+        </Route>
 
-      {/* FALLBACK */}
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+        {/* FALLBACK */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
     </>
   );
 };
