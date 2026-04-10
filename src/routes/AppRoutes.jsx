@@ -69,14 +69,14 @@ const AppRoutes = () => {
             <Route path="admin/orders" element={<AdminOrdersPage />} />
             <Route path="admin/orders/:id" element={<AdminOrderDetailsPage />} />
           <Route path="subcategories/:id/products" element={<SubCategoryProducts />} />
-          <Route path="/dashboard/categories/:id" element={<SubCategoryPage />} />
+          <Route path="/categories/:id" element={<SubCategoryPage />} />
           <Route path="permissions" element={<Permissions />} />
           </Route>
 
       {/* FALLBACK */}
       <Route path="*" element={<Navigate to="/" replace />} />
       <Route path="/dashboard/subcategories/:id/products" element={<SubCategoryProducts />} />
-    </Routes>
+    </Routes></>
   );
 };
 
