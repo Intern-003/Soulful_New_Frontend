@@ -47,9 +47,7 @@ const HeroSlider = () => {
   };
 
   const handlePrev = () => {
-    setCurrent((prev) =>
-      prev === 0 ? bannerImages.length - 1 : prev - 1
-    );
+    setCurrent((prev) => (prev === 0 ? bannerImages.length - 1 : prev - 1));
   };
 
   // ✅ Touch handlers
@@ -85,42 +83,50 @@ const HeroSlider = () => {
       onTouchEnd={handleTouchEnd}
     >
       {/* ✅ Sliding Track (GPU optimized) */}
-      <div
-        className="flex h-full w-full transition-transform duration-700 ease-in-out"
-        style={{
-          transform: `translateX(-${current * 100}%)`,
-        }}
-      >
+      <div className="relative w-full h-full">
         {bannerImages.map((banner, i) => (
-          <div key={i} className="w-full flex-shrink-0 relative h-full">
+          <div
+            key={i}
+            className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${
+              i === current ? "opacity-100 z-10" : "opacity-0 z-0"
+            }`}
+          >
             <img
               src={banner.fullUrl}
               alt={banner.title}
               className="w-full h-full object-cover object-center"
-              loading="eager"
             />
 
             {/* Overlay */}
-            <div className="absolute inset-0 bg-gradient-to-r from-black/50 to-black/20 sm:from-black/40 sm:to-black/20" />
+            <div className="absolute inset-0 bg-gradient-to-r from-black/50 to-black/20" />
 
             {/* Content */}
             <div className="absolute inset-0 flex items-center">
-              <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
-                <div className="w-full sm:max-w-xl md:max-w-2xl space-y-3 sm:space-y-4 md:space-y-6 text-white">
-                  <span className="inline-block bg-[#ead1dc] text-[#7a1c3d] px-3 sm:px-4 py-1 rounded-full text-xs sm:text-sm font-medium">
+              <div className="max-w-7xl mx-auto px-6 w-full">
+                <div className="space-y-6">
+                  {/* Badge */}
+                  <span className="inline-block bg-[#f0dbe4] text-[#8C0D4F] px-4 py-1.5 rounded-full text-xs font-semibold tracking-wide">
                     {banner.title}
                   </span>
 
-                  <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold leading-tight">
-                    {banner.subtitle}
+                  {/* Heading */}
+                  <h1 className="text-4xl md:text-5xl font-semibold leading-tight text-[#3b0a1c]">
+                    {banner.subtitle?.split(" ").slice(0, -1).join(" ")}{" "}
+                    <span className="text-[#8C0D4F] relative inline-block">
+                      {banner.subtitle?.split(" ").slice(-1)}
+                      <span className="absolute left-0 bottom-1 w-full h-[3px] bg-[#e7a8c2]"></span>
+                    </span>
                   </h1>
 
-                  <p className="text-sm sm:text-base md:text-lg text-gray-100 max-w-lg">
-                    Discover premium quality products from Soulful Overseas marketplace.
+                  {/* Description */}
+                  <p className="text-gray-100 text-[15px] leading-relaxed max-w-md">
+                    Discover premium quality products from Soulful Overseas
+                    marketplace.
                   </p>
 
+                  {/* Button */}
                   <a href={banner.link}>
-                    <button className="bg-[#7a1c3d] text-white px-5 sm:px-6 py-2.5 sm:py-3 rounded-md hover:bg-[#5c132d] transition-all hover:scale-105 text-sm sm:text-base font-medium">
+                    <button className="bg-[#8C0D4F] text-white px-6 py-3 rounded-md text-sm font-medium hover:bg-[#6d0a3e] transition-all duration-300 shadow-sm hover:shadow-md">
                       Shop Now →
                     </button>
                   </a>
@@ -130,7 +136,6 @@ const HeroSlider = () => {
           </div>
         ))}
       </div>
-
       {/* Navigation Arrows */}
       <button
         onClick={handlePrev}

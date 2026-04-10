@@ -4,3 +4,7 @@ export const AUTH = {
   LOGOUT: "/auth/logout",
   ME: "/auth/me",
 };
+
+export const PRODUCT = {
+  DETAILS: (slug) => `/products/${slug}`,
+};
