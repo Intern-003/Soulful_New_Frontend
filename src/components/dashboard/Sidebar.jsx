@@ -31,62 +31,7 @@ const Sidebar = () => {
   const { can } = usePermissions();
   const [openOrders, setOpenOrders] = useState(false);
 
-  // 
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  Permissions
+  // Permissions
   const canAdminOrders = can("order_admin", "view");
   const canVendorOrders = can("order_vendor", "view");
   const showOrderDropdown = canAdminOrders && canVendorOrders;

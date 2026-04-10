@@ -32,6 +32,7 @@ import AdminOrderDetailsPage from "../pages/dashboard/AdminOrderDetailsPage";
 import AdminOrdersPage from "../pages/dashboard/AdminOrdersPage";
 import { Toaster } from "react-hot-toast";
 
+
 const AppRoutes = () => {
   return (
     <>
@@ -64,6 +65,7 @@ const AppRoutes = () => {
         <Route path="attributes" element={<Attributes />} />
         <Route path="admin/orders" element={<AdminOrdersPage />} />
         <Route path="admin/orders/:id" element={<AdminOrderDetailsPage />} />
+        
       </Route>
 
       {/* FALLBACK */}
