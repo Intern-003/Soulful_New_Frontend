@@ -42,7 +42,7 @@ const fetchData = useCallback(async (customOptions = {}) => {
     if (options.autoFetch !== false) {
       fetchData();
     }
-  }, [fetchData]);
+  }, [url]); // ✅ FIXED
 
   return { data, loading, error, refetch: fetchData };
 };

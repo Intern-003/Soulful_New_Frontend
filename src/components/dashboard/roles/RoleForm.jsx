@@ -4,129 +4,74 @@ import usePut from "../../../api/hooks/usePut";
 import PermissionSelector from "./PermissionSelector";
 
 const RoleForm = ({ data, onClose, onSuccess }) => {
-  // 🔹 API hooks
   const { postData, loading: postLoading } = usePost();
   const { putData, loading: putLoading } = usePut();
 
-  // 🔹 State
   const [name, setName] = useState(data?.name || "");
   const [selectedPermissions, setSelectedPermissions] = useState(
     data?.permissions?.map((p) => p.id) || []
   );
 
-  // 🔹 Submit
   const handleSubmit = async () => {
-    if (!name.trim()) {
-      alert("Role name is required");
-      return;
-    }
+    if (!name.trim()) return alert("Role name required");
+
+    const payload = {
+      name,
+      permission_ids: selectedPermissions, // ✅ unified
+    };
 
     try {
       if (data) {
-        // ✅ UPDATE ROLE
-        console.log("Updating Role:", {
-          name,
-          permission_ids: selectedPermissions,
-        });
-
-        await putData({
-          url: `/admin/roles/${data.id}`, // ✅ FIXED URL
-          data: {
-            name,
-            permission_ids: selectedPermissions, // ✅ IMPORTANT FIX
-          },
-        });
+        await putData({ url: `/admin/roles/${data.id}`, data: payload });
       } else {
-        // ✅ CREATE ROLE
-        console.log("Creating Role:", {
-          name,
-          permissions: selectedPermissions,
-        });
-
-        await postData({
-          url: "/admin/roles", // ✅ FIXED URL
-          data: {
-            name,
-            permissions: selectedPermissions,
-          },
-        });
+        await postData({ url: "/admin/roles", data: payload });
       }
 
-      // 🔄 Refresh roles list
       await onSuccess();
-
-      // ❌ Close modal
       onClose();
-
     } catch (err) {
-      console.error("Role save error:", err);
-      alert("Something went wrong");
+      console.error(err);
+      alert("Error saving role");
     }
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex justify-center items-center z-50">
-
-      <div className="bg-white w-full max-w-2xl p-6 rounded-2xl shadow-lg">
-
-        {/* 🔹 HEADER */}
-        <h2 className="text-xl font-bold text-gray-800 mb-4">
+    <div className="fixed inset-0 bg-black/50 flex justify-center items-center">
+      <div className="bg-white w-full max-w-2xl p-6 rounded-2xl">
+        <h2 className="text-xl font-bold mb-4">
           {data ? "Edit Role" : "Create Role"}
         </h2>
 
-        {/* 🔹 NAME */}
-        <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-600 mb-1">
-            Role Name
-          </label>
+        <input
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="Role name"
+          className="w-full border p-2 rounded mb-4"
+        />
 
-          <input
-            type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Enter role name"
-            className="w-full border rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-[#7a1c3d]"
-          />
-        </div>
+        <PermissionSelector
+          selected={selectedPermissions}
+          onChange={setSelectedPermissions}
+        />
 
-        {/* 🔹 PERMISSIONS */}
-        <div className="mb-4">
-          <h3 className="text-sm font-semibold text-gray-700 mb-2">
-            Assign Permissions
-          </h3>
-
-          <PermissionSelector
-            selected={selectedPermissions}
-            onChange={setSelectedPermissions}
-          />
-        </div>
-
-        {/* 🔹 ACTIONS */}
-        <div className="flex justify-end gap-3 mt-6">
-
-          <button
-            onClick={onClose}
-            className="px-4 py-2 border rounded-lg text-gray-600 hover:bg-gray-100 transition"
-          >
+        <div className="flex justify-end gap-2 mt-4">
+          <button onClick={onClose} className="border px-3 py-1 rounded">
             Cancel
           </button>
 
           <button
             onClick={handleSubmit}
-            disabled={postLoading || putLoading}
-            className="px-4 py-2 bg-[#7a1c3d] text-white rounded-lg hover:opacity-90 transition disabled:opacity-50"
+            className="bg-[#7a1c3d] text-white px-4 py-2 rounded"
           >
             {data
               ? putLoading
                 ? "Updating..."
-                : "Update Role"
+                : "Update"
               : postLoading
               ? "Creating..."
-              : "Create Role"}
+              : "Create"}
           </button>
-
         </div>
-
       </div>
     </div>
   );

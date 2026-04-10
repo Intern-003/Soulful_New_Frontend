@@ -4,19 +4,21 @@ import DashboardHeader from "../components/dashboard/DashboardHeader";
 
 const DashboardLayout = () => {
   return (
-    <div className="flex min-h-screen">
+    <div className="flex min-h-screen bg-gray-100">
 
       {/* SIDEBAR */}
       <Sidebar />
 
       {/* RIGHT CONTENT */}
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col md:ml-64">
 
         {/* HEADER */}
-        <DashboardHeader />
+        <div className="sticky top-0 z-30">
+          <DashboardHeader />
+        </div>
 
         {/* PAGE CONTENT */}
-        <main className="p-6 bg-gray-100 flex-1">
+        <main className="p-6 flex-1 overflow-y-auto">
           <Outlet />
         </main>
 

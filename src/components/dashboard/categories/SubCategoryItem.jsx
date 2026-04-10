@@ -1,58 +1,64 @@
+import { getImageUrl } from "../../../utils/getImageUrl";
+
 const SubCategoryItem = ({ item, onClick, onEdit, onDelete }) => {
   return (
-    <div className="flex justify-between items-center p-3 border-b hover:bg-gray-50">
-      
-      {/* LEFT SIDE (CLICKABLE → PRODUCTS) */}
+    <div className="flex justify-between items-center p-4 border rounded-xl bg-white hover:shadow-sm hover:bg-gray-50 transition-all">
+
+      {/* LEFT SIDE */}
       <div
-        onClick={onClick}
-        className="flex items-center gap-3 cursor-pointer"
+        onClick={() => onClick?.(item)}
+        className="flex items-center gap-4 cursor-pointer"
       >
-        <img
-          src={
-            item.image
-              ? `http://127.0.0.1:8000/storage/${item.image}`
-              : "/no-image.png"
-          }
-          alt=""
-          className="h-9 w-9 object-cover rounded border"
-        />
+        <div className="h-12 w-12 rounded-lg overflow-hidden border bg-gray-100 flex items-center justify-center">
+          <img
+            src={getImageUrl(item?.image) || "/no-image.png"}
+            alt="category"
+            className="h-full w-full object-cover"
+            loading="lazy"
+            onError={(e) => {
+              if (e.currentTarget.src.includes("no-image.png")) return;
+              e.currentTarget.src = "/no-image.png";
+            }}
+          />
+        </div>
 
         <div>
-          <p className="text-gray-800 font-medium">
-            {item.name}
+          <p className="text-gray-800 font-semibold text-sm">
+            {item?.name || "No Name"}
           </p>
+
           <p className="text-xs text-gray-500">
             Click to view products
           </p>
         </div>
       </div>
 
-      {/* RIGHT SIDE (ACTIONS) */}
-      <div className="flex items-center gap-2">
-        
+      {/* RIGHT SIDE */}
+      <div className="flex items-center gap-3">
+
         {/* POSITION */}
         <span className="text-xs text-gray-400">
-          #{item.position ?? "-"}
+          #{item?.position ?? "-"}
         </span>
 
         {/* STATUS */}
         <span
-          className={`px-2 py-1 text-xs rounded ${
-            item.status
+          className={`px-2 py-1 text-xs font-medium rounded-full ${
+            item?.status
               ? "bg-green-100 text-green-700"
               : "bg-red-100 text-red-600"
           }`}
         >
-          {item.status ? "Active" : "Inactive"}
+          {item?.status ? "Active" : "Inactive"}
         </span>
 
         {/* EDIT */}
         <button
           onClick={(e) => {
             e.stopPropagation();
-            onEdit(item);
+            onEdit?.(item);
           }}
-          className="px-3 py-1 bg-blue-500 text-white rounded text-xs"
+          className="px-3 py-1 text-xs font-medium bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition"
         >
           Edit
         </button>
@@ -61,9 +67,9 @@ const SubCategoryItem = ({ item, onClick, onEdit, onDelete }) => {
         <button
           onClick={(e) => {
             e.stopPropagation();
-            onDelete(item);
+            onDelete?.(item);
           }}
-          className="px-3 py-1 bg-red-500 text-white rounded text-xs"
+          className="px-3 py-1 text-xs font-medium bg-red-500 text-white rounded-lg hover:bg-red-600 transition"
         >
           Delete
         </button>

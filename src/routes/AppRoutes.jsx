@@ -5,7 +5,7 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import MainLayout from "../components/common/MainLayout";
 import DashboardLayout from "../layouts/DashboardLayout";
 import Attributes from "../pages/dashboard/Attributes";
-
+import About from "../pages/public/About";
 // Pages
 import Home from "../pages/public/Home";
 // import Login from "../pages/auth/Login";
@@ -31,6 +31,7 @@ import VendorOrdersPage from "../pages/dashboard/VendorOrdersPage";
 import VendorOrderDetailsPage from "../pages/dashboard/VendorOrderDetailsPage";
 import AdminOrderDetailsPage from "../pages/dashboard/AdminOrderDetailsPage";
 import AdminOrdersPage from "../pages/dashboard/AdminOrdersPage";
+import Permissions from "../pages/dashboard/Permissions";
 import { Toaster } from "react-hot-toast";
 
 
@@ -56,23 +57,26 @@ const AppRoutes = () => {
         </Route>
 
         {/* DASHBOARD */}
-        <Route path="/dashboard" element={<DashboardLayout />}>
-          <Route index element={<Dashboard />} />
-          <Route path="products" element={<Products />} />
-          <Route path="orders" element={<VendorOrdersPage />} />
-          <Route path="orders/:id" element={<VendorOrderDetailsPage />} />
-          <Route path="users" element={<Users />} />
-          <Route path="categories" element={<Categories />} />
-          <Route path="roles" element={<Roles />} />
-          <Route path="attributes" element={<Attributes />} />
-          <Route path="admin/orders" element={<AdminOrdersPage />} />
-          <Route path="admin/orders/:id" element={<AdminOrderDetailsPage />} />
-        </Route>
+          <Route path="/dashboard" element={<DashboardLayout />}>
+            <Route index element={<Dashboard />} />
+            <Route path="products" element={<Products />} />
+            <Route path="orders" element={<VendorOrdersPage />} />
+            <Route path="orders/:id" element={<VendorOrderDetailsPage />} />
+            <Route path="users" element={<Users />} />
+            <Route path="categories" element={<Categories />} />
+            <Route path="roles" element={<Roles />} />
+            <Route path="attributes" element={<Attributes />} />
+            <Route path="admin/orders" element={<AdminOrdersPage />} />
+            <Route path="admin/orders/:id" element={<AdminOrderDetailsPage />} />
+          <Route path="subcategories/:id/products" element={<SubCategoryProducts />} />
+          <Route path="/categories/:id" element={<SubCategoryPage />} />
+          <Route path="permissions" element={<Permissions />} />
+          </Route>
 
-        {/* FALLBACK */}
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </>
+      {/* FALLBACK */}
+      <Route path="*" element={<Navigate to="/" replace />} />
+      <Route path="/dashboard/subcategories/:id/products" element={<SubCategoryProducts />} />
+    </Routes></>
   );
 };
 
