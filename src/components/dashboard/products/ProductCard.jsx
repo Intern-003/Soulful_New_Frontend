@@ -1,10 +1,10 @@
-import React, { useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useDispatch, useSelector } from 'react-redux';
-import { Heart, ShoppingCart, Eye, Check } from 'lucide-react';
-import { getImageUrl } from '../../../utils/getImageUrl';
-import { addToCart } from '../../../app/slices/cartSlice';
-import { addToWishlist } from '../../../app/slices/wishlistSlice';
+import React, { useState, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
+import { useDispatch, useSelector } from "react-redux";
+import { Heart, ShoppingCart, Eye, Check } from "lucide-react";
+import { getImageUrl } from "../../../utils/getImageUrl";
+import { addToCart } from "../../../app/slices/cartSlice";
+import { addToWishlist } from "../../../app/slices/wishlistSlice";
 
 const ProductCard = ({ product, loading = false, viewMode = "grid" }) => {
   if (!product) return null;
@@ -86,7 +86,7 @@ const ProductCard = ({ product, loading = false, viewMode = "grid" }) => {
       return;
     }
 
-    if (isInWishlist) return; // ✅ duplicate rokega
+    if (isInWishlist) return;
 
     try {
       await dispatch(addToWishlist({ product_id: product.id })).unwrap();
@@ -121,7 +121,6 @@ const ProductCard = ({ product, loading = false, viewMode = "grid" }) => {
       }`}
     >
       {/* IMAGE */}
-      {/* <div className="relative h-40 sm:h-52 md:h-[240px] bg-gray-100 flex items-center justify-center overflow-hidden"> */}
       <div
         className={`relative bg-gray-100 flex items-center justify-center overflow-hidden ${
           viewMode === "list"
@@ -143,7 +142,6 @@ const ProductCard = ({ product, loading = false, viewMode = "grid" }) => {
         )}
 
         {/* ACTION BUTTONS */}
-        {/* <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center gap-2 sm:gap-3"> */}
         <div
           className={`absolute inset-0 bg-black/40 opacity-0 transition items-center justify-center gap-2 sm:gap-3 ${
             viewMode === "grid" ? "group-hover:opacity-100 flex" : "hidden"
@@ -169,7 +167,6 @@ const ProductCard = ({ product, loading = false, viewMode = "grid" }) => {
           {/* WISHLIST */}
           <button
             onClick={handleAddToWishlist}
-            // disabled={isActionLoading}
             disabled={isActionLoading || isInWishlist}
             className="bg-white p-2 sm:p-3 rounded-full hover:bg-[#7a1c3d] hover:text-white transition"
           >
@@ -178,19 +175,10 @@ const ProductCard = ({ product, loading = false, viewMode = "grid" }) => {
               className={isInWishlist ? "fill-red-500 text-red-500" : ""}
             />
           </button>
-
-          {/* VIEW */}
-          <button
-            onClick={handleViewProduct}
-            className="bg-white p-2 sm:p-3 rounded-full hover:bg-[#7a1c3d] hover:text-white transition"
-          >
-            <Eye size={16} />
-          </button>
         </div>
       </div>
 
       {/* CONTENT */}
-      {/* <div className="p-3 sm:p-4 text-center"> */}
       <div
         className={`p-3 sm:p-4 ${
           viewMode === "list"

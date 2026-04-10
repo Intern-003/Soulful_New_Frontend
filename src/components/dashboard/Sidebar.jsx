@@ -41,6 +41,12 @@ const Sidebar = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [openOrders, setOpenOrders] = useState(false);
 
+  // Permissions
+  const canAdminOrders = can("order_admin", "view");
+  const canVendorOrders = can("order_vendor", "view");
+  const showOrderDropdown = canAdminOrders && canVendorOrders;
+
+  // Menu config
   const menu = [
     {
       label: "Dashboard",

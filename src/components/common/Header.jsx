@@ -15,7 +15,7 @@ import { logout as logoutAction } from "../../app/slices/authSlice";
 import usePermissions from "../../api/hooks/usePermissions";
 import { getImageUrl } from "../../utils/getImageUrl";
 import axiosInstance from "../../api/axiosInstance";
-
+import TopBar from "./TopBar";
 
 const Header = () => {
   const navigate = useNavigate();
@@ -25,19 +25,6 @@ const Header = () => {
   const { can } = usePermissions();
   const { items: cartItems } = useSelector((state) => state.cart);
 
-  // Promo Messages
-  // Add this to the top of your component (outside return) for better performance
-  const promoMessages = React.useMemo(() => [
-    "🎁 20% off on your first order - Use code: FIRST20",
-    "🚚 Free Shipping on orders above ₹999",
-    "💳 Cash on Delivery Available",
-    "⭐ 100% Genuine Products",
-    "📦 Easy Returns within 7 days",
-  ], []);
-
-  const [currentPromo, setCurrentPromo] = useState(0);
-  const [animatePromo, setAnimatePromo] = useState(false);
-
   // Search
   const [query, setQuery] = useState("");
   const [suggestions, setSuggestions] = useState([]);
@@ -46,24 +33,6 @@ const Header = () => {
   // UI States
   const [profileOpen, setProfileOpen] = useState(false);
   const [mobileMenu, setMobileMenu] = useState(false);
-
-  // Fetch cart when user logs in/out or component mounts
-  // useEffect(() => {
-  //   dispatch(fetchCart());
-  // }, [dispatch, user]);
-
-  // Promo rotation
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setAnimatePromo(true);
-      setTimeout(() => {
-        setCurrentPromo((prev) => (prev + 1) % promoMessages.length);
-        setAnimatePromo(false);
-      }, 400);
-    }, 3000);
-
-    return () => clearInterval(interval);
-  }, [promoMessages.length]);
 
   // Search with debounce
   useEffect(() => {
@@ -100,129 +69,136 @@ const Header = () => {
     navigate("/login");
   };
 
-  const wishlistCount = useSelector((state) => state.wishlist?.items?.length || 0);
+  const wishlistCount = useSelector(
+    (state) => state.wishlist?.items?.length || 0,
+  );
 
   // Add touch event handling for mobile
   useEffect(() => {
     const handleTouchOutside = (e) => {
-      if (profileOpen && !e.target.closest('.profile-dropdown') && !e.target.closest('.profile-trigger')) {
+      if (
+        profileOpen &&
+        !e.target.closest(".profile-dropdown") &&
+        !e.target.closest(".profile-trigger")
+      ) {
         setProfileOpen(false);
       }
     };
-    document.addEventListener('touchstart', handleTouchOutside);
-    return () => document.removeEventListener('touchstart', handleTouchOutside);
+    document.addEventListener("touchstart", handleTouchOutside);
+    return () => document.removeEventListener("touchstart", handleTouchOutside);
   }, [profileOpen]);
 
   return (
     <header className="w-full bg-white border-b shadow-sm">
-      {/* Top Contact Bar - Hidden on mobile */}
-      <div className="hidden md:flex justify-between bg-gray-100 px-6 py-2 text-sm">
-        <div className="flex gap-6">
-          <span className="flex items-center gap-2">
-            <Phone size={14} /> +91 9300098007
-          </span>
-          <span className="flex items-center gap-2">
-            <Mail size={14} /> soulfuloverseas.in@gmail.com
-          </span>
-        </div>
-        <span
-          onClick={() => navigate("/track-order")}
-          className="cursor-pointer hover:text-[#7a1c3d] font-medium"
-        >
-          Track Order
-        </span>
-      </div>
+      <TopBar />
 
       {/* Main Header */}
-      <div className="flex items-center justify-between px-4 md:px-6 py-4">
-        {/* Mobile Menu Button */}
-        <button className="md:hidden" onClick={() => setMobileMenu(true)}>
-          <Menu size={24} />
-        </button>
+      <div className="flex items-center justify-between px-4 md:px-8 py-4 gap-4">
+        {/* LEFT */}
+        <div className="flex items-center gap-3">
+          {/* Mobile Menu */}
+          <button className="md:hidden" onClick={() => setMobileMenu(true)}>
+            <Menu size={24} />
+          </button>
 
-        {/* Logo */}
-        <h1
-          className="text-xl md:text-2xl font-extrabold text-[#7a1c3d] cursor-pointer"
-          onClick={() => navigate("/")}
-        >
-          Soulful Overseas
-        </h1>
-
-        {/* Search Bar - Hidden on mobile */}
-        <div className="hidden md:block flex-1 max-w-2xl mx-6 relative">
-          <div className="flex border rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-[#7a1c3d]">
-            <input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              className="w-full px-4 py-2.5 outline-none text-sm"
-              placeholder="Search products..."
-            />
-            <button className="bg-[#7a1c3d] px-6 text-white">
-              <Search size={20} />
-            </button>
-          </div>
-
-          {/* Search Suggestions */}
-          {showSuggestions && suggestions.length > 0 && (
-            <div className="absolute w-full bg-white shadow-xl mt-1 rounded-lg overflow-hidden z-50 max-h-96 overflow-y-auto">
-              {suggestions.map((item) => {
-                const imgUrl =
-                  item.images?.find((i) => i.is_primary)?.image_url ||
-                  item.images?.[0]?.image_url;
-
-                return (
-                  <div
-                    key={item.id}
-                    className="flex gap-3 p-3 hover:bg-gray-50 cursor-pointer border-b last:border-0"
-                    onClick={() => {
-                      navigate(`/product/${item.slug}`);
-                      setQuery("");
-                      setShowSuggestions(false);
-                    }}
-                  >
-                    <img
-                      src={getImageUrl(imgUrl) || "/placeholder.jpg"}
-                      alt={item.name}
-                      className="w-12 h-12 object-cover rounded"
-                    />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{item.name}</p>
-                      <p className="text-xs text-gray-500">₹{item.price}</p>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
+          {/* Logo */}
+          <h1
+            className="text-xl md:text-2xl font-extrabold cursor-pointer tracking-tight"
+            onClick={() => navigate("/")}
+          >
+            <span className="text-[#7a1c3d]">Soulful</span>{" "}
+            <span className="text-black">Overseas</span>
+          </h1>
         </div>
 
-        {/* Right Side Icons */}
-        <div className="flex items-center gap-5 md:gap-8">
-          {/* Account */}
+        <div className="hidden md:flex flex-1 max-w-2xl">
+          <div className="flex items-center w-full border border-gray-200 rounded-full overflow-hidden bg-gray-50 hover:bg-white transition shadow-sm hover:shadow-md">
+            {/* Icon */}
+            <Search size={18} className="ml-4 text-gray-400" />
+
+            {/* Input */}
+            <input
+              type="text"
+              placeholder="What are you looking for?"
+              className="w-full px-3 py-2.5 bg-transparent outline-none text-sm"
+            />
+
+            {/* Button */}
+            <button className="bg-[#7a1c3d] text-white px-6 py-2.5 text-sm font-medium hover:bg-[#5f132e] transition cursor-pointer">
+              Search
+            </button>
+          </div>
+        </div>
+
+        {/* RIGHT */}
+        <div className="flex items-center gap-6 md:gap-8">
+          {/* WISHLIST */}
+          <div
+            onClick={() => navigate("/wishlist")}
+            className="relative cursor-pointer group"
+          >
+            <Heart
+              size={22}
+              className="text-gray-700 group-hover:text-[#7a1c3d] transition"
+            />
+
+            {wishlistCount > 0 && (
+              <span className="absolute -top-1 -right-2 bg-[#7a1c3d] text-white text-[10px] px-1.5 py-[1px] rounded-full shadow">
+                {wishlistCount}
+              </span>
+            )}
+          </div>
+
+          {/* CART */}
+          <div
+            onClick={() => navigate("/cart")}
+            className="relative cursor-pointer group"
+          >
+            <ShoppingCart
+              size={22}
+              className="text-gray-700 group-hover:text-[#7a1c3d] transition"
+            />
+
+            {cartItems.length > 0 && (
+              <span className="absolute -top-1 -right-2 bg-[#7a1c3d] text-white text-[10px] px-1.5 py-[1px] rounded-full shadow">
+                {cartItems.length}
+              </span>
+            )}
+          </div>
+          {/* ACCOUNT */}
           <div className="relative">
             <div
-              className="flex items-center gap-2 cursor-pointer"
               onClick={() => setProfileOpen(!profileOpen)}
+              className="flex items-center gap-2 cursor-pointer group"
             >
-              <User size={22} />
-              <span className="hidden md:block text-sm font-medium">
-                {user?.name?.split(" ")[0] || "Account"}
-              </span>
+              {/* Avatar Style */}
+              <div className="w-9 h-9 rounded-full bg-[#f3e8ee] flex items-center justify-center text-[#7a1c3d] font-semibold text-sm shadow-sm group-hover:shadow-md transition">
+                {user?.name?.[0] || "A"}
+              </div>
+
+              {/* Name */}
+              <div className="hidden md:flex flex-col leading-tight">
+                <span className="text-[11px] text-gray-400">Welcome</span>
+                <span className="text-sm font-semibold text-gray-800">
+                  {user?.name?.split(" ")[0] || "Account"}
+                </span>
+              </div>
             </div>
 
+            {/* DROPDOWN */}
             {profileOpen && (
-              <div className="absolute right-0 mt-2 w-48 bg-white shadow-xl rounded-lg py-1 z-50 border">
+              <div className="absolute right-0 mt-3 w-56 bg-white shadow-2xl rounded-xl py-2 z-50 border border-gray-100">
                 {user ? (
                   <>
                     <div
-                      onClick={() => navigate("/profile")}
-                      className="px-4 py-2.5 hover:bg-gray-100 cursor-pointer"
+                      onClick={() => navigate("/account")}
+                      className="px-4 py-2.5 text-sm hover:bg-gray-50 cursor-pointer transition"
                     >
                       My Profile
                     </div>
                     <div
                       onClick={handleLogout}
-                      className="px-4 py-2.5 hover:bg-gray-100 cursor-pointer text-red-600"
+                      className="px-4 py-2.5 text-sm hover:bg-gray-50 cursor-pointer text-red-500 transition"
                     >
                       Logout
                     </div>
@@ -230,7 +206,7 @@ const Header = () => {
                 ) : (
                   <div
                     onClick={() => navigate("/login")}
-                    className="px-4 py-2.5 hover:bg-gray-100 cursor-pointer"
+                    className="px-4 py-2.5 text-sm hover:bg-gray-50 cursor-pointer transition"
                   >
                     Login / Register
                   </div>
@@ -238,86 +214,65 @@ const Header = () => {
               </div>
             )}
           </div>
-
-          {/* Wishlist */}
-          <div
-            className="flex items-center gap-2 cursor-pointer relative"
-            onClick={() => navigate("/wishlist")}
-          >
-            <Heart size={22} />
-            {wishlistCount > 0 && (
-              <span className="absolute -top-1.5 -right-1.5 bg-[#7a1c3d] text-white text-[10px] w-4 h-4 flex items-center justify-center rounded-full">
-                {wishlistCount}
-              </span>
-            )}
-            <span className="hidden md:block text-sm">Wishlist</span>
-          </div>
-
-          {/* Cart */}
-          <div
-            className="flex items-center gap-2 cursor-pointer relative"
-            onClick={() => navigate("/cart")}
-          >
-            <ShoppingCart size={22} />
-            {cartItems.length > 0 && (
-              <span className="absolute -top-1.5 -right-1.5 bg-[#7a1c3d] text-white text-[10px] w-4 h-4 flex items-center justify-center rounded-full">
-                {cartItems.length}
-              </span>
-            )}
-            <span className="hidden md:block text-sm">Cart</span>
-          </div>
         </div>
       </div>
 
       {/* Desktop Navigation */}
-      <nav className="border-t border-gray-200 hidden md:block">
-        <div className="flex justify-center gap-10 py-3 text-sm font-medium">
-          <span
-            onClick={() => navigate("/")}
-            className="text-[#7a1c3d] border-b-2 border-[#7a1c3d] pb-1 cursor-pointer"
-          >
-            Home
-          </span>
-          <span onClick={() => navigate("/shop")} className="hover:text-[#7a1c3d] cursor-pointer">
-            Shop
-          </span>
-          <span onClick={() => navigate("/about")} className="hover:text-[#7a1c3d] cursor-pointer">
-            About Us
-          </span>
-          <span onClick={() => navigate("/contact")} className="hover:text-[#7a1c3d] cursor-pointer">
-            Contact Us
-          </span>
-          <span onClick={() => navigate("/soulful-special")} className="hover:text-[#7a1c3d] cursor-pointer">
-            Soulful Special
-          </span>
+      <nav className="border-t border-gray-100 hidden md:block bg-white">
+        <div className="max-w-7xl mx-auto px-6 flex items-center justify-between py-3 pb-6">
+          {/* LEFT SIDE NAV */}
+          <div className="flex items-center gap-8 text-[14px] font-semibold tracking-wide">
+            {/* Static Links */}
+            {[
+              { name: "Home", path: "/" },
+              { name: "Shop All", path: "/shop" },
+              { name: "About", path: "/about" },
+              { name: "Soulful Special", path: "/soulful-special" },
+            ].map((item, i) => (
+              <span
+                key={i}
+                onClick={() => navigate(item.path)}
+                className="relative cursor-pointer text-gray-700 hover:text-[#7A1C3D] transition group"
+              >
+                {item.name}
 
-          {can("dashboard", "view") && (
-            <span
-              onClick={() => navigate("/dashboard")}
-              className="hover:text-[#7a1c3d] cursor-pointer"
-            >
-              Dashboard
-            </span>
-          )}
+                {/* Premium underline */}
+                <span className="absolute left-0 -bottom-1 h-[1.5px] w-0 bg-[#7A1C3D] transition-all duration-300 group-hover:w-full"></span>
+              </span>
+            ))}
+
+            {/* Divider */}
+            <span className="text-gray-300">|</span>
+
+            {/* Categories */}
+            {[
+              "Electronics",
+              "Fashion",
+              "Beauty",
+              "Footwear",
+              "Bestsellers",
+              "Fresh Arrivals",
+              "Essentials",
+              "Exclusive",
+            ].map((item, i) => (
+              <span
+                key={i}
+                className="relative cursor-pointer text-gray-700 hover:text-[#7A1C3D] transition group"
+              >
+                {item}
+                <span className="absolute left-0 -bottom-1 h-[1.5px] w-0 bg-[#7A1C3D] transition-all duration-300 group-hover:w-full"></span>
+              </span>
+            ))}
+          </div>
+
+          {/* RIGHT SIDE (optional future use) */}
+          <div></div>
         </div>
       </nav>
 
       {/* Promo Banner - Moved BELOW the navigation */}
-      <div className="bg-[#8b0d3a] text-white text-sm h-10 flex items-center justify-center overflow-hidden">
-        <div className="relative h-10 w-full flex items-center justify-center">
-          <div
-            className={`absolute transition-all duration-500 ${animatePromo ? "-translate-y-full opacity-0" : "translate-y-0 opacity-100"
-              }`}
-          >
-            {promoMessages[currentPromo]}
-          </div>
-          <div
-            className={`absolute transition-all duration-500 ${animatePromo ? "translate-y-0 opacity-100" : "translate-y-full opacity-0"
-              }`}
-          >
-            {promoMessages[(currentPromo + 1) % promoMessages.length]}
-          </div>
-        </div>
+      <div className="bg-[#8b0d3a] text-white text-sm h-2 flex items-center justify-center overflow-hidden">
+        <div className="relative h-10 w-full flex items-center justify-center"></div>
       </div>
 
       {/* Mobile Menu Drawer */}
@@ -428,8 +383,12 @@ const Header = () => {
                             className="w-10 h-10 object-cover rounded"
                           />
                           <div>
-                            <p className="text-xs font-medium truncate">{item.name}</p>
-                            <p className="text-xs text-gray-500">₹{item.price}</p>
+                            <p className="text-xs font-medium truncate">
+                              {item.name}
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              ₹{item.price}
+                            </p>
                           </div>
                         </div>
                       );

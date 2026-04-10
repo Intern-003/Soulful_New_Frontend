@@ -14,14 +14,19 @@ import Register from "../pages/auth/Register";
 import Dashboard from "../pages/dashboard/Dashboard";
 import Products from "../pages/dashboard/Products";
 import Users from "../pages/dashboard/Users";
-import Categories from "../pages/dashboard/categories";
-import SubCategoryProducts from "../pages/dashboard/categories/SubCategoryProducts";
-import SubCategoryPage from "../pages/dashboard/categories/SubCategoryPage";
+import Categories from "../pages/dashboard/Categories";
 import Cart from "../pages/user/Cart";
+import Checkout from "../pages/user/Checkout";
+import AccountPage from "../pages/account/AccountPage";
+import Sidebar from "../components/account/Sidebar";
+import Orders from "../components/account/sections/Orders";
+
 import Roles from "../pages/dashboard/Roles";
 import ShopPage from "../pages/public/ShopPage";
+import ProductDetails from "../pages/public/ProductDetails";
 import Wishlist from "../pages/public/Wishlist";
 import Contact from "../pages/public/Contact";
+import Support from "../pages/public/Support";
 import VendorOrdersPage from "../pages/dashboard/VendorOrdersPage";
 import VendorOrderDetailsPage from "../pages/dashboard/VendorOrderDetailsPage";
 import AdminOrderDetailsPage from "../pages/dashboard/AdminOrderDetailsPage";
@@ -32,36 +37,41 @@ import { Toaster } from "react-hot-toast";
 
 const AppRoutes = () => {
   return (
-    <Routes>
-      <Route path="/login" element={<Login />} />
-      <Route path="/register" element={<Register />} />
+    <>
+      <Toaster position="top-right" />
+      <Routes>
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
 
-      {/* MAIN WEBSITE */}
-      <Route element={<MainLayout />}>
-        <Route path="/" element={<Home />} />
-        <Route path="/cart" element={<Cart />} />
-        <Route path="/shop" element={<ShopPage />} />
-        <Route path="/wishlist" element={<Wishlist />} />
-        <Route path="/contact" element={<Contact />} />
-        <Route path="/about" element={<About />} />
-      </Route>
+        {/* MAIN WEBSITE */}
+        <Route element={<MainLayout />}>
+          <Route path="/" element={<Home />} />
+          <Route path="/cart" element={<Cart />} />
+          <Route path="/checkout" element={<Checkout />} />
+          <Route path="/account" element={<AccountPage />} />
+          <Route path="/shop" element={<ShopPage />} />
+          <Route path="/wishlist" element={<Wishlist />} />
+          <Route path="/product/:slug" element={<ProductDetails />} />
+          <Route path="/contact" element={<Contact />} />
+          <Route path="/support" element={<Support />} />
+        </Route>
 
-      {/* DASHBOARD */}
-        <Route path="/dashboard" element={<DashboardLayout />}>
-          <Route index element={<Dashboard />} />
-          <Route path="products" element={<Products />} />
-          <Route path="orders" element={<VendorOrdersPage />} />
-          <Route path="orders/:id" element={<VendorOrderDetailsPage />} />
-          <Route path="users" element={<Users />} />
-          <Route path="categories" element={<Categories />} />
-          <Route path="roles" element={<Roles />} />
-          <Route path="attributes" element={<Attributes />} />
-          <Route path="admin/orders" element={<AdminOrdersPage />} />
-          <Route path="admin/orders/:id" element={<AdminOrderDetailsPage />} />
+        {/* DASHBOARD */}
+          <Route path="/dashboard" element={<DashboardLayout />}>
+            <Route index element={<Dashboard />} />
+            <Route path="products" element={<Products />} />
+            <Route path="orders" element={<VendorOrdersPage />} />
+            <Route path="orders/:id" element={<VendorOrderDetailsPage />} />
+            <Route path="users" element={<Users />} />
+            <Route path="categories" element={<Categories />} />
+            <Route path="roles" element={<Roles />} />
+            <Route path="attributes" element={<Attributes />} />
+            <Route path="admin/orders" element={<AdminOrdersPage />} />
+            <Route path="admin/orders/:id" element={<AdminOrderDetailsPage />} />
           <Route path="subcategories/:id/products" element={<SubCategoryProducts />} />
           <Route path="/dashboard/categories/:id" element={<SubCategoryPage />} />
           <Route path="permissions" element={<Permissions />} />
-        </Route>
+          </Route>
 
       {/* FALLBACK */}
       <Route path="*" element={<Navigate to="/" replace />} />
