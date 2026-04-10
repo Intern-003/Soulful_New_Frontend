@@ -14,7 +14,7 @@ const useGet = (url, options = {}) => {
 
       const finalUrl = customOptions.url || url;
 
-      // ✅ Return cached data if exists
+      // ✅ cache
       if (cache[finalUrl]) {
         setData(cache[finalUrl]);
         setLoading(false);
@@ -25,8 +25,14 @@ const useGet = (url, options = {}) => {
         params: customOptions.params || options.params || {},
       });
 
-      cache[finalUrl] = res.data; // ✅ store in cache
-      setData(res.data);
+      cache[finalUrl] = res.data;
+
+      setData((prev) => {
+        if (JSON.stringify(prev) === JSON.stringify(res.data)) {
+          return prev;
+        }
+        return res.data;
+      });
 
       return res.data;
     } catch (err) {
@@ -34,13 +40,13 @@ const useGet = (url, options = {}) => {
     } finally {
       setLoading(false);
     }
-  }, [url]);
+  }, [url, JSON.stringify(options.params)]);
 
   useEffect(() => {
     if (options.autoFetch !== false) {
       fetchData();
     }
-  }, [fetchData]);
+  }, [url]); // ✅ FIXED
 
   return { data, loading, error, refetch: fetchData };
 };

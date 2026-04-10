@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 
 import ProductCard from "../../../components/dashboard/products/ProductCard";
+
 const SubCategoryProducts = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -12,33 +13,30 @@ const SubCategoryProducts = () => {
   const [subcategory, setSubcategory] = useState(null);
 
   useEffect(() => {
-    fetchProducts();
-    fetchSubcategory();
+    fetchAll();
   }, [id]);
 
-  const fetchProducts = async () => {
+  // ✅ COMBINED FETCH (better)
+  const fetchAll = async () => {
     try {
-      const res = await axios.get(
-        `http://127.0.0.1:8000/api/products?category=${id}`
-      );
+      setLoading(true);
 
-      setProducts(res.data.data.data || []);
+      const [productsRes, categoryRes] = await Promise.all([
+        axios.get(
+          `http://127.0.0.1:8000/api/products?category=${id}`
+        ),
+        axios.get(
+          `http://127.0.0.1:8000/api/categories/${id}`
+        ),
+      ]);
+
+      // ✅ SAFE DATA
+      setProducts(productsRes.data?.data?.data || []);
+      setSubcategory(categoryRes.data?.data || {});
     } catch (err) {
       console.error(err);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const fetchSubcategory = async () => {
-    try {
-      const res = await axios.get(
-        `http://127.0.0.1:8000/api/categories/${id}`
-      );
-
-      setSubcategory(res.data.data);
-    } catch (err) {
-      console.error(err);
     }
   };
 
@@ -50,7 +48,7 @@ const SubCategoryProducts = () => {
         <div>
           <button
             onClick={() => navigate(-1)}
-            className="text-blue-500 text-sm"
+            className="text-blue-500 text-sm hover:underline"
           >
             ← Back
           </button>
@@ -64,7 +62,12 @@ const SubCategoryProducts = () => {
           </p>
         </div>
 
-        <button className="bg-green-600 text-white px-4 py-2 rounded">
+        <button
+          onClick={() =>
+            navigate(`/dashboard/products/create?category=${id}`)
+          }
+          className="bg-green-600 text-white px-4 py-2 rounded hover:opacity-90"
+        >
           + Add Product
         </button>
       </div>

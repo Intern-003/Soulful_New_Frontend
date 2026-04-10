@@ -1,250 +1,162 @@
+// ✅ FINAL PRO CATEGORY FORM (WITH TOAST + IMAGE + CREATE/UPDATE FIXED)
+
 import { useEffect, useState } from "react";
 import usePost from "../../../api/hooks/usePost";
 import usePut from "../../../api/hooks/usePut";
-import axios from "axios";
+import toast from "react-hot-toast";
 
-const CategoryForm = ({ data, parentId = null, onClose, onSuccess }) => {
+const CategoryForm = ({ data, onClose, onSuccess }) => {
+  const isEdit = !!data?.id;
+
   const { postData } = usePost();
   const { putData } = usePut();
 
-  const [categories, setCategories] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [errors, setErrors] = useState({});
-  const [successMsg, setSuccessMsg] = useState("");
-
   const [form, setForm] = useState({
-    name: data?.name || "",
-    description: data?.description || "",
-    position: data?.position || "",
-    parent_id: data?.parent_id || parentId || "",
-    image: null,
+    name: "",
+    description: "",
+    parent_id: "",
   });
 
-  const [preview, setPreview] = useState(
-    data?.image ? `http://127.0.0.1:8000/storage/${data.image}` : null
-  );
+  const [file, setFile] = useState(null);
+  const [preview, setPreview] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
-  // ✅ Fetch only main categories (for parent dropdown)
   useEffect(() => {
-    fetchCategories();
-  }, []);
+    if (data) {
+      setForm({
+        name: data.name || "",
+        description: data.description || "",
+        parent_id: data.parent_id || "",
+      });
 
-  const fetchCategories = async () => {
-    try {
-      const res = await axios.get(
-        "http://127.0.0.1:8000/api/categories"
-      );
-
-      // only parent categories
-      const parents = res.data.data.filter((c) => !c.parent_id);
-      setCategories(parents);
-    } catch (err) {
-      console.error(err);
+      if (data.image) {
+        setPreview(`http://127.0.0.1:8000/storage/${data.image}`);
+      }
     }
-  };
+  }, [data]);
 
-  // ✅ handle input change
   const handleChange = (e) => {
-    const { name, value } = e.target;
-    setForm({ ...form, [name]: value });
-    setErrors({ ...errors, [name]: "" });
+    setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  // ✅ image handler
-  const handleImageChange = (e) => {
-    const file = e.target.files[0];
-    setForm({ ...form, image: file });
+  const handleFile = (e) => {
+    const selected = e.target.files[0];
+    setFile(selected);
 
-    if (file) {
-      setPreview(URL.createObjectURL(file));
+    if (selected) {
+      setPreview(URL.createObjectURL(selected));
     }
   };
 
-  // ✅ validation
-  const validate = () => {
-    let newErrors = {};
-
-    if (!form.name) newErrors.name = "Name is required";
-
-    // only category needs position
-    if (!form.parent_id && !form.position) {
-      newErrors.position = "Position is required";
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  // ✅ submit
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setSuccessMsg("");
-
-    if (!validate()) return;
-
+  const handleSubmit = async () => {
     try {
       setLoading(true);
+      setError("");
 
       const formData = new FormData();
       formData.append("name", form.name);
       formData.append("description", form.description);
 
-      if (!form.parent_id) {
-        formData.append("position", form.position);
-      }
-
       if (form.parent_id) {
         formData.append("parent_id", form.parent_id);
       }
 
-      if (form.image) {
-        formData.append("image", form.image);
+      if (file) {
+        formData.append("image", file);
       }
 
-      const isSub = !!form.parent_id;
-
-      if (data) {
+      if (isEdit) {
         await putData({
-          url: isSub
+          url: form.parent_id
             ? `/admin/subcategories/${data.id}`
             : `/admin/categories/${data.id}`,
           data: formData,
-          isFormData: true,
         });
-        setSuccessMsg("Updated successfully");
+
+        toast.success("Category updated successfully");
       } else {
         await postData({
-          url: isSub
+          url: form.parent_id
             ? "/admin/subcategories"
             : "/admin/categories",
           data: formData,
-          isFormData: true,
         });
-        setSuccessMsg("Created successfully");
+
+        toast.success("Category created successfully");
       }
 
       onSuccess();
-
-      setTimeout(() => {
-        onClose();
-      }, 800);
+      onClose();
     } catch (err) {
       console.error(err);
 
-      if (err?.response?.data?.errors) {
-        setErrors(err.response.data.errors);
-      } else {
-        setErrors({ general: "Something went wrong" });
-      }
+      const msg =
+        err?.message ||
+        err?.errors?.image?.[0] ||
+        "Something went wrong";
+
+      setError(msg);
+      toast.error(msg);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 bg-black/40 flex justify-center items-center z-50">
-      <div className="bg-white p-6 rounded-2xl w-[420px] shadow-lg">
-        <h2 className="text-xl font-semibold mb-4">
-          {data ? "Edit" : "Create"}{" "}
-          {form.parent_id ? "Subcategory" : "Category"}
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
+      <div className="bg-white rounded-2xl shadow-xl p-6 w-[420px] space-y-5 animate-fadeIn">
+        <h2 className="text-xl font-semibold text-gray-800">
+          {isEdit ? "Edit Category" : "Create Category"}
         </h2>
 
-        {/* SUCCESS */}
-        {successMsg && (
-          <div className="bg-green-100 text-green-700 p-2 rounded mb-3 text-sm">
-            {successMsg}
+        {error && (
+          <div className="bg-red-100 text-red-600 p-2 rounded text-sm">
+            {error}
           </div>
         )}
 
-        {/* ERROR */}
-        {errors.general && (
-          <div className="bg-red-100 text-red-600 p-2 rounded mb-3 text-sm">
-            {errors.general}
-          </div>
-        )}
+        <input
+          name="name"
+          value={form.name}
+          onChange={handleChange}
+          placeholder="Category Name"
+          className="w-full border p-2 rounded-lg focus:ring-2 focus:ring-blue-400"
+        />
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {/* NAME */}
-          <div>
-            <input
-              type="text"
-              name="name"
-              placeholder="Name"
-              value={form.name}
-              onChange={handleChange}
-              className="border w-full p-2 rounded"
-            />
-            {errors.name && (
-              <p className="text-red-500 text-sm">{errors.name}</p>
-            )}
-          </div>
+        <textarea
+          name="description"
+          value={form.description}
+          onChange={handleChange}
+          placeholder="Description"
+          className="w-full border p-2 rounded-lg focus:ring-2 focus:ring-blue-400"
+        />
 
-          {/* DESCRIPTION */}
-          <textarea
-            name="description"
-            placeholder="Description"
-            value={form.description}
-            onChange={handleChange}
-            className="border w-full p-2 rounded"
+        <input
+          type="file"
+          onChange={handleFile}
+          className="text-sm"
+        />
+
+        {preview && (
+          <img
+            src={preview}
+            alt="preview"
+            className="h-20 w-20 object-cover rounded-lg border"
           />
+        )}
 
-          {/* POSITION (ONLY FOR CATEGORY) */}
-          {!form.parent_id && (
-            <div>
-              <input
-                type="number"
-                name="position"
-                placeholder="Position"
-                value={form.position}
-                onChange={handleChange}
-                className="border w-full p-2 rounded"
-              />
-              {errors.position && (
-                <p className="text-red-500 text-sm">
-                  {errors.position}
-                </p>
-              )}
-            </div>
-          )}
-
-          {/* PARENT SELECT */}
-          <select
-            name="parent_id"
-            value={form.parent_id}
-            onChange={handleChange}
-            className="border w-full p-2 rounded"
-          >
-            <option value="">Main Category</option>
-            {categories.map((cat) => (
-              <option key={cat.id} value={cat.id}>
-                {cat.name}
-              </option>
-            ))}
-          </select>
-
-          {/* IMAGE */}
-          <div>
-            <input type="file" onChange={handleImageChange} />
-            {preview && (
-              <img
-                src={preview}
-                className="h-20 w-20 mt-2 object-cover rounded"
-              />
-            )}
-          </div>
-
-          {/* BUTTON */}
-          <button
-            disabled={loading}
-            className="bg-blue-600 text-white w-full py-2 rounded"
-          >
-            {loading ? "Saving..." : "Save"}
-          </button>
-        </form>
+        <button
+          onClick={handleSubmit}
+          disabled={loading}
+          className="w-full bg-blue-600 hover:bg-blue-700 transition text-white py-2 rounded-lg flex justify-center"
+        >
+          {loading ? "Saving..." : "Save"}
+        </button>
 
         <button
           onClick={onClose}
-          className="mt-3 text-red-500 text-sm"
+          className="text-red-500 text-sm"
         >
           Cancel
         </button>
@@ -254,3 +166,23 @@ const CategoryForm = ({ data, parentId = null, onClose, onSuccess }) => {
 };
 
 export default CategoryForm;
+
+
+// ✅ IMAGE HELPER (NO ERRORS)
+
+export const getImage = (path) => {
+  if (!path || path.includes("tmp")) return "/no-image.png";
+  return `http://127.0.0.1:8000/storage/${path}`;
+};
+
+// ✅ USE LIKE:
+// <img
+//   src={getImage(item.image)}
+//   onError={(e) => (e.target.src = "/no-image.png")}
+// />
+
+
+// ✅ IMPORTANT: ADD THIS IN App.jsx
+
+// import { Toaster } from "react-hot-toast";
+// <Toaster position="top-right" />
