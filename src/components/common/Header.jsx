@@ -217,55 +217,95 @@ const Header = () => {
         </div>
       </div>
 
-      {/* Desktop Navigation */}
       <nav className="border-t border-gray-100 hidden md:block bg-white">
         <div className="max-w-7xl mx-auto px-6 flex items-center justify-between py-3 pb-6">
-          {/* LEFT SIDE NAV */}
           <div className="flex items-center gap-8 text-[14px] font-semibold tracking-wide">
-            {/* Static Links */}
             {[
               { name: "Home", path: "/" },
               { name: "Shop All", path: "/shop" },
-              { name: "About", path: "/about" },
+              {
+                name: "About",
+                dropdown: [
+                  { name: "About Us", path: "/about" },
+                  { name: "Contact Us", path: "/contact" },
+                  { name: "Review", path: "/reviews" },
+                ],
+              },
               { name: "Soulful Special", path: "/soulful-special" },
+            ].map((item, i) => (
+              <div key={i} className="relative group">
+                <span
+                  onClick={() => item.path && navigate(item.path)}
+                  className="relative cursor-pointer text-gray-700 hover:text-[#7A1C3D] transition"
+                >
+                  {item.name}
+
+                  <span className="absolute left-0 -bottom-1 h-[1.5px] w-0 bg-[#7A1C3D] transition-all duration-300 group-hover:w-full"></span>
+                </span>
+
+                {item.dropdown && (
+                  <div
+                    className="
+                      absolute left-0 top-full mt-4
+                      w-48
+                      bg-white
+                      border border-gray-100
+                      shadow-xl
+                      rounded-xl
+                      opacity-0 invisible
+                      translate-y-2
+                      group-hover:opacity-100
+                      group-hover:visible
+                      group-hover:translate-y-0
+                      transition-all duration-300
+                      z-50
+                    "
+                  >
+                    {item.dropdown.map((sub, idx) => (
+                      <div
+                        key={idx}
+                        onClick={() => navigate(sub.path)}
+                        className="
+                          px-4 py-3 text-sm
+                          cursor-pointer
+                          hover:bg-gray-50
+                          hover:text-[#7A1C3D]
+                          transition
+                          first:rounded-t-xl
+                          last:rounded-b-xl
+                        "
+                      >
+                        {sub.name}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
+
+            <span className="text-gray-300">|</span>
+
+            {[
+              { name: "Electronics", path: "/category/electronics" },
+              { name: "Fashion", path: "/category/fashion" },
+              { name: "Beauty", path: "/category/beauty" },
+              { name: "Footwear", path: "/category/footwear" },
+              { name: "Bestsellers", path: "/bestsellers" },
+              { name: "Fresh Arrivals", path: "/fresharrivals" },
+              { name: "Essentials", path: "/" },
+              { name: "Exclusive", path: "/" },
             ].map((item, i) => (
               <span
                 key={i}
-                onClick={() => navigate(item.path)}
+                onClick={() => item.path && navigate(item.path)}
                 className="relative cursor-pointer text-gray-700 hover:text-[#7A1C3D] transition group"
               >
                 {item.name}
-
-                {/* Premium underline */}
-                <span className="absolute left-0 -bottom-1 h-[1.5px] w-0 bg-[#7A1C3D] transition-all duration-300 group-hover:w-full"></span>
-              </span>
-            ))}
-
-            {/* Divider */}
-            <span className="text-gray-300">|</span>
-
-            {/* Categories */}
-            {[
-              "Electronics",
-              "Fashion",
-              "Beauty",
-              "Footwear",
-              "Bestsellers",
-              "Fresh Arrivals",
-              "Essentials",
-              "Exclusive",
-            ].map((item, i) => (
-              <span
-                key={i}
-                className="relative cursor-pointer text-gray-700 hover:text-[#7A1C3D] transition group"
-              >
-                {item}
                 <span className="absolute left-0 -bottom-1 h-[1.5px] w-0 bg-[#7A1C3D] transition-all duration-300 group-hover:w-full"></span>
               </span>
             ))}
           </div>
 
-          {/* RIGHT SIDE (optional future use) */}
           <div></div>
         </div>
       </nav>
