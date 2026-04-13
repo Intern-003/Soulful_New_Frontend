@@ -42,9 +42,9 @@ const Sidebar = () => {
   const [openOrders, setOpenOrders] = useState(false);
 
   // Permissions
-  const canAdminOrders = can("order_admin", "view");
-  const canVendorOrders = can("order_vendor", "view");
-  const showOrderDropdown = canAdminOrders && canVendorOrders;
+  // const canAdminOrders = can("order_admin", "view");
+  // const canVendorOrders = can("order_vendor", "view");
+  // const showOrderDropdown = canAdminOrders && canVendorOrders;
 
   // Menu config
   const menu = [
