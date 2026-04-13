@@ -32,6 +32,8 @@ import VendorOrderDetailsPage from "../pages/dashboard/VendorOrderDetailsPage";
 import AdminOrderDetailsPage from "../pages/dashboard/AdminOrderDetailsPage";
 import AdminOrdersPage from "../pages/dashboard/AdminOrdersPage";
 import Permissions from "../pages/dashboard/Permissions";
+import SubCategoryProducts from "../pages/dashboard/categories/SubCategoryProducts";
+import SubCategoryPage from "../pages/dashboard/categories/SubCategoryPage";
 import { Toaster } from "react-hot-toast";
 
 
@@ -69,7 +71,7 @@ const AppRoutes = () => {
             <Route path="admin/orders" element={<AdminOrdersPage />} />
             <Route path="admin/orders/:id" element={<AdminOrderDetailsPage />} />
           <Route path="subcategories/:id/products" element={<SubCategoryProducts />} />
-          <Route path="/categories/:id" element={<SubCategoryPage />} />
+          <Route path="categories/:id" element={<SubCategoryPage />} />
           <Route path="permissions" element={<Permissions />} />
           </Route>
 
