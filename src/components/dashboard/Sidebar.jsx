@@ -83,6 +83,11 @@ const Sidebar = () => {
       path: "/dashboard/permissions",
       icon: Package,  
     },
+    {
+      label: "Banners",
+      path: "/dashboard/banners",
+      icon: Package,
+    }
   ];
 
   return (
@@ -184,6 +189,7 @@ const Sidebar = () => {
                 >
                   Vendor Orders
                 </Link>
+            
               </div>
             )}
           </div>

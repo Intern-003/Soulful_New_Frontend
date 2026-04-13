@@ -1,9 +1,7 @@
-// src/api/hooks/usePut.js
-
 import { useState } from "react";
 import axiosInstance from "../axiosInstance";
 
-const usePut = (url) => {
+const usePut = (baseUrl = "") => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -11,17 +9,34 @@ const usePut = (url) => {
   const putData = async (config = {}) => {
     try {
       setLoading(true);
+      setError(null);
 
-      // ✅ IMPORTANT FIX
-      const res = await axiosInstance.post(
-        `${config.url || url}?_method=PUT`, // 👈 THIS IS KEY
-        config.data,
-        {
+      const url = config.url || baseUrl;
+      let payload = config.data || {};
+
+      const isFormData = payload instanceof FormData;
+
+      let res;
+
+      // -----------------------------
+      // CASE 1: FormData (Laravel needs POST + _method)
+      // -----------------------------
+      if (isFormData) {
+        payload.append("_method", "PUT");
+
+        res = await axiosInstance.post(url, payload, {
           headers: {
             "Content-Type": "multipart/form-data",
           },
-        }
-      );
+        });
+      }
+
+      // -----------------------------
+      // CASE 2: Normal JSON (use PUT)
+      // -----------------------------
+      else {
+        res = await axiosInstance.put(url, payload, config);
+      }
 
       setData(res.data);
       return res.data;
@@ -34,7 +49,12 @@ const usePut = (url) => {
     }
   };
 
-  return { data, loading, error, putData };
+  return {
+    data,
+    loading,
+    error,
+    putData,
+  };
 };
 
 export default usePut;
