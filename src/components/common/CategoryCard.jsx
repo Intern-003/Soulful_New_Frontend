@@ -2,7 +2,14 @@ import React from "react";
 import { useNavigate } from "react-router-dom";
 import { getImageUrl } from "../../utils/getImageUrl";
 
-const CategoryCard = ({ category, variant = "default" }) => {
+const bgVariants = [
+  "bg-[#F4F1EC]",
+  "bg-[#E6ECE9]",
+  "bg-[#EFE6DC]",
+  "bg-[#E9EDF2]",
+];
+
+const CategoryCard = ({ category, index = 0 }) => {
   const navigate = useNavigate();
   const [loaded, setLoaded] = React.useState(false);
 
@@ -16,35 +23,51 @@ const CategoryCard = ({ category, variant = "default" }) => {
     ? getImageUrl(category.image)
     : "/placeholder.jpg";
 
+  const bg = bgVariants[index % bgVariants.length];
+
   return (
     <div
       onClick={handleClick}
-      className="group bg-white rounded-3xl overflow-hidden shadow-sm hover:shadow-2xl transition-all duration-300 cursor-pointer h-full flex flex-col border border-gray-100 hover:border-gray-200"
+      className={`
+        relative overflow-hidden
+        rounded-2xl md:rounded-3xl
+        p-6 md:p-7 ${bg}
+        cursor-pointer group
+        transition-all duration-300 ease-out
+        hover:-translate-y-1.5 hover:shadow-lg
+        
+        min-h-[340px] md:min-h-[380px]
+      `}
     >
-      {/* Text Content */}
-      <div className="p-6 pb-4 flex-1">
-        <p className="text-xs uppercase tracking-widest text-gray-500 mb-1">
-          {category?.slug?.replace("-", " ") || ""}
+      {/* TEXT CONTENT */}
+      <div className="relative z-10 max-w-[75%]">
+        {/* Small Label */}
+        <p className="text-xs uppercase tracking-widest text-gray-400 mb-3">
+          {category?.slug?.replace("-", " ") || "Category"}
         </p>
-        <h3 className="text-2xl font-semibold text-gray-900 leading-tight mb-3">
+
+        {/* Title */}
+        <h3 className="text-xl md:text-2xl font-semibold text-gray-900 leading-tight mb-3">
           {category?.name}
         </h3>
-        <p className="text-gray-600 text-[15px] line-clamp-3">
-          {category?.description || "Explore our premium collection"}
+
+        {/* Description */}
+        <p className="text-sm text-gray-500 leading-relaxed">
+          {category?.description ||
+            "Discover premium collection crafted for modern lifestyle."}
         </p>
+
+        {/* CTA */}
+        <div className="mt-5">
+          <span className="text-sm font-semibold text-black inline-block">
+            Shop Now
+            <span className="block h-[1px] bg-black mt-1 w-0 group-hover:w-full transition-all duration-300"></span>
+          </span>
+        </div>
       </div>
 
-      {/* Shop Now */}
-      <div className="px-6 pb-6">
-        <span className="inline-block text-[#7a1c3d] font-medium text-sm border-b border-[#7a1c3d] pb-0.5 group-hover:border-[#9a2a4f] transition-colors">
-          Shop Now
-        </span>
-      </div>
-
-      <div className="relative h-64 bg-gray-50 flex items-center justify-center p-6 overflow-hidden">
-
-
-        {/* Main image */}
+      {/* IMAGE (BOTTOM RIGHT FLOATING) */}
+      <div className="absolute bottom-0 right-0 w-[120px] md:w-[150px] lg:w-[170px] pointer-events-none">
         <img
           src={imageUrl}
           alt={category?.name || "Category"}
@@ -54,27 +77,22 @@ const CategoryCard = ({ category, variant = "default" }) => {
             e.currentTarget.src = "/placeholder.jpg";
             setLoaded(true);
           }}
-          className={`relative max-h-full max-w-full object-contain transition-opacity duration-700 ${loaded ? "opacity-100" : "opacity-0"
-            } group-hover:scale-105 transition-transform duration-700`}
+          className={`
+            w-full h-auto object-contain
+            transition-all duration-500
+            ${loaded ? "opacity-100" : "opacity-0"}
+            group-hover:scale-105
+          `}
         />
       </div>
 
-      {/* Image */}
-      {/* <div className="relative h-64 bg-gray-50 flex items-center justify-center p-6 overflow-hidden">
-        <img
-          src={imageUrl}
-          alt={category?.name || "Category"}
-          loading="lazy"
-          onError={(e) => {
-            e.currentTarget.src = "/placeholder.jpg";
-          }}
-          className="max-h-full max-w-full object-contain transition-transform duration-700 group-hover:scale-105"
-        />
-      </div> */}
+      {/* SUBTLE GLOW EFFECT */}
+      <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition duration-500 pointer-events-none">
+        <div className="absolute -bottom-10 -right-10 w-40 h-40 bg-white/20 blur-3xl rounded-full"></div>
+      </div>
     </div>
   );
 };
-
 
 export default React.memo(CategoryCard, (prev, next) => {
   return (

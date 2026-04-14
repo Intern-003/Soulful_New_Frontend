@@ -8,7 +8,7 @@ const Footer = () => {
   const navigate = useNavigate();
 
   return (
-    <footer className="w-full bg-[#f7f3f5] text-gray-700 mt-10">
+    <footer className="w-full bg-[#f7f3f5] text-gray-700">
       {/* MAIN FOOTER */}
       <div className="w-full px-6 md:px-10 lg:px-16 py-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10">
         {/* LEFT */}

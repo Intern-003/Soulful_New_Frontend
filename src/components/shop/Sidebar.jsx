@@ -1,39 +1,36 @@
-import React, { useState, useMemo } from "react";
+import React, { useState } from "react";
 
 const Sidebar = ({
   categories = [],
   brands = [],
   loading,
-  priceBounds = [0, 100000],
 
   selectedCategory,
   selectedBrands = [],
   selectedColor,
-  priceRange = [0, 1000000],
+  priceRange = [0, 5000],
 
   onCategoryChange,
   onBrandChange,
   onColorChange,
   onPriceChange,
-  onApplyFilters,
-  onClearFilters,
 }) => {
-  const [search, setSearch] = useState("");
+  const [open, setOpen] = useState({
+    category: true,
+    color: false,
+    price: false,
+    brand: false,
+  });
 
-  // ✅ CATEGORY SEARCH FILTER
-  const filteredCategories = useMemo(() => {
-    if (!search) return categories;
+  const toggle = (key) => {
+    setOpen((prev) => ({
+      ...prev,
+      [key]: !prev[key],
+    }));
+  };
 
-    return categories.filter((cat) =>
-      cat.name?.toLowerCase().includes(search.toLowerCase()),
-    );
-  }, [categories, search]);
-
-  // ✅ BRAND TOGGLE (FIXED NUMBER ISSUE)
-  const handleBrandToggle = (brandId) => {
-    const id = Number(brandId);
-
-    let updated = selectedBrands.includes(id)
+  const handleBrandToggle = (id) => {
+    const updated = selectedBrands.includes(id)
       ? selectedBrands.filter((b) => b !== id)
       : [...selectedBrands, id];
 
@@ -41,138 +38,238 @@ const Sidebar = ({
   };
 
   return (
-    <div className="space-y-4 w-full">
-      {/* 🔍 CATEGORY */}
-      <div className="bg-white p-4 rounded shadow">
-        <input
-          type="text"
-          placeholder="Search categories..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="w-full border px-3 py-2 rounded mb-3 text-sm focus:ring-2 focus:ring-[#7a1c3d]"
-        />
+    <div className="bg-[#F6F3F5] border border-[#e7e2e5] p-6 rounded-2xl text-sm text-gray-800">
+      {/* TITLE */}
+      <h3 className="text-lg font-semibold tracking-wide mb-4">Filters</h3>
+      <div className="border-b border-gray-200 mb-4" />
 
-        {loading ? (
-          <p className="text-sm text-gray-400">Loading...</p>
-        ) : (
-          <ul className="space-y-2 text-sm max-h-60 overflow-y-auto">
-            {/* ALL */}
-            <li
-              onClick={() => onCategoryChange(null)}
-              className={`cursor-pointer ${
-                !selectedCategory
-                  ? "text-[#7a1c3d] font-semibold"
-                  : "hover:text-[#7a1c3d]"
-              }`}
+      {/* SECTION COMPONENT */}
+      {[
+        { key: "category", label: "Category" },
+        { key: "color", label: "Color" },
+        { key: "price", label: "Price" },
+        { key: "brand", label: "Brands" },
+      ].map((section) => (
+        <div
+          key={section.key}
+          className="border-b border-gray-200 py-3 text-[11px] tracking-[0.12em]"
+        >
+          {/* HEADER */}
+          <div
+            onClick={() => toggle(section.key)}
+            className="flex justify-between items-center cursor-pointer group"
+          >
+            <span className="font-medium group-hover:text-[#8B0D3A] transition">
+              {section.label}
+            </span>
+
+            <span
+              className={`
+                transition-transform duration-300
+                ${open[section.key] ? "rotate-180" : ""}
+              `}
             >
-              All
-            </li>
+              +
+            </span>
+          </div>
 
-            {filteredCategories.map((cat) => (
-              <li
-                key={cat.id}
-                onClick={() => onCategoryChange(Number(cat.id))} // ✅ FIX
-                className={`cursor-pointer ${
-                  selectedCategory === Number(cat.id)
-                    ? "text-[#7a1c3d] font-semibold"
-                    : "hover:text-[#7a1c3d]"
-                }`}
-              >
-                {cat.name}
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
+          {/* CONTENT */}
+          <div
+            className={`
+              overflow-hidden transition-all duration-300 ease-in-out
+              ${open[section.key] ? "max-h-[400px] mt-3" : "max-h-0"}
+            `}
+          >
+            {/* CATEGORY */}
+            {section.key === "category" && (
+              <div className="space-y-2">
+                <div
+                  onClick={() => onCategoryChange(null)}
+                  className={`
+                    flex justify-between items-center cursor-pointer group
+                    px-2 py-1.5 rounded-md transition
+                    ${!selectedCategory ? "bg-[#8B0D3A]/10" : "hover:bg-gray-100"}
+                  `}
+                >
+                  {/* TEXT */}
+                  <span
+                    className={`
+                      ${
+                        !selectedCategory
+                          ? "text-[#8B0D3A] font-medium"
+                          : "group-hover:text-[#8B0D3A]"
+                      }
+                    `}
+                  >
+                    All
+                  </span>
 
-      {/* 💰 PRICE */}
-      <div className="bg-white p-4 rounded shadow">
-        <h3 className="font-semibold mb-3">Price Range</h3>
+                  {/* CHECKBOX */}
+                  <div
+                    className={`
+                      w-5 h-5 border rounded-sm flex items-center justify-center
+                      transition
+                      ${
+                        !selectedCategory
+                          ? "bg-[#8B0D3A] border-[#8B0D3A]"
+                          : "border-gray-300 group-hover:border-[#8B0D3A]"
+                      }
+                    `}
+                  >
+                    {!selectedCategory && (
+                      <div className="w-2.5 h-2.5 bg-white rounded-[2px]" />
+                    )}
+                  </div>
+                </div>
 
-        {/* SLIDER */}
-        <input
-          type="range"
-          min={priceBounds[0]}
-          max={priceBounds[1]}
-          value={priceRange[1]}
-          onChange={(e) =>
-            onPriceChange([priceRange[0], Number(e.target.value)])
-          }
-          className="w-full"
-        />
+                {categories.map((cat) => (
+                  <div
+                    key={cat.id}
+                    onClick={() => onCategoryChange(cat.id)}
+                    className={`
+                      flex justify-between items-center cursor-pointer group
+                      transition-all duration-200
+                      px-2 py-1.5 rounded-md
+                      ${selectedCategory === cat.id ? "bg-[#8B0D3A]/10" : "hover:bg-gray-100"}
+                    `}
+                  >
+                    {/* TEXT */}
+                    <span
+                      className={`
+                        transition
+                        ${
+                          selectedCategory === cat.id
+                            ? "text-[#8B0D3A] font-medium"
+                            : "group-hover:text-[#8B0D3A]"
+                        }
+                      `}
+                    >
+                      {cat.name}
+                    </span>
 
-        <div className="flex justify-between text-xs mt-2 text-gray-500">
-          <span>₹{priceRange[0]}</span>
-          <span>₹{priceRange[1]}</span>
-        </div>
-      </div>
+                    {/* CHECKBOX */}
+                    <div
+                      className={`
+                        w-5 h-5 rounded-sm border flex items-center justify-center
+                        transition-all duration-200
+                        ${
+                          selectedCategory === cat.id
+                            ? "bg-[#8B0D3A] border-[#8B0D3A]"
+                            : "border-gray-300 group-hover:border-[#8B0D3A]"
+                        }
+                      `}
+                    >
+                      {selectedCategory === cat.id && (
+                        <div className="w-2.5 h-2.5 bg-white rounded-[2px]" />
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
 
-      {/* 🎨 COLORS */}
-      <div className="bg-white p-4 rounded shadow">
-        <h3 className="font-semibold mb-3">Colors</h3>
+            {/* COLOR */}
+            {section.key === "color" && (
+              <div className="space-y-2">
+                {["black", "beige", "blue", "red"].map((color) => (
+                  <div
+                    key={color}
+                    onClick={() =>
+                      onColorChange(selectedColor === color ? null : color)
+                    }
+                    className="flex justify-between items-center cursor-pointer group"
+                  >
+                    <div className="flex items-center gap-2">
+                      <span
+                        className="w-3 h-3 rounded-full border"
+                        style={{ backgroundColor: color }}
+                      />
+                      <span className="group-hover:text-[#8B0D3A] transition">
+                        {color}
+                      </span>
+                    </div>
 
-        <div className="flex gap-3 flex-wrap">
-          {["black", "red", "blue", "green", "yellow"].map((color) => (
-            <div
-              key={color}
-              onClick={() =>
-                onColorChange(
-                  selectedColor === color ? null : color, // ✅ TOGGLE FIX
-                )
-              }
-              className={`w-6 h-6 rounded-full cursor-pointer border-2 ${
-                selectedColor === color
-                  ? "border-[#7a1c3d] scale-110"
-                  : "border-gray-300"
-              }`}
-              style={{ backgroundColor: color }}
-            />
-          ))}
-        </div>
-      </div>
+                    <div
+                      className={`
+                        w-4 h-4 border rounded-sm
+                        ${
+                          selectedColor === color
+                            ? "bg-[#8B0D3A] border-[#8B0D3A]"
+                            : "border-gray-300"
+                        }
+                      `}
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
 
-      {/* 🏷 BRANDS */}
-      <div className="bg-white p-4 rounded shadow">
-        <h3 className="font-semibold mb-3">Brands</h3>
+            {/* PRICE */}
+            {section.key === "price" && (
+              <div>
+                <p className="text-xs text-gray-500 mb-3">
+                  ₹{priceRange[0]} - ₹{priceRange[1]}
+                </p>
 
-        <div className="space-y-2 max-h-60 overflow-y-auto">
-          {brands.map((brand) => {
-            const id = Number(brand.id);
-
-            return (
-              <label
-                key={id}
-                className="flex items-center gap-2 text-sm cursor-pointer"
-              >
                 <input
-                  type="checkbox"
-                  checked={selectedBrands.includes(id)}
-                  onChange={() => handleBrandToggle(id)}
-                  className="accent-[#7a1c3d]"
+                  type="range"
+                  min="0"
+                  max="5000"
+                  value={priceRange[1]}
+                  onChange={(e) =>
+                    onPriceChange([priceRange[0], Number(e.target.value)])
+                  }
+                  className="w-full accent-[#8B0D3A]"
                 />
-                {brand.name}
-              </label>
-            );
-          })}
+              </div>
+            )}
+
+            {/* BRANDS */}
+            {section.key === "brand" && (
+              <div className="space-y-2 max-h-52 custom-scrollbar">
+                {brands.map((brand) => (
+                  <div
+                    key={brand.id}
+                    onClick={() => handleBrandToggle(brand.id)}
+                    className={`
+                      flex justify-between items-center cursor-pointer group
+                      px-2 py-1.5 rounded-md transition
+                      ${
+                        selectedBrands.includes(brand.id)
+                          ? "bg-[#8B0D3A]/10"
+                          : "hover:bg-gray-100"
+                      }
+                    `}
+                  >
+                    <span
+                      className={`
+                        ${
+                          selectedBrands.includes(brand.id)
+                            ? "text-[#8B0D3A] font-medium"
+                            : "group-hover:text-[#8B0D3A]"
+                        }
+                      `}
+                    >
+                      {brand.name}
+                    </span>
+
+                    <div
+                      className={`
+                        w-5 h-5 border rounded-sm
+                        ${
+                          selectedBrands.includes(brand.id)
+                            ? "bg-[#8B0D3A] border-[#8B0D3A]"
+                            : "border-gray-300"
+                        }
+                      `}
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
-      </div>
-
-      {/* 🚀 ACTIONS */}
-      <div className="bg-white p-4 rounded shadow sticky bottom-0">
-        <button
-          onClick={onApplyFilters}
-          className="w-full bg-[#7a1c3d] text-white py-2 rounded mb-2"
-        >
-          Apply Filters
-        </button>
-
-        <button
-          onClick={onClearFilters}
-          className="w-full border py-2 rounded hover:bg-gray-100"
-        >
-          Clear All
-        </button>
-      </div>
+      ))}
     </div>
   );
 };

@@ -111,64 +111,58 @@ const ProductCard = ({ product, loading = false, viewMode = "grid" }) => {
       </div>
     );
   }
-
   return (
     <div
       onClick={handleViewProduct}
-      // className="group cursor-pointer bg-white rounded-xl shadow-sm hover:shadow-lg transition duration-300 overflow-hidden"
-      className={`group cursor-pointer bg-white rounded-xl shadow-sm hover:shadow-lg transition duration-300 overflow-hidden ${
-        viewMode === "list" ? "flex gap-4 p-4 items-center" : ""
+      className={`group cursor-pointer ${
+        viewMode === "list" ? "flex gap-4 items-start" : ""
       }`}
     >
       {/* IMAGE */}
       <div
-        className={`relative bg-gray-100 flex items-center justify-center overflow-hidden ${
-          viewMode === "list"
-            ? "w-32 h-32 flex-shrink-0"
-            : "h-40 sm:h-52 md:h-[240px]"
+        className={`relative overflow-hidden rounded-md bg-[#f3ebee] ${
+          viewMode === "list" ? "w-32 h-32 flex-shrink-0" : "aspect-[3/4]"
         }`}
       >
         <img
           src={getImageUrl(image) || "/placeholder.jpg"}
           alt={product?.name}
-          className="h-full object-contain transition duration-500 group-hover:scale-105"
+          className="w-full h-full object-cover transition duration-500 group-hover:scale-105"
         />
 
         {/* DISCOUNT */}
         {discount && (
-          <span className="absolute top-2 left-2 sm:top-3 sm:left-3 bg-orange-500 text-white text-[10px] sm:text-xs px-2 py-1 rounded">
+          <span className="absolute top-2 left-2 bg-[#8B5E3C] text-white text-[10px] px-2 py-1">
             -{discount}%
           </span>
         )}
 
-        {/* ACTION BUTTONS */}
+        {/* ACTION OVERLAY */}
         <div
-          className={`absolute inset-0 bg-black/40 opacity-0 transition items-center justify-center gap-2 sm:gap-3 ${
+          className={`absolute inset-0 bg-black/30 opacity-0 transition duration-300 items-center justify-center gap-3 ${
             viewMode === "grid" ? "group-hover:opacity-100 flex" : "hidden"
           }`}
         >
-          {/* ADD TO CART */}
           <button
             onClick={handleAddToCart}
             disabled={isActionLoading || isInCart}
-            className={`p-2 sm:p-3 rounded-full transition flex items-center justify-center
-              ${
-                added
-                  ? "bg-green-500 text-white"
-                  : isInCart
-                    ? "bg-gray-300 text-gray-600 cursor-not-allowed"
-                    : "bg-white hover:bg-[#7a1c3d] hover:text-white"
-              }
-            `}
+            className={`p-3 rounded-full transition
+            ${
+              added
+                ? "bg-green-500 text-white"
+                : isInCart
+                  ? "bg-gray-300 text-gray-600"
+                  : "bg-white hover:bg-[#8B0D3A] hover:text-white"
+            }
+          `}
           >
             {added ? <Check size={16} /> : <ShoppingCart size={16} />}
           </button>
 
-          {/* WISHLIST */}
           <button
             onClick={handleAddToWishlist}
-            disabled={isActionLoading || isInWishlist}
-            className="bg-white p-2 sm:p-3 rounded-full hover:bg-[#7a1c3d] hover:text-white transition"
+            disabled={isInWishlist}
+            className="bg-white p-3 rounded-full hover:bg-[#8B0D3A] hover:text-white transition"
           >
             <Heart
               size={16}
@@ -180,51 +174,45 @@ const ProductCard = ({ product, loading = false, viewMode = "grid" }) => {
 
       {/* CONTENT */}
       <div
-        className={`p-3 sm:p-4 ${
-          viewMode === "list"
-            ? "flex flex-col justify-between flex-1"
-            : "text-center"
+        className={`mt-3 space-y-1 ${
+          viewMode === "list" ? "flex flex-col justify-between flex-1 mt-0" : ""
         }`}
       >
-        <h3 className="text-xs sm:text-sm font-semibold line-clamp-1">
+        <h3 className="text-sm text-gray-800 line-clamp-2 leading-snug">
           {product?.name}
         </h3>
 
-        <div className="mt-1">
-          <span className="text-[#7a1c3d] font-bold text-sm sm:text-base">
+        <div className="text-sm">
+          <span className="font-semibold text-black">
             ₹{product?.discount_price || product?.price}
           </span>
 
           {product?.discount_price && (
-            <span className="text-gray-400 line-through ml-2 text-xs sm:text-sm">
-              ₹{product?.price}
-            </span>
+            <>
+              <span className="text-gray-400 line-through ml-2">
+                ₹{product?.price}
+              </span>
+              <span className="text-green-600 ml-2 text-xs">
+                ({discount}% OFF)
+              </span>
+            </>
           )}
         </div>
 
-        {isInCart && !added && (
-          <p className="text-[10px] sm:text-xs text-green-600 mt-1">
-            Already in cart
-          </p>
-        )}
-
-        {viewMode === "list" && (
-          <div className="mt-3 flex gap-2">
-            <button
-              onClick={handleAddToCart}
-              disabled={isInCart}
-              className="px-3 py-1 text-xs bg-[#7a1c3d] text-white rounded"
-            >
-              {isInCart ? "In Cart" : "Add to Cart"}
-            </button>
-
-            <button
-              onClick={handleAddToWishlist}
-              className="px-3 py-1 text-xs border rounded"
-            >
-              Wishlist
-            </button>
-          </div>
+        {viewMode === "grid" && (
+          <button
+            onClick={handleAddToCart}
+            disabled={isInCart}
+            className="
+            mt-3 w-full
+            border border-gray-300
+            py-2 text-xs tracking-widest uppercase
+            transition-all duration-300
+            hover:border-black
+          "
+          >
+            {isInCart ? "IN CART" : "ADD TO BAG"}
+          </button>
         )}
       </div>
     </div>
