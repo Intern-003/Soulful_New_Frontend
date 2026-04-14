@@ -1,5 +1,3 @@
-// src/api/hooks/usePut.js
-
 import { useState } from "react";
 import axiosInstance from "../axiosInstance";
 
@@ -12,15 +10,9 @@ const usePut = (url) => {
     try {
       setLoading(true);
 
-      // ✅ IMPORTANT FIX
       const res = await axiosInstance.post(
-        `${config.url || url}?_method=PUT`, // 👈 THIS IS KEY
-        config.data,
-        {
-          headers: {
-            "Content-Type": "multipart/form-data",
-          },
-        }
+        `${config.url || url}?_method=PUT`,
+        config.data
       );
 
       setData(res.data);
