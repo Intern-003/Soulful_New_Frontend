@@ -1,54 +1,96 @@
 import { getImageUrl } from "../../../utils/getImageUrl";
 
 const BrandCard = ({ brand, onEdit, onDelete }) => {
-  const handleDelete = () => {
-    const confirm = window.confirm(
-      `Delete "${brand.name}" brand?`
-    );
+  const subcategories = brand?.subcategories || [];
 
-    if (confirm) {
-      onDelete(brand.id);
-    }
+  // 🔥 LIMIT DISPLAY
+  const visibleSubs = subcategories.slice(0, 3);
+  const extraCount = subcategories.length - visibleSubs.length;
+
+  const handleDelete = () => {
+    const confirm = window.confirm(`Delete "${brand?.name}" brand?`);
+    if (confirm) onDelete(brand.id);
   };
 
   return (
-    <div style={styles.card}>
-      {/* LOGO */}
-      <div style={styles.imageWrapper}>
+    <div className="bg-white rounded-2xl shadow-md hover:shadow-lg transition p-4 flex flex-col justify-between">
+
+      {/* IMAGE */}
+      <div className="flex justify-center mb-3">
         <img
-          src={getImageUrl(brand.logo)}
-          alt={brand.name}
-          style={styles.image}
+          src={brand?.logo ? getImageUrl(brand.logo) : "/no-image.png"}
+          alt={brand?.name || "brand"}
+          className="w-20 h-20 object-contain"
           onError={(e) => {
-            e.target.src = "/no-image.png";
+            e.currentTarget.src = "/no-image.png";
           }}
         />
       </div>
 
       {/* CONTENT */}
-      <div style={styles.content}>
-        <h3 style={styles.name}>{brand.name}</h3>
+      <div className="text-center">
 
-        <p style={styles.slug}>{brand.slug}</p>
+        <h3 className="font-semibold text-lg truncate">
+          {brand?.name || "-"}
+        </h3>
+
+        <p className="text-xs text-gray-500 truncate">
+          {brand?.slug || "-"}
+        </p>
 
         {/* STATUS */}
         <span
-          style={{
-            ...styles.status,
-            background: brand.status ? "green" : "gray",
-          }}
+          className={`inline-block mt-2 px-2 py-1 text-xs rounded-full text-white ${
+            brand?.status ? "bg-green-500" : "bg-gray-400"
+          }`}
         >
-          {brand.status ? "Active" : "Inactive"}
+          {brand?.status ? "Active" : "Inactive"}
         </span>
+
+        {/* SUBCATEGORIES */}
+        <div className="mt-3 flex flex-wrap justify-center gap-1 min-h-[24px]">
+          {subcategories.length > 0 ? (
+            <>
+              {visibleSubs.map((sub) => (
+                <span
+                  key={sub.id}
+                  className="text-[10px] bg-blue-50 text-blue-600 px-2 py-1 rounded-full"
+                >
+                  {sub.name}
+                </span>
+              ))}
+
+              {extraCount > 0 && (
+                <span
+                  className="text-[10px] text-gray-500 cursor-pointer"
+                  title={subcategories.map((s) => s.name).join(", ")}
+                >
+                  +{extraCount} more
+                </span>
+              )}
+            </>
+          ) : (
+            <span className="text-[10px] text-gray-400">
+              No subcategories
+            </span>
+          )}
+        </div>
+
       </div>
 
       {/* ACTIONS */}
-      <div style={styles.actions}>
-        <button onClick={() => onEdit(brand)} style={styles.editBtn}>
+      <div className="flex justify-between mt-4 gap-2">
+        <button
+          onClick={() => onEdit(brand)}
+          className="flex-1 text-sm bg-blue-500 text-white py-1 rounded hover:bg-blue-600"
+        >
           Edit
         </button>
 
-        <button onClick={handleDelete} style={styles.deleteBtn}>
+        <button
+          onClick={handleDelete}
+          className="flex-1 text-sm bg-red-500 text-white py-1 rounded hover:bg-red-600"
+        >
           Delete
         </button>
       </div>
@@ -57,61 +99,3 @@ const BrandCard = ({ brand, onEdit, onDelete }) => {
 };
 
 export default BrandCard;
-
-// ================= STYLES =================
-const styles = {
-  card: {
-    border: "1px solid #ddd",
-    borderRadius: 10,
-    padding: 15,
-    width: 200,
-    background: "#fff",
-    display: "flex",
-    flexDirection: "column",
-    justifyContent: "space-between",
-  },
-  imageWrapper: {
-    display: "flex",
-    justifyContent: "center",
-    marginBottom: 10,
-  },
-  image: {
-    width: 80,
-    height: 80,
-    objectFit: "contain",
-  },
-  content: {
-    textAlign: "center",
-  },
-  name: {
-    margin: "5px 0",
-  },
-  slug: {
-    fontSize: 12,
-    color: "#777",
-  },
-  status: {
-    display: "inline-block",
-    marginTop: 8,
-    padding: "4px 8px",
-    color: "#fff",
-    borderRadius: 4,
-    fontSize: 12,
-  },
-  actions: {
-    marginTop: 10,
-    display: "flex",
-    justifyContent: "space-between",
-  },
-  editBtn: {
-    padding: "5px 10px",
-    cursor: "pointer",
-  },
-  deleteBtn: {
-    padding: "5px 10px",
-    background: "red",
-    color: "#fff",
-    border: "none",
-    cursor: "pointer",
-  },
-};

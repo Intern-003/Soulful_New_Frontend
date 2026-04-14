@@ -1,15 +1,15 @@
 import { useEffect, useState } from "react";
 import usePost from "../../../api/hooks/usePost";
 import usePut from "../../../api/hooks/usePut";
+import useGet from "../../../api/hooks/useGet";
 
 const BrandFormModal = ({ open, onClose, editData, refresh }) => {
-  // ================= HOOKS =================
   const { postData, loading: postLoading } = usePost();
   const { putData, loading: putLoading } = usePut();
+  const { data: categoriesData } = useGet("/categories");
 
   const loading = postLoading || putLoading;
 
-  // ================= STATE =================
   const [form, setForm] = useState({
     name: "",
     slug: "",
@@ -19,9 +19,21 @@ const BrandFormModal = ({ open, onClose, editData, refresh }) => {
 
   const [preview, setPreview] = useState(null);
 
+  const [categories, setCategories] = useState([]);
+  const [selectedCategory, setSelectedCategory] = useState("");
+  const [subcategories, setSubcategories] = useState([]);
+  const [selectedSubcategories, setSelectedSubcategories] = useState([]);
+
+  // ================= FETCH =================
+  useEffect(() => {
+    if (categoriesData?.data) {
+      setCategories(categoriesData.data);
+    }
+  }, [categoriesData]);
+
   // ================= PREFILL =================
   useEffect(() => {
-    if (editData) {
+    if (editData && categories.length) {
       setForm({
         name: editData.name || "",
         slug: editData.slug || "",
@@ -34,6 +46,24 @@ const BrandFormModal = ({ open, onClose, editData, refresh }) => {
           ? `http://localhost:8000/${editData.logo}`
           : null
       );
+
+      const subIds = editData.subcategories?.map((s) => s.id) || [];
+      setSelectedSubcategories(subIds);
+
+      // 🔥 FIND CATEGORY FROM SUBCATEGORY
+      let foundCategory = null;
+
+      categories.forEach((cat) => {
+        if (cat.children?.some((child) => subIds.includes(child.id))) {
+          foundCategory = cat;
+        }
+      });
+
+      if (foundCategory) {
+        setSelectedCategory(foundCategory.id);
+        setSubcategories(foundCategory.children || []);
+      }
+
     } else {
       setForm({
         name: "",
@@ -41,9 +71,13 @@ const BrandFormModal = ({ open, onClose, editData, refresh }) => {
         status: 1,
         logo: null,
       });
+
       setPreview(null);
+      setSelectedCategory("");
+      setSubcategories([]);
+      setSelectedSubcategories([]);
     }
-  }, [editData, open]);
+  }, [editData, open, categories]);
 
   // ================= HANDLERS =================
   const handleChange = (e) => {
@@ -58,10 +92,33 @@ const BrandFormModal = ({ open, onClose, editData, refresh }) => {
     setPreview(URL.createObjectURL(file));
   };
 
+  const handleCategoryChange = (e) => {
+    const categoryId = parseInt(e.target.value);
+    setSelectedCategory(categoryId);
+
+    const selected = categories.find((c) => c.id === categoryId);
+
+    setSubcategories(selected?.children || []);
+    setSelectedSubcategories([]); // reset only on manual change
+  };
+
+  const handleSubcategoryChange = (id) => {
+    setSelectedSubcategories((prev) =>
+      prev.includes(id)
+        ? prev.filter((item) => item !== id)
+        : [...prev, id]
+    );
+  };
+
   // ================= SUBMIT =================
   const handleSubmit = async () => {
     if (!form.name) {
       alert("Brand name is required");
+      return;
+    }
+
+    if (!selectedSubcategories.length) {
+      alert("Please select at least one subcategory");
       return;
     }
 
@@ -74,15 +131,17 @@ const BrandFormModal = ({ open, onClose, editData, refresh }) => {
       data.append("logo", form.logo);
     }
 
+    selectedSubcategories.forEach((id) => {
+      data.append("subcategory_ids[]", id);
+    });
+
     try {
       if (editData) {
-        // ✅ REAL PUT (REST)
         await putData({
           url: `/admin/brands/${editData.id}`,
           data,
         });
       } else {
-        // CREATE
         await postData({
           url: "/admin/brands",
           data,
@@ -96,30 +155,21 @@ const BrandFormModal = ({ open, onClose, editData, refresh }) => {
     }
   };
 
-  // ⚠️ AFTER HOOKS
   if (!open) return null;
 
-  // ================= UI =================
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm">
-      
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 animate-scaleIn">
-        
-        {/* HEADER */}
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
+
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-lg font-semibold">
             {editData ? "Edit Brand" : "Add Brand"}
           </h2>
-          <button
-            onClick={onClose}
-            className="text-gray-500 hover:text-black"
-          >
-            ✕
-          </button>
+          <button onClick={onClose}>✕</button>
         </div>
 
-        {/* FORM */}
         <div className="space-y-3">
+
           <input
             name="name"
             value={form.name}
@@ -138,7 +188,6 @@ const BrandFormModal = ({ open, onClose, editData, refresh }) => {
 
           <input type="file" onChange={handleFile} />
 
-          {/* IMAGE PREVIEW */}
           {preview && (
             <img
               src={preview}
@@ -156,21 +205,54 @@ const BrandFormModal = ({ open, onClose, editData, refresh }) => {
             <option value={1}>Active</option>
             <option value={0}>Inactive</option>
           </select>
+
+          {/* CATEGORY */}
+          <select
+            value={selectedCategory}
+            onChange={handleCategoryChange}
+            className="w-full border p-2 rounded"
+          >
+            <option value="">Select Category</option>
+            {categories.map((cat) => (
+              <option key={cat.id} value={cat.id}>
+                {cat.name}
+              </option>
+            ))}
+          </select>
+
+          {/* SUBCATEGORIES */}
+          {subcategories.length > 0 && (
+            <div>
+              <p className="text-sm font-medium mt-2">
+                Select Subcategories
+              </p>
+
+              <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto border p-2 rounded">
+                {subcategories.map((sub) => (
+                  <label key={sub.id} className="flex items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={selectedSubcategories.includes(sub.id)}
+                      onChange={() => handleSubcategoryChange(sub.id)}
+                    />
+                    {sub.name}
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
+
         </div>
 
-        {/* ACTIONS */}
         <div className="flex justify-end gap-2 mt-5">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 border rounded hover:bg-gray-100"
-          >
+          <button onClick={onClose} className="border px-4 py-2 rounded">
             Cancel
           </button>
 
           <button
             onClick={handleSubmit}
             disabled={loading}
-            className="px-4 py-2 bg-black text-white rounded hover:bg-gray-800"
+            className="bg-black text-white px-4 py-2 rounded"
           >
             {loading ? "Saving..." : "Submit"}
           </button>
