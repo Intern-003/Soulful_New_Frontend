@@ -1,19 +1,19 @@
 // src/components/home/BestSellerSection.jsx
-import React from 'react';
-import useGet from '../../api/hooks/useGet';
-import SectionHeader from '../common/SectionHeader';
+import React from "react";
+import useGet from "../../api/hooks/useGet";
+import SectionHeader from "../common/SectionHeader";
 import ProductGrid from "../dashboard/products/ProductGrid";
 const BestSellerSection = () => {
-  const { data, loading } = useGet('/products/best-sellers');
-  
-  // ✅ Access data correctly - your API returns { success: true, data: [...] }
+  const { data, loading } = useGet("/products/best-sellers");
+
+  // Access data correctly - your API returns { success: true, data: [...] }
   const products = data?.data?.slice(0, 8) || [];
 
   return (
     <div className="max-w-7xl mx-auto px-4 md:px-6 py-16">
-      <SectionHeader 
+      <SectionHeader
         title="Best Sellers"
-        subtitle="Discover our most popular products"
+        subtitle="Necessitatibus eius consequatur ex aliquid fuga eum quidem sint consectetur velit"
       />
       <ProductGrid products={products} loading={loading} columns={4} />
     </div>
