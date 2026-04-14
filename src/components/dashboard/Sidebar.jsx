@@ -87,6 +87,11 @@ const Sidebar = () => {
       label: "Banners",
       path: "/dashboard/banners",
       icon: Package,
+    },
+    {
+      label: "Brands",
+      path: "/dashboard/brands",
+      icon: Package,
     }
   ];
 

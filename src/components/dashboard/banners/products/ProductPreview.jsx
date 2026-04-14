@@ -5,8 +5,7 @@ const ProductPreview = ({ product }) => {
 
   const getImage = () => {
     const img = product?.primary_image?.image_url;
-
-    if (!img) return "/placeholder.jpg";
+   if (!img) return "/placeholder.jpg";
 
     if (img.startsWith("http")) return img;
 
