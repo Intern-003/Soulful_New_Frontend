@@ -37,6 +37,7 @@ import AdminOrdersPage from "../pages/dashboard/AdminOrdersPage";
 import Permissions from "../pages/dashboard/Permissions";
 import SubCategoryProducts from "../pages/dashboard/categories/SubCategoryProducts";
 import SubCategoryPage from "../pages/dashboard/categories/SubCategoryPage";
+import Brands from "../pages/dashboard/brands";
 import Banner from "../pages/dashboard/Banner";
 import { Toaster } from "react-hot-toast";
 
@@ -83,19 +84,18 @@ const AppRoutes = () => {
           />
           <Route path="categories/:id" element={<SubCategoryPage />} />
           <Route path="permissions" element={<Permissions />} />
+                    <Route path="banners" element={<Banner />} />
+          <Route path="brands" element={<Brands />} />
         </Route>
-          <Route path="banners" element={<Banner />} />
-          </Route>
 
+      
         {/* FALLBACK */}
         <Route path="*" element={<Navigate to="/" replace />} />
-        <Route
-          path="/dashboard/subcategories/:id/products"
-          element={<SubCategoryProducts />}
-        />
-      </Routes>
+
+   </Routes>
     </>
   );
+
 };
 
 export default AppRoutes;
