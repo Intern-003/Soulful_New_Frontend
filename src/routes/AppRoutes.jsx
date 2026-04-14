@@ -23,6 +23,9 @@ import Orders from "../components/account/sections/Orders";
 
 import Roles from "../pages/dashboard/Roles";
 import ShopPage from "../pages/public/ShopPage";
+import CategoryPage from "../pages/public/categorypage";
+import FreshArrivals from "../pages/public/FreshArrivals";
+import Bestsellers from "../pages/public/Bestsellers";
 import ProductDetails from "../pages/public/ProductDetails";
 import Wishlist from "../pages/public/Wishlist";
 import Contact from "../pages/public/Contact";
@@ -34,6 +37,7 @@ import AdminOrdersPage from "../pages/dashboard/AdminOrdersPage";
 import Permissions from "../pages/dashboard/Permissions";
 import SubCategoryProducts from "../pages/dashboard/categories/SubCategoryProducts";
 import SubCategoryPage from "../pages/dashboard/categories/SubCategoryPage";
+import Banner from "../pages/dashboard/Banner";
 import { Toaster } from "react-hot-toast";
 
 import CouponsList from "../pages/dashboard/CouponList";
@@ -51,10 +55,14 @@ const AppRoutes = () => {
         {/* MAIN WEBSITE */}
         <Route element={<MainLayout />}>
           <Route path="/" element={<Home />} />
+          <Route path="/about" element={<About />} />
           <Route path="/cart" element={<Cart />} />
           <Route path="/checkout" element={<Checkout />} />
           <Route path="/account" element={<AccountPage />} />
           <Route path="/shop" element={<ShopPage />} />
+          <Route path="/category/:slug" element={<CategoryPage />} />
+          <Route path="/fresharrivals" element={<FreshArrivals />} />
+          <Route path="/bestsellers" element={<Bestsellers />} />
           <Route path="/wishlist" element={<Wishlist />} />
           <Route path="/product/:slug" element={<ProductDetails />} />
           <Route path="/contact" element={<Contact />} />
@@ -76,16 +84,22 @@ const AppRoutes = () => {
           <Route path="subcategories/:id/products" element={<SubCategoryProducts />} />
           <Route path="categories/:id" element={<SubCategoryPage />} />
           <Route path="permissions" element={<Permissions />} />
+       
+          <Route path="banners" element={<Banner />} />
 
           <Route path="/dashboard/coupons" element={<CouponsList />} />
           <Route path="/dashboard/coupons/create" element={<CreateCoupon />} />
           <Route path="/dashboard/coupons/edit/:id" element={<EditCoupon />} />
-          </Route>
+         </Route>
 
-      {/* FALLBACK */}
-      <Route path="*" element={<Navigate to="/" replace />} />
-      <Route path="/dashboard/subcategories/:id/products" element={<SubCategoryProducts />} />
-    </Routes></>
+        {/* FALLBACK */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+        <Route
+          path="/dashboard/subcategories/:id/products"
+          element={<SubCategoryProducts />}
+        />
+      </Routes>
+    </>
   );
 };
 

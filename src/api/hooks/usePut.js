@@ -1,7 +1,7 @@
 import { useState } from "react";
 import axiosInstance from "../axiosInstance";
 
-const usePut = (url) => {
+const usePut = (baseUrl = "") => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -26,7 +26,12 @@ const usePut = (url) => {
     }
   };
 
-  return { data, loading, error, putData };
+  return {
+    data,
+    loading,
+    error,
+    putData,
+  };
 };
 
 export default usePut;

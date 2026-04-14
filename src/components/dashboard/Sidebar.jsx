@@ -84,6 +84,11 @@ const Sidebar = () => {
       icon: Package,  
     },
     {
+      label: "Banners",
+      path: "/dashboard/banners",
+      icon: Package,
+    },
+    {
   label: "Coupons",
   path: "/dashboard/coupons",
   icon: Package,
@@ -189,6 +194,7 @@ const Sidebar = () => {
                 >
                   Vendor Orders
                 </Link>
+            
               </div>
             )}
           </div>

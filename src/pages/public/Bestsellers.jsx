@@ -9,7 +9,7 @@ import ShopHeader from "../../components/shop/ShopHeader";
 import ProductGrid from "../../components/dashboard/products/ProductGrid";
 import useGet from "../../api/hooks/useGet";
 
-const ShopPage = () => {
+const FreshArrivals = () => {
   const dispatch = useDispatch();
 
   const parentCategories = useSelector(selectParentCategories);
@@ -22,10 +22,10 @@ const ShopPage = () => {
     data: productResponse,
     loading: productsLoading,
     error,
-  } = useGet("/products");
+  } = useGet("/products/best-sellers");
 
-  const allProducts = Array.isArray(productResponse?.data?.data)
-    ? productResponse.data.data
+  const allProducts = Array.isArray(productResponse?.data)
+    ? productResponse.data
     : [];
 
   // BRANDS
@@ -150,7 +150,7 @@ const ShopPage = () => {
       from-[#f1e4ea]
       via-[#f1e4ea]
       to-[#f1e4ea]
-      "
+    "
     >
       {/* TOP HEADER */}
       <div className="bg-[#f6f1f3] border-b border-gray-200 py-6 px-4 mb-7 md:px-10">
@@ -161,7 +161,7 @@ const ShopPage = () => {
               Home
             </span>
             <span className="mx-2">/</span>
-            <span className="text-gray-700">Shop Products</span>
+            <span className="text-gray-700">Bestsellers</span>
           </p>
 
           {/* Title */}
@@ -169,7 +169,7 @@ const ShopPage = () => {
             {/* LEFT */}
             <div>
               <h1 className="text-2xl md:text-3xl font-semibold text-[#2d0f1f]">
-                Shop Products
+                Bestsellers
               </h1>
 
               <p className="text-sm text-gray-500 mt-1">
@@ -277,4 +277,4 @@ const ShopPage = () => {
   );
 };
 
-export default ShopPage;
+export default FreshArrivals;
