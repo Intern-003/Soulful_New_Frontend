@@ -1,3 +1,5 @@
+import { useEffect, useRef } from "react";
+
 const DeleteConfirmModal = ({
   open,
   onClose,
@@ -6,24 +8,80 @@ const DeleteConfirmModal = ({
   message = "Are you sure you want to delete this item?",
   loading = false,
 }) => {
+  const modalRef = useRef();
+
+  // 🔥 ESC CLOSE (disabled while loading)
+  useEffect(() => {
+    const handleEsc = (e) => {
+      if (e.key === "Escape" && !loading) {
+        onClose();
+      }
+    };
+
+    if (open) {
+      document.addEventListener("keydown", handleEsc);
+    }
+
+    return () => {
+      document.removeEventListener("keydown", handleEsc);
+    };
+  }, [open, onClose, loading]);
+
+  // 🔥 AUTO FOCUS MODAL
+  useEffect(() => {
+    if (open && modalRef.current) {
+      modalRef.current.focus();
+    }
+  }, [open]);
+
   if (!open) return null;
 
   return (
-    <div style={styles.overlay}>
-      <div style={styles.modal}>
-        <h3>{title}</h3>
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
+      onClick={() => {
+        if (!loading) onClose();
+      }}
+    >
+      <div
+        ref={modalRef}
+        tabIndex={-1}
+        className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 outline-none"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* ICON */}
+        <div className="flex justify-center mb-3 text-red-500 text-3xl">
+          🗑️
+        </div>
 
-        <p style={{ marginTop: 10 }}>{message}</p>
+        {/* TITLE */}
+        <h3 className="text-lg font-semibold text-center">
+          {title}
+        </h3>
 
-        <div style={styles.actions}>
-          <button onClick={onClose} style={styles.cancelBtn}>
+        {/* MESSAGE */}
+        <p className="text-sm text-gray-600 text-center mt-2">
+          {message}
+        </p>
+
+        {/* ACTIONS */}
+        <div className="flex justify-center gap-3 mt-6">
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={loading}
+            className="px-4 py-2 text-sm border rounded hover:bg-gray-100 disabled:opacity-50"
+          >
             Cancel
           </button>
 
           <button
-            onClick={onConfirm}
+            type="button"
+            onClick={() => {
+              if (!loading) onConfirm(); // 🔥 prevent double click
+            }}
             disabled={loading}
-            style={styles.deleteBtn}
+            className="px-4 py-2 text-sm bg-red-500 text-white rounded hover:bg-red-600 disabled:opacity-50"
           >
             {loading ? "Deleting..." : "Delete"}
           </button>
@@ -34,42 +92,3 @@ const DeleteConfirmModal = ({
 };
 
 export default DeleteConfirmModal;
-
-// ================= STYLES =================
-const styles = {
-  overlay: {
-    position: "fixed",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    background: "rgba(0,0,0,0.5)",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    zIndex: 1000,
-  },
-  modal: {
-    background: "#fff",
-    padding: 20,
-    borderRadius: 10,
-    width: 350,
-    textAlign: "center",
-  },
-  actions: {
-    marginTop: 20,
-    display: "flex",
-    justifyContent: "space-between",
-  },
-  cancelBtn: {
-    padding: "6px 12px",
-    cursor: "pointer",
-  },
-  deleteBtn: {
-    padding: "6px 12px",
-    background: "red",
-    color: "#fff",
-    border: "none",
-    cursor: "pointer",
-  },
-};
