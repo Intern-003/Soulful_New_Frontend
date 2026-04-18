@@ -22,9 +22,13 @@ import { addToWishlist } from "../../app/slices/wishlistSlice";
 
 const ProductDetails = () => {
   const navigate = useNavigate();
-  const { slug } = useParams();
+  // const { slug } = useParams();
 
-  const { data, loading, error } = useGet(PRODUCT.DETAILS(slug));
+  // const { data, loading, error } = useGet(PRODUCT.DETAILS(slug));
+
+  const { identifier } = useParams();
+
+const { data, loading, error } = useGet(PRODUCT.DETAILS(identifier));
 
   const product = data?.data;
 

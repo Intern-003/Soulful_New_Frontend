@@ -24,7 +24,7 @@ const EditProductModal = ({ productId, onClose, onSuccess }) => {
   const [form, setForm] = useState({
     name: "", short_description: "", description: "", price: "", discount_price: "",
     cost_price: "", stock: "", category_id: "", brand_id: "", weight: "", length: "",
-    width: "", height: "", is_featured: false, status: false, is_approved: false,
+    width: "", height: "", is_featured: false, status: false, approval_status: "",
   });
   const [parentCategory, setParentCategory] = useState("");
   const [selectedAttributeValues, setSelectedAttributeValues] = useState({});
@@ -37,24 +37,23 @@ const EditProductModal = ({ productId, onClose, onSuccess }) => {
     if (!product) return;
 
     const isSub = !!product.category?.parent_id;
-    
+
     setForm({
-      name: product.name || "", 
+      name: product.name || "",
       short_description: product.short_description || "",
-      description: product.description || "", 
+      description: product.description || "",
       price: product.price ?? "",
-      discount_price: product.discount_price ?? "", 
+      discount_price: product.discount_price ?? "",
       cost_price: product.cost_price ?? "",
-      stock: product.stock ?? "", 
-      category_id: product.category_id || "", 
+      stock: product.stock ?? "",
+      category_id: product.category_id || "",
       brand_id: product.brand_id || "",
-      weight: product.weight || "", 
+      weight: product.weight || "",
       length: product.length || "",
-      width: product.width || "", 
-      height: product.height || "", 
+      width: product.width || "",
+      height: product.height || "",
       is_featured: product.is_featured || false,
-      status: product.status || false, 
-      is_approved: product.is_approved || false,
+      status: product.status || false,
     });
 
     setSpecifications(product.specifications || []);
@@ -75,7 +74,7 @@ const EditProductModal = ({ productId, onClose, onSuccess }) => {
   // Map variant attributes to selected values
   useEffect(() => {
     if (!product?.variants?.length) return;
-    
+
     const selectedAttrs = {};
     product.variants.forEach(variant => {
       variant.attributes.forEach(attr => {
@@ -120,12 +119,12 @@ const EditProductModal = ({ productId, onClose, onSuccess }) => {
       const payload = {
         ...form,
         specifications: specifications.length ? specifications : null,
-        is_approved: false,
+        approval_status: "pending", // reset on edit
         status: false,
       };
-      
+
       await putData({ url: `/vendor/products/${productId}`, data: payload });
-      
+
       toast.success("Product Updated Successfully ✅");
       onSuccess();
       onClose();
@@ -165,7 +164,7 @@ const EditProductModal = ({ productId, onClose, onSuccess }) => {
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex justify-center items-center z-50 p-2 sm:p-4">
       <div className="bg-white rounded-xl sm:rounded-2xl w-full max-w-6xl max-h-[95vh] sm:max-h-[90vh] overflow-hidden shadow-2xl flex flex-col">
-        
+
         {/* Header */}
         <div className="bg-gradient-to-r from-[#7a1c3d] to-[#9b2c4f] px-4 sm:px-6 py-3 sm:py-4 flex justify-between items-center flex-shrink-0">
           <h2 className="text-lg sm:text-2xl font-bold text-white">✏️ Edit Product</h2>
@@ -175,12 +174,13 @@ const EditProductModal = ({ productId, onClose, onSuccess }) => {
         </div>
 
         {/* Status Banner */}
-        {!form.is_approved && (
+        {product?.approval_status === "pending" && (
+
           <div className="bg-yellow-50 border-l-4 border-yellow-400 p-3 sm:p-4 mx-3 sm:mx-6 mt-3 sm:mt-4 rounded flex-shrink-0">
             <div className="flex items-start sm:items-center gap-2">
               <AlertCircle className="text-yellow-600 flex-shrink-0" size={16} />
               <span className="text-xs sm:text-sm text-yellow-800">
-                This product is pending admin approval. Changes will require re-approval.
+                This product is pending admin approval.
               </span>
             </div>
           </div>
@@ -233,17 +233,17 @@ const EditProductModal = ({ productId, onClose, onSuccess }) => {
                 <label className="block text-sm font-medium mb-1">Product Name *</label>
                 <input name="name" value={form.name} onChange={handleChange} className="w-full border rounded-lg p-2 sm:p-3 text-sm sm:text-base focus:ring-2 focus:ring-[#7a1c3d]" />
               </div>
-              
+
               <div className="sm:col-span-2">
                 <label className="block text-sm font-medium mb-1">Short Description</label>
                 <input name="short_description" value={form.short_description} onChange={handleChange} className="w-full border rounded-lg p-2 sm:p-3 text-sm sm:text-base" />
               </div>
-              
+
               <div className="sm:col-span-2">
                 <label className="block text-sm font-medium mb-1">Full Description</label>
                 <textarea name="description" value={form.description} onChange={handleChange} rows="4" className="w-full border rounded-lg p-2 sm:p-3 text-sm sm:text-base" />
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium mb-1">Category</label>
                 <select value={parentCategory} onChange={handleCategoryChange} className="w-full border rounded-lg p-2 sm:p-3 text-sm sm:text-base">
@@ -251,7 +251,7 @@ const EditProductModal = ({ productId, onClose, onSuccess }) => {
                   {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium mb-1">Subcategory</label>
                 <select name="category_id" value={form.category_id} onChange={handleChange} className="w-full border rounded-lg p-2 sm:p-3 text-sm sm:text-base">
@@ -259,7 +259,7 @@ const EditProductModal = ({ productId, onClose, onSuccess }) => {
                   {subcategories.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                 </select>
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium mb-1">Brand</label>
                 <select name="brand_id" value={form.brand_id} onChange={handleChange} className="w-full border rounded-lg p-2 sm:p-3 text-sm sm:text-base">
@@ -267,19 +267,19 @@ const EditProductModal = ({ productId, onClose, onSuccess }) => {
                   {brands.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
                 </select>
               </div>
-              
+
               <div><label className="block text-sm font-medium mb-1">Price *</label><input name="price" type="number" value={form.price} onChange={handleChange} className="w-full border rounded-lg p-2 sm:p-3 text-sm sm:text-base" /></div>
               <div><label className="block text-sm font-medium mb-1">Discount Price</label><input name="discount_price" type="number" value={form.discount_price} onChange={handleChange} className="w-full border rounded-lg p-2 sm:p-3 text-sm sm:text-base" /></div>
               <div><label className="block text-sm font-medium mb-1">Cost Price</label><input name="cost_price" type="number" value={form.cost_price} onChange={handleChange} className="w-full border rounded-lg p-2 sm:p-3 text-sm sm:text-base" /></div>
               <div><label className="block text-sm font-medium mb-1">Stock</label><input name="stock" type="number" value={form.stock} onChange={handleChange} className="w-full border rounded-lg p-2 sm:p-3 text-sm sm:text-base" /></div>
-              
+
               <div className="grid grid-cols-2 gap-3 sm:col-span-2">
                 <div><label className="block text-sm font-medium mb-1">Length (cm)</label><input name="length" value={form.length} onChange={handleChange} className="w-full border rounded-lg p-2 sm:p-3" /></div>
                 <div><label className="block text-sm font-medium mb-1">Width (cm)</label><input name="width" value={form.width} onChange={handleChange} className="w-full border rounded-lg p-2 sm:p-3" /></div>
                 <div><label className="block text-sm font-medium mb-1">Height (cm)</label><input name="height" value={form.height} onChange={handleChange} className="w-full border rounded-lg p-2 sm:p-3" /></div>
                 <div><label className="block text-sm font-medium mb-1">Weight (kg)</label><input name="weight" value={form.weight} onChange={handleChange} className="w-full border rounded-lg p-2 sm:p-3" /></div>
               </div>
-              
+
               <div className="sm:col-span-2">
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input type="checkbox" name="is_featured" checked={form.is_featured} onChange={handleChange} className="w-4 h-4 sm:w-5 sm:h-5" />
@@ -290,44 +290,44 @@ const EditProductModal = ({ productId, onClose, onSuccess }) => {
           )}
 
           {activeTab === "images" && (
-            <ProductImages 
-              productId={productId} 
-              images={productImages} 
+            <ProductImages
+              productId={productId}
+              images={productImages}
               onRefresh={() => {
                 refetch();
                 if (data?.data?.images) setProductImages(data.data.images);
-              }} 
+              }}
             />
           )}
-          
+
           {activeTab === "specifications" && (
-            <ProductSpecifications 
-              productId={productId} 
+            <ProductSpecifications
+              productId={productId}
               isLocked={false}
               onSpecificationsChange={setSpecifications}
             />
           )}
-          
+
           {activeTab === "attributes" && (
-            <AttributeSelector 
-              attributes={attributes} 
-              selected={selectedAttributeValues} 
-              onChange={setSelectedAttributeValues} 
+            <AttributeSelector
+              attributes={attributes}
+              selected={selectedAttributeValues}
+              onChange={setSelectedAttributeValues}
             />
           )}
-          
+
           {activeTab === "variants" && (
             <div className="space-y-4 sm:space-y-6">
-              <VariantGenerator 
-                attributes={attributes} 
-                selectedValues={selectedAttributeValues} 
-                onGenerated={setPendingVariants} 
-                existingVariants={existingVariants} 
+              <VariantGenerator
+                attributes={attributes}
+                selectedValues={selectedAttributeValues}
+                onGenerated={setPendingVariants}
+                existingVariants={existingVariants}
               />
-              <VariantSection 
-                ref={variantRef} 
-                productId={productId} 
-                onVariantsLoaded={setExistingVariants} 
+              <VariantSection
+                ref={variantRef}
+                productId={productId}
+                onVariantsLoaded={setExistingVariants}
               />
             </div>
           )}

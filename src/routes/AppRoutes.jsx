@@ -43,6 +43,7 @@ import { Toaster } from "react-hot-toast";
 import CouponsList from "../pages/dashboard/CouponList";
 import CreateCoupon from "../pages/dashboard/CreateCoupon";
 import EditCoupon from "../pages/dashboard/EditCoupon";
+import BannerLayoutPreview from "../components/dashboard/banners/BannerLayoutPreview";
 
 const AppRoutes = () => {
   return (
@@ -64,7 +65,8 @@ const AppRoutes = () => {
           <Route path="/fresharrivals" element={<FreshArrivals />} />
           <Route path="/bestsellers" element={<Bestsellers />} />
           <Route path="/wishlist" element={<Wishlist />} />
-          <Route path="/product/:slug" element={<ProductDetails />} />
+          {/* <Route path="/product/:slug" element={<ProductDetails />} /> */}
+          <Route path="/product/:identifier" element={<ProductDetails />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/support" element={<Support />} />
         </Route>
@@ -86,6 +88,8 @@ const AppRoutes = () => {
           <Route path="permissions" element={<Permissions />} />
        
           <Route path="banners" element={<Banner />} />
+          {/* <Route path="product/:slug" element={<BannerLayoutPreview />} />
+          <Route path="product/:id" element={<BannerLayoutPreview />} /> */}
 
           <Route path="/dashboard/coupons" element={<CouponsList />} />
           <Route path="/dashboard/coupons/create" element={<CreateCoupon />} />
