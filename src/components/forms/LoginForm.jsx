@@ -5,7 +5,7 @@ export default function LoginForm({ onSubmit, loading }) {
   const [form, setForm] = useState({
     email: "",
     password: "",
-    rememberMe: false,
+    //rememberMe: false,
   });
 
   const handleChange = (e) => {
@@ -18,7 +18,7 @@ export default function LoginForm({ onSubmit, loading }) {
     onSubmit({
       email: form.email,
       password: form.password,
-      remember_me: form.rememberMe,
+      //remember_me: form.rememberMe,
     });
   };
 
@@ -67,7 +67,7 @@ export default function LoginForm({ onSubmit, loading }) {
 
       {/* Remember */}
       <div className="mb-5 mt-3 flex items-center gap-2">
-        <input
+        {/* <input
           type="checkbox"
           name="rememberMe"
           checked={form.rememberMe}
@@ -76,7 +76,7 @@ export default function LoginForm({ onSubmit, loading }) {
         />
         <span className="text-sm text-gray-600">
           Remember for 30 days
-        </span>
+        </span> */}
       </div>
 
       {/* Button */}

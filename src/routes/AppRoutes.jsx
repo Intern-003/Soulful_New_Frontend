@@ -73,34 +73,34 @@ const AppRoutes = () => {
         </Route>
 
         {/* DASHBOARD */}
-          <Route path="/dashboard" element={<DashboardLayout />}>
-            <Route index element={<Dashboard />} />
-            <Route path="products" element={<Products />} />
-            <Route path="vendor/orders" element={<VendorOrdersPage />} />
-            <Route path="vendor/orders/:id" element={<VendorOrderDetailsPage />} />
-            <Route path="users" element={<Users />} />
-            <Route path="categories" element={<Categories />} />
-            <Route path="roles" element={<Roles />} />
-            <Route path="attributes" element={<Attributes />} />
-            <Route path="admin/orders" element={<AdminOrdersPage />} />
-            <Route path="admin/orders/:id" element={<AdminOrderDetailsPage />} />
+        <Route path="/dashboard" element={<DashboardLayout />}>
+          <Route index element={<Dashboard />} />
+          <Route path="products" element={<Products />} />
+          <Route path="vendor/orders" element={<VendorOrdersPage />} />
+          <Route path="vendor/orders/:id" element={<VendorOrderDetailsPage />} />
+          <Route path="users" element={<Users />} />
+          <Route path="categories" element={<Categories />} />
+          <Route path="roles" element={<Roles />} />
+          <Route path="attributes" element={<Attributes />} />
+          <Route path="admin/orders" element={<AdminOrdersPage />} />
+          <Route path="admin/orders/:id" element={<AdminOrderDetailsPage />} />
           <Route path="subcategories/:id/products" element={<SubCategoryProducts />} />
           <Route path="categories/:id" element={<SubCategoryPage />} />
           <Route path="permissions" element={<Permissions />} />
-                    <Route path="banners" element={<Banner />} />
-                    <Route path="/dashboard/coupons" element={<CouponsList />} />
+          <Route path="banners" element={<Banner />} />
+          <Route path="/dashboard/coupons" element={<CouponsList />} />
           <Route path="/dashboard/coupons/create" element={<CreateCoupon />} />
           <Route path="/dashboard/coupons/edit/:id" element={<EditCoupon />} />
-         
-                    
+
+
           <Route path="brands" element={<Brands />} />
         </Route>
 
-      
+
         {/* FALLBACK */}
         <Route path="*" element={<Navigate to="/" replace />} />
 
-   </Routes>
+      </Routes>
     </>
   );
 
