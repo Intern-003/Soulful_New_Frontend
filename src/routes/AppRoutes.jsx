@@ -39,6 +39,9 @@ import SubCategoryProducts from "../pages/dashboard/categories/SubCategoryProduc
 import SubCategoryPage from "../pages/dashboard/categories/SubCategoryPage";
 import Brands from "../pages/dashboard/brands";
 import Banner from "../pages/dashboard/Banner";
+import SupportAdmin from "../pages/dashboard/SupportAdmin";
+import Vendors from "../pages/dashboard/Vendors";
+import BecomeVendor from "../pages/public/BecomeVendor";
 import { Toaster } from "react-hot-toast";
 
 const AppRoutes = () => {
@@ -64,6 +67,7 @@ const AppRoutes = () => {
           <Route path="/product/:slug" element={<ProductDetails />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/support" element={<Support />} />
+          <Route path="/BecomeVendor" element={<BecomeVendor />} />
         </Route>
 
         {/* DASHBOARD */}
@@ -78,6 +82,9 @@ const AppRoutes = () => {
           <Route path="attributes" element={<Attributes />} />
           <Route path="admin/orders" element={<AdminOrdersPage />} />
           <Route path="admin/orders/:id" element={<AdminOrderDetailsPage />} />
+          <Route path="support" element={<SupportAdmin />} />
+          <Route path="vendors" element={<Vendors />} />
+
           <Route
             path="subcategories/:id/products"
             element={<SubCategoryProducts />}

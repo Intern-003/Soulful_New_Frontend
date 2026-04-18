@@ -92,7 +92,17 @@ const Sidebar = () => {
       label: "Brands",
       path: "/dashboard/brands",
       icon: Package,
-    }
+    },
+    {
+      label: "Support",
+      path: "/dashboard/support",
+      icon: Package,
+    },
+    {
+      label: "Vendors",
+      path: "/dashboard/vendors",
+      icon: Users,
+    },
   ];
 
   return (
