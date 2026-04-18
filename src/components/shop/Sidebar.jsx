@@ -7,11 +7,14 @@ const Sidebar = ({
 
   selectedCategory,
   selectedBrands = [],
-  priceRange = [0, 5000],
+  priceRange = [0, 0],
 
   onCategoryChange,
   onBrandChange,
   onPriceChange,
+
+  maxPrice,
+  minPrice,
 }) => {
   const [open, setOpen] = useState({
     category: true,
@@ -198,8 +201,8 @@ const Sidebar = ({
 
                     <input
                       type="range"
-                      min="0"
-                      max="5000"
+                      min={minPrice}
+                      max={maxPrice}
                       value={priceRange[1]}
                       onChange={(e) =>
                         onPriceChange([priceRange[0], Number(e.target.value)])

@@ -120,7 +120,7 @@ const ProductDetailsSkeleton = () => {
         </div>
       </div>
       {/* ================= TABS (CLOSED UI) ================= */}
-      <div className="max-w-7xl mx-auto mt-16 space-y-6 animate-pulse">
+      <div className="max-w-7xl mx-auto mt-8 mb-16 space-y-6 animate-pulse">
         {[1, 2, 3].map((_, i) => (
           <div key={i}>
             {/* HEADER LINE */}

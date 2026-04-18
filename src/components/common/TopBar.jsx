@@ -1,7 +1,9 @@
-import { Phone, Mail, ShieldCheck, Truck } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Phone, Mail, ShieldCheck, Truck, Store } from "lucide-react";
 import { useEffect, useState } from "react";
 
 const TopBar = () => {
+  const navigate = useNavigate();
   const messages = [
     "Free shipping on premium orders",
     "Crafted with precision & care",
@@ -54,9 +56,12 @@ const TopBar = () => {
           <Truck size={13} strokeWidth={1.8} />
           Trusted Shipping
         </span>
-        <span className="flex items-center gap-1.5">
-          <ShieldCheck size={13} strokeWidth={1.8} />
-          Secure Shopping
+        <span
+          onClick={() => navigate("/BecomeVendor")}
+          className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#8C0D4F] text-white transition cursor-pointer"
+        >
+          <Store size={14} strokeWidth={2} />
+          Become a Vendor
         </span>
       </div>
     </div>

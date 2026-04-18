@@ -33,26 +33,42 @@ const CategoryPage = () => {
     ? productResponse.data
     : [];
 
-  // BRANDS
-  const { data: brandResponse } = useGet("/brands");
-  const brands = Array.isArray(brandResponse?.data) ? brandResponse.data : [];
-
-  // 🔥 CURRENT CATEGORY FROM SLUG
-  // const currentCategory = useMemo(() => {
-  //   return allCategories.find((cat) => cat.slug === slug);
-  // }, [allCategories, slug]);
   const currentCategory = useMemo(() => {
     return allCategories.find(
       (cat) => cat.slug?.toLowerCase().trim() === slug?.toLowerCase().trim(),
     );
   }, [allCategories, slug]);
+  // BRANDS
+  const { data: brandResponse } = useGet(
+    currentCategory?.id ? `/brands/category/${currentCategory.id}` : null,
+  );
+
+  const { data: subcategoryResponse } = useGet(
+    currentCategory?.id ? `/categories/${currentCategory.id}/children` : null,
+  );
+
+  const subcategoryIds = Array.isArray(subcategoryResponse?.data)
+    ? subcategoryResponse.data.map((c) => c.id)
+    : [];
+
+  const brands = (
+    Array.isArray(brandResponse?.data) ? brandResponse.data : []
+  ).filter((brand) => {
+    if (!subcategoryIds.length) return true;
+
+    return brand.subcategories?.some(
+      (sub) =>
+        subcategoryIds.includes(sub.id) ||
+        sub.parent_id === currentCategory?.id,
+    );
+  });
 
   // FILTER STATE
   const [filters, setFilters] = useState({
-    category: null,
+    category: "ALL",
     brands: [],
     color: null,
-    price: [0, 5000],
+    price: [0, 0],
     search: "",
     sort: "",
   });
@@ -70,7 +86,7 @@ const CategoryPage = () => {
     if (currentCategory?.id) {
       setFilters((prev) => ({
         ...prev,
-        category: currentCategory.id,
+        category: "ALL",
       }));
     }
   }, [currentCategory]);
@@ -79,7 +95,10 @@ const CategoryPage = () => {
   useEffect(() => {
     if (!allProducts.length) return;
 
-    const prices = allProducts.map((p) => Number(p.price) || 0);
+    // const prices = allProducts.map((p) => Number(p.price) || 0);
+    const prices = allProducts.map(
+      (p) => Number(p.discount_price || p.price) || 0,
+    );
 
     const min = Math.min(...prices);
     const max = Math.max(...prices);
@@ -96,7 +115,7 @@ const CategoryPage = () => {
   const filteredProducts = useMemo(() => {
     return allProducts
       .filter((p) => {
-        const price = Number(p.price) || 0;
+        const price = Number(p.discount_price || p.price) || 0;
         const categoryId = Number(p.category_id);
         const brandId = Number(p.brand_id);
         const color = p.color?.toLowerCase();
@@ -107,8 +126,21 @@ const CategoryPage = () => {
         )
           return false;
 
-        if (filters.category && categoryId !== Number(filters.category))
+        // 🔥 allowed category ids (parent + subcategories)
+        const allowedCategoryIds = [
+          currentCategory?.id,
+          ...subcategoryIds,
+        ].filter(Boolean);
+
+        // 🔥 always restrict to current category scope
+        if (!allowedCategoryIds.includes(categoryId)) {
           return false;
+        }
+
+        // 🔥 if specific subcategory selected
+        if (filters.category && filters.category !== "ALL") {
+          if (categoryId !== Number(filters.category)) return false;
+        }
 
         if (filters.brands.length && !filters.brands.includes(brandId))
           return false;
@@ -120,8 +152,8 @@ const CategoryPage = () => {
         return true;
       })
       .sort((a, b) => {
-        const priceA = Number(a.price) || 0;
-        const priceB = Number(b.price) || 0;
+        const priceA = Number(a.discount_price || a.price) || 0;
+        const priceB = Number(b.discount_price || b.price) || 0;
 
         if (filters.sort === "price_asc") return priceA - priceB;
         if (filters.sort === "price_desc") return priceB - priceA;
@@ -132,7 +164,7 @@ const CategoryPage = () => {
 
         return 0;
       });
-  }, [allProducts, filters]);
+  }, [allProducts, filters, currentCategory, subcategoryIds]);
 
   const updateFilter = (key, value) => {
     setFilters((prev) => ({ ...prev, [key]: value }));
@@ -141,7 +173,10 @@ const CategoryPage = () => {
   const handleClearFilters = () => {
     if (!allProducts.length) return;
 
-    const prices = allProducts.map((p) => Number(p.price) || 0);
+    // const prices = allProducts.map((p) => Number(p.price) || 0);
+    const prices = allProducts.map(
+      (p) => Number(p.discount_price || p.price) || 0,
+    );
 
     setFilters({
       category: currentCategory?.id || null,
@@ -153,7 +188,7 @@ const CategoryPage = () => {
     });
   };
 
-  if (slug && !currentCategory) {
+  if (!loading && slug && !currentCategory) {
     return (
       <div className="p-20 text-center">
         <h2 className="text-xl font-semibold">Category not found</h2>
@@ -207,14 +242,15 @@ const CategoryPage = () => {
           <div className="hidden lg:block w-[260px]">
             <div className="sticky top-6">
               <Sidebar
-                categories={parentCategories}
+                categories={subcategoryResponse?.data || []}
                 brands={brands}
-                loading={loading}
+                loading={!brandResponse || !subcategoryResponse}
                 selectedCategory={filters.category}
                 selectedBrands={filters.brands}
                 selectedColor={filters.color}
                 priceRange={filters.price}
-                priceBounds={priceBounds}
+                maxPrice={priceBounds[1]}
+                minPrice={priceBounds[0]}
                 onCategoryChange={(v) => updateFilter("category", v)}
                 onBrandChange={(v) => updateFilter("brands", v)}
                 onColorChange={(v) => updateFilter("color", v)}
