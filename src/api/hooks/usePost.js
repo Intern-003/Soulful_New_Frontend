@@ -6,15 +6,33 @@ const usePost = (baseUrl = "") => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  const postData = async (payload, config = {}) => {
+  const postData = async (payload = {}, customConfig = {}) => {
     try {
       setLoading(true);
+      setError(null);
 
-      // ✅ SUPPORT BOTH USAGE
+      // ================= URL =================
       const url = payload?.url || baseUrl;
+
+      // ================= BODY =================
       const body = payload?.data || payload;
 
-      const res = await axiosInstance.post(url, body, config);
+      // ================= FORCE POST =================
+      const res = await axiosInstance({
+        method: "POST", // 🔥 FORCE POST (NO MORE PUT BUG)
+        url,
+        data: body,
+
+        headers: {
+          // auto detect formdata
+          ...(body instanceof FormData
+            ? { "Content-Type": "multipart/form-data" }
+            : { "Content-Type": "application/json" }),
+        },
+
+        // allow extra configs but NOT method override
+        ...customConfig,
+      });
 
       setData(res.data);
       return res.data;
@@ -27,7 +45,12 @@ const usePost = (baseUrl = "") => {
     }
   };
 
-  return { data, loading, error, postData };
+  return {
+    data,
+    loading,
+    error,
+    postData,
+  };
 };
 
 export default usePost;

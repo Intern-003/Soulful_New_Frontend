@@ -39,7 +39,14 @@ import AdminOrdersPage from "../pages/dashboard/AdminOrdersPage";
 import Permissions from "../pages/dashboard/Permissions";
 import SubCategoryProducts from "../pages/dashboard/categories/SubCategoryProducts";
 import SubCategoryPage from "../pages/dashboard/categories/SubCategoryPage";
+import Brands from "../pages/dashboard/brands";
+import Banner from "../pages/dashboard/Banner";
 import { Toaster } from "react-hot-toast";
+
+import CouponsList from "../pages/dashboard/CouponList";
+import CreateCoupon from "../pages/dashboard/CreateCoupon";
+import EditCoupon from "../pages/dashboard/EditCoupon";
+import BannerLayoutPreview from "../components/dashboard/banners/BannerLayoutPreview";
 
 const AppRoutes = () => {
   return (
@@ -63,40 +70,44 @@ const AppRoutes = () => {
           <Route path="/fresharrivals" element={<FreshArrivals />} />
           <Route path="/bestsellers" element={<Bestsellers />} />
           <Route path="/wishlist" element={<Wishlist />} />
-          <Route path="/product/:slug" element={<ProductDetails />} />
+          {/* <Route path="/product/:slug" element={<ProductDetails />} /> */}
+          <Route path="/product/:identifier" element={<ProductDetails />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/support" element={<Support />} />
         </Route>
 
         {/* DASHBOARD */}
-        <Route path="/dashboard" element={<DashboardLayout />}>
-          <Route index element={<Dashboard />} />
-          <Route path="products" element={<Products />} />
-          <Route path="orders" element={<VendorOrdersPage />} />
-          <Route path="orders/:id" element={<VendorOrderDetailsPage />} />
-          <Route path="users" element={<Users />} />
-          <Route path="categories" element={<Categories />} />
-          <Route path="roles" element={<Roles />} />
-          <Route path="attributes" element={<Attributes />} />
-          <Route path="admin/orders" element={<AdminOrdersPage />} />
-          <Route path="admin/orders/:id" element={<AdminOrderDetailsPage />} />
-          <Route
-            path="subcategories/:id/products"
-            element={<SubCategoryProducts />}
-          />
+          <Route path="/dashboard" element={<DashboardLayout />}>
+            <Route index element={<Dashboard />} />
+            <Route path="products" element={<Products />} />
+            <Route path="vendor/orders" element={<VendorOrdersPage />} />
+            <Route path="vendor/orders/:id" element={<VendorOrderDetailsPage />} />
+            <Route path="users" element={<Users />} />
+            <Route path="categories" element={<Categories />} />
+            <Route path="roles" element={<Roles />} />
+            <Route path="attributes" element={<Attributes />} />
+            <Route path="admin/orders" element={<AdminOrdersPage />} />
+            <Route path="admin/orders/:id" element={<AdminOrderDetailsPage />} />
+          <Route path="subcategories/:id/products" element={<SubCategoryProducts />} />
           <Route path="categories/:id" element={<SubCategoryPage />} />
           <Route path="permissions" element={<Permissions />} />
+                    <Route path="banners" element={<Banner />} />
+                    <Route path="/dashboard/coupons" element={<CouponsList />} />
+          <Route path="/dashboard/coupons/create" element={<CreateCoupon />} />
+          <Route path="/dashboard/coupons/edit/:id" element={<EditCoupon />} />
+         
+                    
+          <Route path="brands" element={<Brands />} />
         </Route>
 
+      
         {/* FALLBACK */}
         <Route path="*" element={<Navigate to="/" replace />} />
-        <Route
-          path="/dashboard/subcategories/:id/products"
-          element={<SubCategoryProducts />}
-        />
-      </Routes>
+
+   </Routes>
     </>
   );
+
 };
 
 export default AppRoutes;

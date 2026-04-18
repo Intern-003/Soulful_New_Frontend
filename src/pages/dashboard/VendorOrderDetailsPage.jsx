@@ -8,7 +8,7 @@ const VendorOrderDetailsPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
 
-  const { data, loading, error, refetch } = useGet(`/vendor/orders/${id}`);
+  const { data, loading, error, refetch } = useGet(`vendor/orders/${id}`);
 
   if (loading) {
     return (
@@ -30,7 +30,7 @@ const VendorOrderDetailsPage = () => {
       {/* Breadcrumb + Back */}
       <div className="flex items-center justify-between">
         <div className="text-sm text-gray-500">
-          <Link to="/dashboard/orders" className="hover:underline">
+          <Link to="/vendor/orders" className="hover:underline">
             Orders
           </Link>
           <span className="mx-2">/</span>
@@ -84,7 +84,7 @@ const VendorOrderDetailsPage = () => {
           Order Items
         </h2>
 
-        <OrderItemsTable items={order.items} onUpdated={refetch} />
+        <OrderItemsTable items={order.items} onUpdated={refetch({ force: true })} />
       </div>
 
       {/* Shipment Section */}
@@ -93,7 +93,7 @@ const VendorOrderDetailsPage = () => {
           Shipment
         </h2>
 
-        <ShipmentForm orderId={order.id} onCreated={refetch} />
+        <ShipmentForm orderId={order.id} onCreated={refetch({ force: true })} />
       </div>
     </div>
   );

@@ -22,11 +22,11 @@ const Products = () => {
   const [showAttributeManager, setShowAttributeManager] = useState(false);
   const [actionLoading, setActionLoading] = useState(null);
   const [localProducts, setLocalProducts] = useState([]);
-  
-  // ✅ Bulk selection states
+
+  // Bulk selection states
   const [selectedProducts, setSelectedProducts] = useState(new Set());
   const [bulkActionLoading, setBulkActionLoading] = useState(false);
-  
+
   // Use ref to track initial load
   const isInitialLoad = useRef(true);
 
@@ -58,13 +58,19 @@ const Products = () => {
     const matchesStock =
       stockFilter === "in" ? p.stock > 0 : stockFilter === "out" ? p.stock === 0 : true;
     const matchesApproval =
-      approvalFilter === "approved" ? p.is_approved === 1 : approvalFilter === "pending" ? p.is_approved === 0 : true;
+      approvalFilter === "approved"
+        ? p.approval_status === "approved"
+        : approvalFilter === "pending"
+          ? p.approval_status === "pending"
+          : approvalFilter === "rejected"
+            ? p.approval_status === "rejected"
+            : true;
     const matchesStatus =
       statusFilter === "active" ? p.status === 1 : statusFilter === "inactive" ? p.status === 0 : true;
     return matchesSearch && matchesStock && matchesApproval && matchesStatus;
   });
 
-  // ✅ Bulk selection handlers
+  // Bulk selection handlers
   const toggleSelectAll = () => {
     if (selectedProducts.size === filteredProducts.length) {
       setSelectedProducts(new Set());
@@ -83,7 +89,13 @@ const Products = () => {
     setSelectedProducts(newSelected);
   };
 
-  // ✅ Bulk Approve/Reject handler
+  const [approvalModal, setApprovalModal] = useState({
+    open: false,
+    product: null,
+    action: null, // 'approve' | 'reject'
+  });
+
+  // Bulk Approve/Reject handler
   const handleBulkAction = async (action) => {
     if (selectedProducts.size === 0) {
       toast.error("Please select products to " + action);
@@ -93,15 +105,19 @@ const Products = () => {
     if (!window.confirm(`Are you sure you want to ${action} ${selectedProducts.size} product(s)?`)) return;
 
     setBulkActionLoading(true);
-    
-    // ✅ Optimistic update - Update all selected products in UI
+
+    // Optimistic update - Update all selected products in UI
     const isApprove = action === 'approve';
-    setLocalProducts(prev => prev.map(p => 
-      selectedProducts.has(p.id) 
-        ? { ...p, is_approved: isApprove ? 1 : 0, status: isApprove ? 1 : 0 }
+    setLocalProducts(prev => prev.map(p =>
+      selectedProducts.has(p.id)
+        ? {
+          ...p,
+          approval_status: isApprove ? "approved" : "rejected",
+          status: isApprove ? 1 : 0
+        }
         : p
     ));
-    
+
     try {
       await postData({
         url: `/admin/products/bulk-toggle-approval`,
@@ -110,24 +126,120 @@ const Products = () => {
           action: action
         }
       });
-      
+
       toast.success(`${selectedProducts.size} product(s) ${action}d successfully`);
       setSelectedProducts(new Set());
-      refetch({ force: true });
+      await refetch({ force: true });
     } catch (err) {
       // Revert on error
-      setLocalProducts(products);
+      await refetch({ force: true });
       toast.error(err?.response?.data?.message || `Failed to ${action} products`);
     } finally {
       setBulkActionLoading(false);
     }
   };
 
+  // Handle dropdown approval change
+  const handleApprovalChange = async (productId, newStatus) => {
+    // Don't do anything if status is the same
+    const product = localProducts.find(p => p.id === productId);
+    if (product.approval_status === newStatus) return;
+
+    // Open modal for approve/reject actions
+    if (newStatus === 'approved') {
+      setApprovalModal({
+        open: true,
+        product: product,
+        action: 'approve'
+      });
+    } else if (newStatus === 'rejected') {
+      setApprovalModal({
+        open: true,
+        product: product,
+        action: 'reject'
+      });
+    }
+  };
+
+  const ApprovalModal = ({ product, action, onClose, onSubmit }) => {
+    const [commission, setCommission] = useState("");
+    const [reason, setReason] = useState("");
+
+    const handleSubmit = () => {
+      if (action === "approve" && !commission) {
+        toast.error("Please enter commission percentage");
+        return;
+      }
+      if (action === "reject" && !reason) {
+        toast.error("Please enter rejection reason");
+        return;
+      }
+
+      onSubmit({
+        product,
+        action,
+        commission,
+        rejection_reason: reason,
+      });
+    };
+
+    return (
+      <div className="fixed inset-0 bg-black/50 flex justify-center items-center z-50">
+        <div className="bg-white p-6 rounded-xl w-[400px] max-w-[90%]">
+          <h2 className="text-lg font-bold mb-4">
+            {action === "approve" ? "Approve" : "Reject"}: {product.name}
+          </h2>
+
+          {action === "approve" && (
+            <div className="mb-3">
+              <label className="block text-sm font-medium mb-1">Commission %</label>
+              <input
+                type="number"
+                placeholder="Enter commission percentage"
+                value={commission}
+                onChange={(e) => setCommission(e.target.value)}
+                className="w-full border p-2 rounded focus:ring-2 focus:ring-[#7a1c3d] outline-none"
+              />
+            </div>
+          )}
+
+          {action === "reject" && (
+            <div className="mb-3">
+              <label className="block text-sm font-medium mb-1">Rejection Reason</label>
+              <textarea
+                placeholder="Enter rejection reason"
+                value={reason}
+                onChange={(e) => setReason(e.target.value)}
+                rows="3"
+                className="w-full border p-2 rounded focus:ring-2 focus:ring-[#7a1c3d] outline-none"
+              />
+            </div>
+          )}
+
+          <div className="flex justify-end gap-2 mt-4">
+            <button 
+              onClick={onClose}
+              className="px-4 py-2 border rounded-lg hover:bg-gray-50 transition"
+            >
+              Cancel
+            </button>
+            <button 
+              onClick={handleSubmit} 
+              className="bg-[#7a1c3d] text-white px-4 py-2 rounded-lg hover:bg-[#5e132f] transition"
+            >
+              Submit
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   const handleDelete = async (id) => {
     if (!window.confirm("Are you sure you want to delete this product?")) return;
-    
+
     setLocalProducts(prev => prev.filter(p => p.id !== id));
-    
+
     try {
       await deleteData({ url: `/vendor/products/${id}` });
       toast.success("Product deleted successfully");
@@ -138,45 +250,58 @@ const Products = () => {
         return newSet;
       });
     } catch (err) {
-      setLocalProducts(products);
+      await refetch({ force: true });
       toast.error("Failed to delete product");
     }
   };
 
-  const handleToggleApproval = async (id, currentStatus) => {
-    const action = currentStatus === 1 ? 'reject' : 'approve';
-    if (!window.confirm(`Are you sure you want to ${action} this product?`)) return;
-    
-    const newApprovalStatus = currentStatus === 1 ? 0 : 1;
-    setLocalProducts(prev => prev.map(p => 
-      p.id === id 
-        ? { ...p, is_approved: newApprovalStatus, status: newApprovalStatus ? 1 : 0 } 
-        : p
-    ));
-    
-    setActionLoading(`approval-${id}`);
+  const handleApprovalSubmit = async ({ product, action, commission, rejection_reason }) => {
+    setActionLoading(`approval-${product.id}`);
+
     try {
-      await postData({ url: `/admin/products/${id}/toggle-approval` });
-      toast.success(`Product ${action}ed successfully`);
+      await postData({
+        url: `/admin/products/${product.id}/toggle-approval`,
+        data: {
+          action,
+          commission,
+          rejection_reason,
+        },
+      });
+
+      // Update UI AFTER success
+      setLocalProducts(prev =>
+        prev.map(p =>
+          p.id === product.id
+            ? {
+              ...p,
+              approval_status: action === "approve" ? "approved" : "rejected",
+              status: action === "approve" ? 1 : 0,
+            }
+            : p
+        )
+      );
+
+      toast.success(`Product ${action}d successfully`);
     } catch (err) {
-      setLocalProducts(products);
-      toast.error(err?.response?.data?.message || `Failed to ${action} product`);
+      await refetch({ force: true });
+      toast.error(err?.response?.data?.message || "Failed to update approval status");
     } finally {
+      setApprovalModal({ open: false, product: null, action: null });
       setActionLoading(null);
     }
   };
 
   const handleToggleStatus = async (id, currentStatus) => {
-    setLocalProducts(prev => prev.map(p => 
+    setLocalProducts(prev => prev.map(p =>
       p.id === id ? { ...p, status: currentStatus === 1 ? 0 : 1 } : p
     ));
-    
+
     setActionLoading(`status-${id}`);
     try {
       await putData({ url: `/admin/products/${id}/toggle-status` });
       toast.success(currentStatus === 1 ? "Product deactivated" : "Product activated");
     } catch (err) {
-      setLocalProducts(products);
+      await refetch({ force: true });
       toast.error(err?.response?.data?.message || "Failed to update status");
     } finally {
       setActionLoading(null);
@@ -194,7 +319,7 @@ const Products = () => {
       <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#7a1c3d]"></div>
     </div>
   );
-  
+
   if (error) return (
     <div className="p-6 text-center text-red-500">Error loading products: {error}</div>
   );
@@ -204,7 +329,7 @@ const Products = () => {
       {/* HEADER */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-3">
         <h1 className="text-2xl font-bold text-[#7a1c3d]">Products</h1>
-        
+
         <div className="flex flex-wrap gap-3">
           <button
             onClick={() => setShowAttributeManager(true)}
@@ -213,7 +338,7 @@ const Products = () => {
             <Settings size={18} />
             Manage Attributes
           </button>
-          
+
           <button
             onClick={() => setShowModal(true)}
             className="bg-[#7a1c3d] text-white px-4 py-2 rounded-lg hover:bg-[#5e132f] transition text-sm sm:text-base"
@@ -276,7 +401,7 @@ const Products = () => {
           <option value="in">In Stock</option>
           <option value="out">Out of Stock</option>
         </select>
-        
+
         <select
           value={approvalFilter}
           onChange={(e) => setApprovalFilter(e.target.value)}
@@ -285,8 +410,9 @@ const Products = () => {
           <option value="">All Approval</option>
           <option value="approved">Approved</option>
           <option value="pending">Pending</option>
+          <option value="rejected">Rejected</option>
         </select>
-        
+
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
@@ -353,10 +479,10 @@ const Products = () => {
                     </td>
                     <td className="p-3 sm:p-4">
                       {image ? (
-                        <img 
-                          src={getImageUrl(image)} 
-                          className="w-12 h-12 object-cover rounded" 
-                          alt={product.name} 
+                        <img
+                          src={getImageUrl(image)}
+                          className="w-12 h-12 object-cover rounded"
+                          alt={product.name}
                         />
                       ) : (
                         <div className="w-12 h-12 bg-gray-200 rounded flex items-center justify-center text-xs">
@@ -367,50 +493,47 @@ const Products = () => {
                     <td className="p-3 sm:p-4 font-medium">{product.name}</td>
                     <td className="p-3 sm:p-4">₹{product.discount_price || product.price}</td>
                     <td className="p-3 sm:p-4">
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                        product.stock > 0 ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
-                      }`}>
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${product.stock > 0 ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
+                        }`}>
                         {product.stock > 0 ? `${product.stock} in stock` : "Out of stock"}
                       </span>
                     </td>
-                    
-                    {/* Approval Toggle */}
+
+                    {/* Approval Status Dropdown */}
                     <td className="p-3 sm:p-4">
-                      <button
-                        onClick={() => handleToggleApproval(product.id, product.is_approved)}
+                      <select
+                        value={product.approval_status}
+                        onChange={(e) => handleApprovalChange(product.id, e.target.value)}
                         disabled={actionLoading === `approval-${product.id}`}
-                        className={`flex items-center gap-2 px-3 py-1 rounded-lg text-sm font-medium transition ${
-                          product.is_approved === 1
-                            ? "bg-green-100 text-green-700 hover:bg-green-200"
-                            : "bg-yellow-100 text-yellow-700 hover:bg-yellow-200"
+                        className={`px-3 py-1.5 rounded-lg text-sm font-medium border focus:ring-2 focus:ring-[#7a1c3d] outline-none transition ${
+                          product.approval_status === "approved"
+                            ? "bg-green-100 text-green-700 border-green-300"
+                            : product.approval_status === "rejected"
+                            ? "bg-red-100 text-red-700 border-red-300"
+                            : "bg-yellow-100 text-yellow-700 border-yellow-300"
                         } disabled:opacity-50`}
                       >
-                        {actionLoading === `approval-${product.id}` ? (
-                          <RefreshCw size={14} className="animate-spin" />
-                        ) : product.is_approved === 1 ? (
-                          <>
-                            <CheckCircle size={14} />
-                            Approved
-                          </>
-                        ) : (
-                          <>
-                            <XCircle size={14} />
-                            Pending
-                          </>
-                        )}
-                      </button>
+                        <option value="pending" className="bg-white text-yellow-700">
+                          ⏳ Pending
+                        </option>
+                        <option value="approved" className="bg-white text-green-700">
+                          ✓ Approved
+                        </option>
+                        <option value="rejected" className="bg-white text-red-700">
+                          ✗ Rejected
+                        </option>
+                      </select>
                     </td>
-                    
+
                     {/* Status Toggle */}
                     <td className="p-3 sm:p-4">
                       <button
                         onClick={() => handleToggleStatus(product.id, product.status)}
                         disabled={actionLoading === `status-${product.id}`}
-                        className={`flex items-center gap-2 px-3 py-1 rounded-lg text-sm font-medium transition ${
-                          product.status === 1
-                            ? "bg-green-100 text-green-700 hover:bg-green-200"
-                            : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                        } disabled:opacity-50`}
+                        className={`flex items-center gap-2 px-3 py-1 rounded-lg text-sm font-medium transition ${product.status === 1
+                          ? "bg-green-100 text-green-700 hover:bg-green-200"
+                          : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                          } disabled:opacity-50`}
                       >
                         {actionLoading === `status-${product.id}` ? (
                           <RefreshCw size={14} className="animate-spin" />
@@ -427,7 +550,7 @@ const Products = () => {
                         )}
                       </button>
                     </td>
-                    
+
                     <td className="p-3 sm:p-4">
                       <div className="flex justify-center gap-2">
                         <button
@@ -452,6 +575,16 @@ const Products = () => {
         </table>
       </div>
 
+      {/* Approval Modal */}
+      {approvalModal.open && (
+        <ApprovalModal
+          product={approvalModal.product}
+          action={approvalModal.action}
+          onClose={() => setApprovalModal({ open: false, product: null, action: null })}
+          onSubmit={handleApprovalSubmit}
+        />
+      )}
+
       {/* Pagination */}
       {meta?.last_page > 1 && (
         <div className="flex justify-center mt-6 gap-2 flex-wrap">
@@ -468,11 +601,10 @@ const Products = () => {
               <button
                 key={i}
                 onClick={() => handlePageChange(pageNum)}
-                className={`px-3 py-1 border rounded-lg transition ${
-                  meta.current_page === pageNum
-                    ? "bg-[#7a1c3d] text-white"
-                    : "hover:bg-gray-50"
-                }`}
+                className={`px-3 py-1 border rounded-lg transition ${meta.current_page === pageNum
+                  ? "bg-[#7a1c3d] text-white"
+                  : "hover:bg-gray-50"
+                  }`}
               >
                 {pageNum}
               </button>
@@ -491,9 +623,9 @@ const Products = () => {
 
       {/* Modals */}
       {showModal && (
-        <ProductForm 
-          onClose={() => setShowModal(false)} 
-          onSuccess={() => refetch({ force: true })} 
+        <ProductForm
+          onClose={() => setShowModal(false)}
+          onSuccess={() => refetch({ force: true })}
         />
       )}
       {editId && (
@@ -504,9 +636,9 @@ const Products = () => {
         />
       )}
       {showAttributeManager && (
-        <AttributeManager 
-          onClose={() => setShowAttributeManager(false)} 
-          onSuccess={() => refetch({ force: true })} 
+        <AttributeManager
+          onClose={() => setShowAttributeManager(false)}
+          onSuccess={() => refetch({ force: true })}
         />
       )}
     </div>

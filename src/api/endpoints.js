@@ -6,5 +6,13 @@ export const AUTH = {
 };
 
 export const PRODUCT = {
-  DETAILS: (slug) => `/products/${slug}`,
+  DETAILS: (identifier) => `/products/${identifier}`,
+};
+
+
+export const BANNER = {
+  LIST: "/admin/banners",
+  CREATE: "/admin/banners",
+  UPDATE: (id) => `/admin/banners/${id}`,
+  DELETE: (id) => `/admin/banners/${id}`,
 };
