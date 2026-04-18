@@ -1,94 +1,109 @@
 import { useState } from "react";
-
-const initialAddresses = [
-  {
-    id: 1,
-    type: "Home",
-    name: "Sarah Anderson",
-    phone: "(702) 555-0122",
-    address: "2715 Ash Dr. San Jose, South Dakota 83475",
-    isDefault: true,
-  },
-  {
-    id: 2,
-    type: "Office",
-    name: "Sarah Anderson",
-    phone: "(219) 555-0114",
-    address: "8502 Preston Rd. Inglewood, Maine 98380",
-    isDefault: false,
-  },
-];
+import { motion } from "framer-motion";
+import useGet from "../../../api/hooks/useGet";
 
 export default function Addresses() {
-  const [addresses, setAddresses] = useState(initialAddresses);
+  // 🔥 API
+  const { data, loading, error } = useGet("/address");
+
+  const addresses = Array.isArray(data) ? data : [];
 
   const handleDelete = (id) => {
-    setAddresses(addresses.filter((a) => a.id !== id));
+    console.log("Delete:", id);
   };
 
   const handleSetDefault = (id) => {
-    setAddresses(
-      addresses.map((a) => ({
-        ...a,
-        isDefault: a.id === id,
-      })),
-    );
+    console.log("Set default:", id);
   };
 
-  return (
-    <div>
-      {/* HEADER */}
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-xl font-semibold">Addresses</h2>
+  // ✅ LOADING
+  if (loading) {
+    return <p className="text-sm text-gray-500">Loading addresses...</p>;
+  }
 
-        <button className="bg-[#7a1c3d] text-white px-4 py-2 rounded-lg text-sm hover:bg-[#5a142c]">
-          + Add new address
+  // ❌ ERROR
+  if (error) {
+    return <p className="text-red-500">Failed to load addresses</p>;
+  }
+
+  return (
+    <div className="relative">
+      {/* 🔥 Background Glow */}
+      <div className="absolute top-0 right-0 w-72 h-72 bg-[#7A1C3D]/10 blur-3xl rounded-full -z-10"></div>
+
+      {/* HEADER */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
+        <div>
+          <h2 className="text-2xl font-semibold text-[#2d0f1f]">Addresses</h2>
+          <p className="text-sm text-gray-500">Manage your saved addresses</p>
+        </div>
+
+        <button className="bg-[#7A1C3D] text-white px-5 py-2 rounded-lg text-sm shadow-md hover:shadow-lg transition">
+          + Add Address
         </button>
       </div>
 
-      {/* ADDRESS LIST */}
-      <div className="grid grid-cols-2 gap-6">
-        {addresses.map((addr) => (
-          <div
+      {/* EMPTY */}
+      {addresses.length === 0 && (
+        <p className="text-gray-500 text-sm">No addresses found</p>
+      )}
+
+      {/* GRID */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {addresses.map((addr, index) => (
+          <motion.div
             key={addr.id}
-            className="border rounded-xl p-5 relative hover:shadow-md transition"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: index * 0.05 }}
+            className="relative bg-white/80 backdrop-blur-xl border border-[#ead9e0] rounded-2xl p-6 shadow-sm hover:shadow-lg transition"
           >
-            {/* DEFAULT BADGE */}
-            {addr.isDefault && (
-              <span className="absolute top-3 right-3 text-xs bg-green-100 text-green-600 px-2 py-1 rounded">
+            {/* DEFAULT */}
+            {addr.is_default && (
+              <span className="absolute top-4 right-4 text-xs bg-green-100 text-green-600 px-3 py-1 rounded-full font-medium">
                 Default
               </span>
             )}
 
-            {/* TYPE */}
-            <h3 className="font-semibold mb-1">{addr.type}</h3>
+            {/* NAME */}
+            <h3 className="font-semibold text-[#7A1C3D] text-lg mb-2">
+              {addr.name}
+            </h3>
 
-            {/* DETAILS */}
-            <p className="text-sm font-medium">{addr.name}</p>
+            {/* PHONE */}
             <p className="text-sm text-gray-500">{addr.phone}</p>
-            <p className="text-sm text-gray-500 mt-1">{addr.address}</p>
+
+            {/* ADDRESS */}
+            <p className="text-sm text-gray-500 mt-2 leading-relaxed">
+              {addr.address_line1}
+              {addr.address_line2 && `, ${addr.address_line2}`}
+              <br />
+              {addr.city}, {addr.state}, {addr.country} - {addr.postal_code}
+            </p>
 
             {/* ACTIONS */}
-            <div className="flex gap-4 mt-4 text-sm">
-              <button className="text-[#7a1c3d] hover:underline">Edit</button>
+            <div className="flex flex-wrap gap-3 mt-6">
+              <button className="px-4 py-1.5 text-sm rounded-lg border border-[#ead9e0] hover:bg-[#f9f3f6] transition">
+                Edit
+              </button>
 
               <button
                 onClick={() => handleDelete(addr.id)}
-                className="text-red-500 hover:underline"
+                className="px-4 py-1.5 text-sm rounded-lg border border-red-200 text-red-500 hover:bg-red-50 transition"
               >
                 Delete
               </button>
 
-              {!addr.isDefault && (
+              {!addr.is_default && (
                 <button
                   onClick={() => handleSetDefault(addr.id)}
-                  className="text-gray-600 hover:underline"
+                  className="px-4 py-1.5 text-sm rounded-lg bg-[#7A1C3D]/10 text-[#7A1C3D] hover:bg-[#7A1C3D]/20 transition"
                 >
-                  Set as default
+                  Set Default
                 </button>
               )}
             </div>
-          </div>
+          </motion.div>
         ))}
       </div>
     </div>

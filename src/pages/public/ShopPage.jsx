@@ -197,7 +197,6 @@ const ShopPage = () => {
 
         <div className="flex flex-col lg:flex-row gap-6">
           {/* DESKTOP SIDEBAR */}
-          {/* <div className="hidden lg:block w-[260px]"> */}
           <div className="hidden lg:block w-[260px]">
             <div className="sticky top-6">
               <Sidebar
@@ -269,6 +268,7 @@ const ShopPage = () => {
               loading={productsLoading}
               columns={viewMode === "grid" ? 4 : 1} // switch layout
               viewMode={viewMode} // optional for styling
+              onClearFilters={handleClearFilters}
             />
           </div>
         </div>

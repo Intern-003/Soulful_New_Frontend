@@ -94,7 +94,6 @@ const ShopHeader = ({
                 <option value="">Featured</option>
                 <option value="price_asc">Price Low → High</option>
                 <option value="price_desc">Price High → Low</option>
-                <option value="new">Newest</option>
               </select>
 
               <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs">
