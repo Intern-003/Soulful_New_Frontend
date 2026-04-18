@@ -88,6 +88,10 @@ const AppRoutes = () => {
           <Route path="categories/:id" element={<SubCategoryPage />} />
           <Route path="permissions" element={<Permissions />} />
                     <Route path="banners" element={<Banner />} />
+                    <Route path="/dashboard/coupons" element={<CouponsList />} />
+          <Route path="/dashboard/coupons/create" element={<CreateCoupon />} />
+          <Route path="/dashboard/coupons/edit/:id" element={<EditCoupon />} />
+         
                     
           <Route path="brands" element={<Brands />} />
         </Route>
