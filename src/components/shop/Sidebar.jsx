@@ -7,19 +7,16 @@ const Sidebar = ({
 
   selectedCategory,
   selectedBrands = [],
-  selectedColor,
   priceRange = [0, 5000],
 
   onCategoryChange,
   onBrandChange,
-  onColorChange,
   onPriceChange,
 }) => {
   const [open, setOpen] = useState({
     category: true,
-    color: false,
-    price: false,
-    brand: false,
+    price: true,
+    brand: true,
   });
 
   const toggle = (key) => {
@@ -45,9 +42,8 @@ const Sidebar = ({
 
       {/* SECTION COMPONENT */}
       {[
-        { key: "category", label: "Category" },
-        { key: "color", label: "Color" },
         { key: "price", label: "Price" },
+        { key: "category", label: "Category" },
         { key: "brand", label: "Brands" },
       ].map((section) => (
         <div
@@ -122,20 +118,34 @@ const Sidebar = ({
                   </div>
                 </div>
 
-                {categories.map((cat) => (
-                  <div
-                    key={cat.id}
-                    onClick={() => onCategoryChange(cat.id)}
-                    className={`
+                {loading
+                  ? Array.from({ length: 5 }).map((_, i) => (
+                      <div
+                        key={i}
+                        className="flex justify-between items-center px-2 py-1.5"
+                      >
+                        <div className="h-3 bg-[#ead3dd] rounded w-2/3 relative overflow-hidden">
+                          <div className="shimmer" />
+                        </div>
+                        <div className="w-5 h-5 bg-[#ead3dd] rounded relative overflow-hidden">
+                          <div className="shimmer" />
+                        </div>
+                      </div>
+                    ))
+                  : categories.map((cat) => (
+                      <div
+                        key={cat.id}
+                        onClick={() => onCategoryChange(cat.id)}
+                        className={`
                       flex justify-between items-center cursor-pointer group
                       transition-all duration-200
                       px-2 py-1.5 rounded-md
                       ${selectedCategory === cat.id ? "bg-[#8B0D3A]/10" : "hover:bg-gray-100"}
                     `}
-                  >
-                    {/* TEXT */}
-                    <span
-                      className={`
+                      >
+                        {/* TEXT */}
+                        <span
+                          className={`
                         transition
                         ${
                           selectedCategory === cat.id
@@ -143,13 +153,13 @@ const Sidebar = ({
                             : "group-hover:text-[#8B0D3A]"
                         }
                       `}
-                    >
-                      {cat.name}
-                    </span>
+                        >
+                          {cat.name}
+                        </span>
 
-                    {/* CHECKBOX */}
-                    <div
-                      className={`
+                        {/* CHECKBOX */}
+                        <div
+                          className={`
                         w-5 h-5 rounded-sm border flex items-center justify-center
                         transition-all duration-200
                         ${
@@ -158,80 +168,71 @@ const Sidebar = ({
                             : "border-gray-300 group-hover:border-[#8B0D3A]"
                         }
                       `}
-                    >
-                      {selectedCategory === cat.id && (
-                        <div className="w-2.5 h-2.5 bg-white rounded-[2px]" />
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* COLOR */}
-            {section.key === "color" && (
-              <div className="space-y-2">
-                {["black", "beige", "blue", "red"].map((color) => (
-                  <div
-                    key={color}
-                    onClick={() =>
-                      onColorChange(selectedColor === color ? null : color)
-                    }
-                    className="flex justify-between items-center cursor-pointer group"
-                  >
-                    <div className="flex items-center gap-2">
-                      <span
-                        className="w-3 h-3 rounded-full border"
-                        style={{ backgroundColor: color }}
-                      />
-                      <span className="group-hover:text-[#8B0D3A] transition">
-                        {color}
-                      </span>
-                    </div>
-
-                    <div
-                      className={`
-                        w-4 h-4 border rounded-sm
-                        ${
-                          selectedColor === color
-                            ? "bg-[#8B0D3A] border-[#8B0D3A]"
-                            : "border-gray-300"
-                        }
-                      `}
-                    />
-                  </div>
-                ))}
+                        >
+                          {selectedCategory === cat.id && (
+                            <div className="w-2.5 h-2.5 bg-white rounded-[2px]" />
+                          )}
+                        </div>
+                      </div>
+                    ))}
               </div>
             )}
 
             {/* PRICE */}
             {section.key === "price" && (
               <div>
-                <p className="text-xs text-gray-500 mb-3">
-                  ₹{priceRange[0]} - ₹{priceRange[1]}
-                </p>
+                {loading ? (
+                  <div className="space-y-3">
+                    <div className="h-1 bg-gray-300 rounded w-1/2 relative overflow-hidden">
+                      <div className="shimmer" />
+                    </div>
+                    <div className="h-2 bg-[#ead3dd] rounded w-full relative overflow-hidden">
+                      <div className="shimmer" />
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <p className="text-xs text-gray-500 mb-3">
+                      ₹{priceRange[0]} - ₹{priceRange[1]}
+                    </p>
 
-                <input
-                  type="range"
-                  min="0"
-                  max="5000"
-                  value={priceRange[1]}
-                  onChange={(e) =>
-                    onPriceChange([priceRange[0], Number(e.target.value)])
-                  }
-                  className="w-full accent-[#8B0D3A]"
-                />
+                    <input
+                      type="range"
+                      min="0"
+                      max="5000"
+                      value={priceRange[1]}
+                      onChange={(e) =>
+                        onPriceChange([priceRange[0], Number(e.target.value)])
+                      }
+                      className="w-full accent-[#8B0D3A]"
+                    />
+                  </>
+                )}
               </div>
             )}
 
             {/* BRANDS */}
             {section.key === "brand" && (
               <div className="space-y-2 max-h-52 custom-scrollbar">
-                {brands.map((brand) => (
-                  <div
-                    key={brand.id}
-                    onClick={() => handleBrandToggle(brand.id)}
-                    className={`
+                {loading
+                  ? Array.from({ length: 5 }).map((_, i) => (
+                      <div
+                        key={i}
+                        className="flex justify-between items-center px-2 py-1.5"
+                      >
+                        <div className="h-3 bg-[#ead3dd] rounded w-2/3 relative overflow-hidden">
+                          <div className="shimmer" />
+                        </div>
+                        <div className="w-5 h-5 bg-[#ead3dd] rounded relative overflow-hidden">
+                          <div className="shimmer" />
+                        </div>
+                      </div>
+                    ))
+                  : brands.map((brand) => (
+                      <div
+                        key={brand.id}
+                        onClick={() => handleBrandToggle(brand.id)}
+                        className={`
                       flex justify-between items-center cursor-pointer group
                       px-2 py-1.5 rounded-md transition
                       ${
@@ -240,21 +241,21 @@ const Sidebar = ({
                           : "hover:bg-gray-100"
                       }
                     `}
-                  >
-                    <span
-                      className={`
+                      >
+                        <span
+                          className={`
                         ${
                           selectedBrands.includes(brand.id)
                             ? "text-[#8B0D3A] font-medium"
                             : "group-hover:text-[#8B0D3A]"
                         }
                       `}
-                    >
-                      {brand.name}
-                    </span>
+                        >
+                          {brand.name}
+                        </span>
 
-                    <div
-                      className={`
+                        <div
+                          className={`
                         w-5 h-5 border rounded-sm
                         ${
                           selectedBrands.includes(brand.id)
@@ -262,9 +263,9 @@ const Sidebar = ({
                             : "border-gray-300"
                         }
                       `}
-                    />
-                  </div>
-                ))}
+                        />
+                      </div>
+                    ))}
               </div>
             )}
           </div>

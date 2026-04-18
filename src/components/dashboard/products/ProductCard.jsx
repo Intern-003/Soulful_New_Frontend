@@ -100,6 +100,10 @@ const ProductCard = ({ product, loading = false, viewMode = "grid" }) => {
     navigate(`/product/${product.slug}`);
   };
 
+  const bestPrice = Math.round(
+    (product?.discount_price || product?.price) * 0.9,
+  );
+
   if (loading) {
     return (
       <div className="bg-white rounded-xl shadow-sm overflow-hidden">
@@ -120,8 +124,8 @@ const ProductCard = ({ product, loading = false, viewMode = "grid" }) => {
     >
       {/* IMAGE */}
       <div
-        className={`relative overflow-hidden rounded-md bg-[#f3ebee] ${
-          viewMode === "list" ? "w-32 h-32 flex-shrink-0" : "aspect-[3/4]"
+        className={`relative overflow-hidden bg-[#f5f5f5] ${
+          viewMode === "list" ? "w-32 h-32 flex-shrink-0" : "aspect-[2/3]"
         }`}
       >
         <img
@@ -132,9 +136,12 @@ const ProductCard = ({ product, loading = false, viewMode = "grid" }) => {
 
         {/* DISCOUNT */}
         {discount && (
-          <span className="absolute top-2 left-2 bg-[#8B5E3C] text-white text-[10px] px-2 py-1">
-            -{discount}%
-          </span>
+          <div className="absolute top-3 left-2">
+            <div className="relative bg-gradient-to-r from-[#82203D] to-[#A8325E] text-white text-[10px] font-bold px-2 py-1 rounded-sm shadow-lg">
+              -{discount}%
+              <span className="absolute -bottom-1 left-2 w-2 h-2 bg-[#82203D] rotate-45"></span>
+            </div>
+          </div>
         )}
 
         {/* ACTION OVERLAY */}
@@ -178,42 +185,42 @@ const ProductCard = ({ product, loading = false, viewMode = "grid" }) => {
           viewMode === "list" ? "flex flex-col justify-between flex-1 mt-0" : ""
         }`}
       >
-        <h3 className="text-sm text-gray-800 line-clamp-2 leading-snug">
-          {product?.name}
-        </h3>
+        {/* CONTENT */}
+        <div className="mt-2 px-1">
+          {/* TITLE */}
+          <h3 className="text-[13px] font-medium text-[#222] leading-snug line-clamp-2 uppercase tracking-wide">
+            {product?.name}
+          </h3>
 
-        <div className="text-sm">
-          <span className="font-semibold text-black">
-            ₹{product?.discount_price || product?.price}
-          </span>
+          {/* PRICE ROW */}
+          <div className="mt-1 flex items-center gap-2 text-[14px]">
+            {/* FINAL PRICE */}
+            <span className="font-bold text-[#111]">
+              ₹{product?.discount_price || product?.price}
+            </span>
 
-          {product?.discount_price && (
-            <>
-              <span className="text-gray-400 line-through ml-2">
+            {/* ORIGINAL PRICE */}
+            {product?.discount_price && (
+              <span className="text-gray-400 line-through text-[13px]">
                 ₹{product?.price}
               </span>
-              <span className="text-green-600 ml-2 text-xs">
+            )}
+
+            {/* DISCOUNT */}
+            {discount && (
+              <span className="text-green-600 text-[13px] font-medium">
                 ({discount}% OFF)
               </span>
-            </>
+            )}
+          </div>
+
+          {/* BEST PRICE */}
+          {product?.discount_price && (
+            <p className="text-[13px] text-green-700 mt-0.5 font-medium">
+              Best price ₹{bestPrice}
+            </p>
           )}
         </div>
-
-        {viewMode === "grid" && (
-          <button
-            onClick={handleAddToCart}
-            disabled={isInCart}
-            className="
-            mt-3 w-full
-            border border-gray-300
-            py-2 text-xs tracking-widest uppercase
-            transition-all duration-300
-            hover:border-black
-          "
-          >
-            {isInCart ? "IN CART" : "ADD TO BAG"}
-          </button>
-        )}
       </div>
     </div>
   );
