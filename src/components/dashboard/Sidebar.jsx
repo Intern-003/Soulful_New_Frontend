@@ -89,6 +89,11 @@ const Sidebar = () => {
       icon: Package,
     },
     {
+      label: "Brands",
+      path: "/dashboard/brands",
+      icon: Package,
+    },
+    {
   label: "Coupons",
   path: "/dashboard/coupons",
   icon: Package,
