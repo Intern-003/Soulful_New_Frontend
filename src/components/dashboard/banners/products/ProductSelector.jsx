@@ -1,41 +1,28 @@
 import { useMemo } from "react";
 import useGet from "../../../../api/hooks/useGet";
-import { getImageUrl } from "../../../../utils/getImageUrl";
+import { normalizeProductsFromApi, getProductImageUrl } from "../../../../utils/productHelpers";
 
-const ProductSelector = ({ selected = [], onChange, max = 4 }) => {
+const ProductSelector = ({ selected = [], onChange, layout = "grid" }) => {
   const { data, loading, error } = useGet("/admin/products");
+  const products = normalizeProductsFromApi(data);
 
-  // ================= NORMALIZE API =================
-  const products = useMemo(() => {
-    if (!data) return [];
+  const getMax = () => {
+    if (layout === "highlight") return 1;
+    if (layout === "grid") return 4;
+    if (layout === "carousel") return Infinity;
+    return 4;
+  };
 
-    // Laravel pagination
-    if (Array.isArray(data?.data?.data)) {
-      return data.data.data;
-    }
+  const max = getMax();
 
-    // Normal API
-    if (Array.isArray(data?.data)) {
-      return data.data;
-    }
-
-    // Direct array
-    if (Array.isArray(data)) {
-      return data;
-    }
-
-    return [];
-  }, [data]);
-
-  // ================= SELECT LOGIC =================
   const handleSelect = (id) => {
     let updated = [];
 
     if (selected.includes(id)) {
       updated = selected.filter((i) => i !== id);
     } else {
-      if (selected.length >= max) {
-        alert(`You can select only ${max} products`);
+      if (max !== Infinity && selected.length >= max) {
+        alert(`You can select only ${max} products for ${layout} layout`);
         return;
       }
       updated = [...selected, id];
@@ -44,92 +31,64 @@ const ProductSelector = ({ selected = [], onChange, max = 4 }) => {
     onChange(updated);
   };
 
-  // ================= IMAGE HANDLER =================
-  const getProductImage = (product) => {
-    // Try all possible backend formats
-    const img =
-      product?.primary_image?.image_url ||
-      product?.primaryImage?.image_url ||
-      product?.image ||
-      product?.images?.[0]?.image_url;
-
-    if (!img) return null;
-
-    return getImageUrl(img);
-  };
-
-  // ================= UI STATES =================
-
   if (loading) {
-    return <p className="text-sm text-gray-500">Loading products...</p>;
+    return (
+      <div className="text-center py-8">
+        <p className="text-sm text-gray-500">Loading products...</p>
+      </div>
+    );
   }
 
   if (error) {
     return (
-      <p className="text-sm text-red-500">
-        Failed to load products
-      </p>
+      <div className="text-center py-8">
+        <p className="text-sm text-red-500">Failed to load products</p>
+      </div>
     );
   }
 
   if (!products.length) {
     return (
-      <p className="text-sm text-gray-500">
-        No products available
-      </p>
+      <div className="text-center py-8">
+        <p className="text-sm text-gray-500">No products available</p>
+      </div>
     );
   }
 
-  // ================= UI =================
-
   return (
     <div>
-      {/* Header */}
-      <p className="text-sm mb-2 text-gray-600">
-        Select Products ({selected.length}/{max})
+      <p className="text-sm mb-3 text-gray-600 font-medium">
+        Selected: {selected.length} / {max === Infinity ? "∞" : max}
       </p>
 
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-3 max-h-[300px] overflow-y-auto pr-1">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 max-h-[400px] overflow-y-auto pr-2">
         {products.map((product) => {
           const isSelected = selected.includes(product.id);
-          const image = getProductImage(product);
 
           return (
             <div
               key={product.id}
               onClick={() => handleSelect(product.id)}
-              className={`border rounded-lg p-2 cursor-pointer transition ${
+              className={`border rounded-lg p-2 cursor-pointer transition-all ${
                 isSelected
                   ? "border-black ring-2 ring-black bg-gray-50"
-                  : "hover:border-gray-400"
+                  : "hover:border-gray-400 hover:shadow-sm"
               }`}
             >
-              {/* IMAGE */}
-              {image ? (
-                <img
-                  src={image}
-                  alt={product.name}
-                  onError={(e) => {
-                    e.target.src = "/placeholder.jpg";
-                  }}
-                  className="w-full h-24 object-cover rounded"
-                />
-              ) : (
-                <div className="w-full h-24 flex items-center justify-center bg-gray-100 text-xs text-gray-400 rounded">
-                  No Image
-                </div>
-              )}
-
-              {/* DETAILS */}
-              <p className="text-sm mt-1 line-clamp-1 font-medium">
+              <img
+                src={getProductImageUrl(product)}
+                alt={product.name}
+                onError={(e) => {
+                  e.target.src = "/placeholder.jpg";
+                }}
+                className="w-full h-24 sm:h-28 object-cover rounded"
+              />
+              <p className="text-xs sm:text-sm mt-1.5 line-clamp-1 font-medium">
                 {product.name}
               </p>
-
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-gray-500 mt-0.5">
                 ₹{Number(product.price || 0).toLocaleString()}
               </p>
-
-              {/* SELECTED BADGE */}
               {isSelected && (
                 <div className="mt-1 text-[10px] text-green-600 font-medium">
                   ✓ Selected

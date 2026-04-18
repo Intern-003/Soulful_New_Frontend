@@ -33,7 +33,7 @@ const OrdersTable = ({ orders }) => {
               </td>
               <td className="p-3">
                 <Link
-                  to={`/dashboard/orders/${order.id}`}
+                  to={`dashboard/vendor/${order.id}`}
                   className="text-[#7a1c3d] font-medium hover:underline"
                 >
                   View

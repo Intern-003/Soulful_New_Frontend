@@ -23,6 +23,8 @@ import Orders from "../components/account/sections/Orders";
 
 import Roles from "../pages/dashboard/Roles";
 import ShopPage from "../pages/public/ShopPage";
+import SoulfullSpecialPage from "../pages/public/SoulfullSpecialPage";
+import ExclusivePage from "../pages/public/ExclusivePage";
 import CategoryPage from "../pages/public/categorypage";
 import FreshArrivals from "../pages/public/FreshArrivals";
 import Bestsellers from "../pages/public/Bestsellers";
@@ -44,6 +46,11 @@ import Vendors from "../pages/dashboard/Vendors";
 import BecomeVendor from "../pages/public/BecomeVendor";
 import { Toaster } from "react-hot-toast";
 
+import CouponsList from "../pages/dashboard/CouponList";
+import CreateCoupon from "../pages/dashboard/CreateCoupon";
+import EditCoupon from "../pages/dashboard/EditCoupon";
+import BannerLayoutPreview from "../components/dashboard/banners/BannerLayoutPreview";
+
 const AppRoutes = () => {
   return (
     <>
@@ -60,38 +67,43 @@ const AppRoutes = () => {
           <Route path="/checkout" element={<Checkout />} />
           <Route path="/account" element={<AccountPage />} />
           <Route path="/shop" element={<ShopPage />} />
+          <Route path="/soulful-special" element={<SoulfullSpecialPage />} />
+          <Route path="/exclusive" element={<ExclusivePage />} />
           <Route path="/category/:slug" element={<CategoryPage />} />
           <Route path="/fresharrivals" element={<FreshArrivals />} />
           <Route path="/bestsellers" element={<Bestsellers />} />
           <Route path="/wishlist" element={<Wishlist />} />
-          <Route path="/product/:slug" element={<ProductDetails />} />
+          {/* <Route path="/product/:slug" element={<ProductDetails />} /> */}
+          <Route path="/product/:identifier" element={<ProductDetails />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/support" element={<Support />} />
           <Route path="/BecomeVendor" element={<BecomeVendor />} />
         </Route>
 
         {/* DASHBOARD */}
-        <Route path="/dashboard" element={<DashboardLayout />}>
-          <Route index element={<Dashboard />} />
-          <Route path="products" element={<Products />} />
-          <Route path="orders" element={<VendorOrdersPage />} />
-          <Route path="orders/:id" element={<VendorOrderDetailsPage />} />
-          <Route path="users" element={<Users />} />
-          <Route path="categories" element={<Categories />} />
-          <Route path="roles" element={<Roles />} />
-          <Route path="attributes" element={<Attributes />} />
-          <Route path="admin/orders" element={<AdminOrdersPage />} />
-          <Route path="admin/orders/:id" element={<AdminOrderDetailsPage />} />
+          <Route path="/dashboard" element={<DashboardLayout />}>
+            <Route index element={<Dashboard />} />
+            <Route path="products" element={<Products />} />
+            <Route path="vendor/orders" element={<VendorOrdersPage />} />
+            <Route path="vendor/orders/:id" element={<VendorOrderDetailsPage />} />
+            <Route path="users" element={<Users />} />
+            <Route path="categories" element={<Categories />} />
+            <Route path="roles" element={<Roles />} />
+            <Route path="attributes" element={<Attributes />} />
+            <Route path="admin/orders" element={<AdminOrdersPage />} />
+            <Route path="admin/orders/:id" element={<AdminOrderDetailsPage />} />
           <Route path="support" element={<SupportAdmin />} />
           <Route path="vendors" element={<Vendors />} />
 
-          <Route
-            path="subcategories/:id/products"
-            element={<SubCategoryProducts />}
-          />
+          <Route path="subcategories/:id/products" element={<SubCategoryProducts />} />
           <Route path="categories/:id" element={<SubCategoryPage />} />
           <Route path="permissions" element={<Permissions />} />
                     <Route path="banners" element={<Banner />} />
+                    <Route path="/dashboard/coupons" element={<CouponsList />} />
+          <Route path="/dashboard/coupons/create" element={<CreateCoupon />} />
+          <Route path="/dashboard/coupons/edit/:id" element={<EditCoupon />} />
+         
+                    
           <Route path="brands" element={<Brands />} />
         </Route>
 

@@ -103,6 +103,11 @@ const Sidebar = () => {
       path: "/dashboard/vendors",
       icon: Users,
     },
+        {
+  label: "Coupons",
+  path: "/dashboard/coupons",
+  icon: Package,
+}
   ];
 
   return (
@@ -182,10 +187,10 @@ const Sidebar = () => {
             {openOrders && !collapsed && (
               <div className="ml-8 mt-2 space-y-1">
                 <Link
-                  to="/dashboard/orders/admin"
+                  to="/dashboard/admin/orders"
                   className={`block px-3 py-2 text-sm rounded-lg transition
                   ${
-                    location.pathname.startsWith("/dashboard/orders/admin")
+                    location.pathname.startsWith("/dashboard/admin/orders")
                       ? "bg-[#7a1c3d]/10 text-[#7a1c3d] font-semibold"
                       : "hover:bg-gray-100"
                   }`}
@@ -194,10 +199,10 @@ const Sidebar = () => {
                 </Link>
 
                 <Link
-                  to="/dashboard/orders/vendor"
+                  to="/dashboard/vendor/orders"
                   className={`block px-3 py-2 text-sm rounded-lg transition
                   ${
-                    location.pathname.startsWith("/dashboard/orders/vendor")
+                    location.pathname.startsWith("/dashboard/vendor/orders")
                       ? "bg-[#7a1c3d]/10 text-[#7a1c3d] font-semibold"
                       : "hover:bg-gray-100"
                   }`}

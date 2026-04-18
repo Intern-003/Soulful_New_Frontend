@@ -9,6 +9,7 @@ import {
   Menu,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 
 import { logout as logoutAction } from "../../app/slices/authSlice";
@@ -19,6 +20,7 @@ import TopBar from "./TopBar";
 
 const Header = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const dispatch = useDispatch();
 
   const { user } = useSelector((state) => state.auth);
@@ -165,14 +167,17 @@ const Header = () => {
               </span>
             )}
           </div>
+
           {/* ACCOUNT */}
-          <div className="relative">
-            <div
-              onClick={() => setProfileOpen(!profileOpen)}
-              className="flex items-center gap-2 cursor-pointer group"
-            >
-              {/* Avatar Style */}
-              <div className="w-9 h-9 rounded-full bg-[#f3e8ee] flex items-center justify-center text-[#7a1c3d] font-semibold text-sm shadow-sm group-hover:shadow-md transition">
+          <div
+            className="relative"
+            onMouseEnter={() => setProfileOpen(true)}
+            onMouseLeave={() => setProfileOpen(false)}
+          >
+            {/* TRIGGER */}
+            <div className="flex items-center gap-2 cursor-pointer">
+              {/* Avatar */}
+              <div className="w-9 h-9 rounded-full bg-[#f3e8ee] flex items-center justify-center text-[#7a1c3d] font-semibold text-sm shadow-sm hover:shadow-md transition">
                 {user?.name?.[0] || "A"}
               </div>
 
@@ -186,8 +191,16 @@ const Header = () => {
             </div>
 
             {/* DROPDOWN */}
-            {profileOpen && (
-              <div className="absolute right-0 mt-3 w-56 bg-white shadow-2xl rounded-xl py-2 z-50 border border-gray-100">
+            <div
+              className={`absolute right-0 top-full pt-2 z-50 transition-all duration-200
+                ${
+                  profileOpen
+                    ? "opacity-100 visible translate-y-0"
+                    : "opacity-0 invisible translate-y-2"
+                }
+              `}
+            >
+              <div className="w-56 bg-white shadow-2xl rounded-xl py-2 border border-gray-100">
                 {user ? (
                   <>
                     <div
@@ -196,6 +209,7 @@ const Header = () => {
                     >
                       My Profile
                     </div>
+
                     <div
                       onClick={handleLogout}
                       className="px-4 py-2.5 text-sm hover:bg-gray-50 cursor-pointer text-red-500 transition"
@@ -212,7 +226,7 @@ const Header = () => {
                   </div>
                 )}
               </div>
-            )}
+            </div>
           </div>
         </div>
       </div>
@@ -240,7 +254,12 @@ const Header = () => {
                 >
                   {item.name}
 
-                  <span className="absolute left-0 -bottom-1 h-[1.5px] w-0 bg-[#7A1C3D] transition-all duration-300 group-hover:w-full"></span>
+                  {/* <span className="absolute left-0 -bottom-1 h-[1.5px] w-0 bg-[#7A1C3D] transition-all duration-300 group-hover:w-full"></span> */}
+                  <span
+                    className={`absolute left-0 -bottom-1 h-[1.5px] bg-[#7A1C3D] transition-all duration-300
+                      ${location.pathname === item.path ? "w-full" : "w-0 group-hover:w-full"}
+                    `}
+                  />
                 </span>
 
                 {item.dropdown && (
@@ -292,22 +311,30 @@ const Header = () => {
               { name: "Footwear", path: "/category/footwear" },
               { name: "Bestsellers", path: "/bestsellers" },
               { name: "Fresh Arrivals", path: "/fresharrivals" },
-              { name: "Essentials", path: "/" },
-              { name: "Exclusive", path: "/" },
+              { name: "Essentials", path: "/category/essentials" },
+              { name: "Exclusive", path: "/exclusive" },
               {name: "Become a Vendor", path: "/BecomeVendor"},
             ].map((item, i) => (
               <span
                 key={i}
                 onClick={() => item.path && navigate(item.path)}
-                className="relative cursor-pointer text-gray-700 hover:text-[#7A1C3D] transition group"
+                className={`relative cursor-pointer transition group
+                  ${
+                    location.pathname === item.path
+                      ? "text-[#7A1C3D]"
+                      : "text-gray-700 hover:text-[#7A1C3D]"
+                  }
+                `}
               >
                 {item.name}
-                <span className="absolute left-0 -bottom-1 h-[1.5px] w-0 bg-[#7A1C3D] transition-all duration-300 group-hover:w-full"></span>
+                <span
+                  className={`absolute left-0 -bottom-1 h-[1.5px] bg-[#7A1C3D] transition-all duration-300
+                    ${location.pathname === item.path ? "w-full" : "w-0 group-hover:w-full"}
+                  `}
+                />
               </span>
             ))}
           </div>
-
-          <div></div>
         </div>
       </nav>
 

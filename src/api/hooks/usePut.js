@@ -9,7 +9,6 @@ const usePut = (baseUrl = "") => {
   const putData = async (config = {}) => {
     try {
       setLoading(true);
-      setError(null);
 
       const url = config.url || baseUrl;
       let payload = config.data || {};
