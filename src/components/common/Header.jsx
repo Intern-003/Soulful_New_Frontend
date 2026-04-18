@@ -313,6 +313,7 @@ const Header = () => {
               { name: "Fresh Arrivals", path: "/fresharrivals" },
               { name: "Essentials", path: "/category/essentials" },
               { name: "Exclusive", path: "/exclusive" },
+              {name: "Become a Vendor", path: "/BecomeVendor"},
             ].map((item, i) => (
               <span
                 key={i}
@@ -402,6 +403,20 @@ const Header = () => {
               >
                 Soulful Special
               </span>
+              {/* <span
+                onClick={() => {
+                  navigate("/BecomeVendor"); 
+                  setMobileMenu(false);
+                }}
+                className="cursor-pointer hover:text-[#7a1c3d]"
+              >
+                Become a Vendor
+              </span> */}
+
+
+
+
+
               {hasPermission(permissions, "dashboard", "view") && (
                 <span
                   onClick={() => {
