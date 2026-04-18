@@ -2,34 +2,25 @@ import { useState } from "react";
 import Sidebar from "../../components/account/Sidebar";
 
 import Orders from "../../components/account/sections/Orders";
-import Wishlist from "../../components/account/sections/Wishlist";
-import PaymentMethods from "../../components/account/sections/PaymentMethods";
-import Reviews from "../../components/account/sections/Reviews";
 import PersonalInfo from "../../components/account/sections/PersonalInfo";
 import Addresses from "../../components/account/sections/Addresses";
-import Notifications from "../../components/account/sections/Notifications";
+import ChangePassword from "../../components/account/sections/ChangePassword";
 
 export default function AccountPage() {
-  const [active, setActive] = useState("orders");
+  const [active, setActive] = useState("info");
 
   const renderSection = () => {
     switch (active) {
-      case "orders":
-        return <Orders />;
-      case "wishlist":
-        return <Wishlist />;
-      case "payment":
-        return <PaymentMethods />;
-      case "reviews":
-        return <Reviews />;
       case "info":
         return <PersonalInfo />;
+      case "orders":
+        return <Orders />;
       case "addresses":
         return <Addresses />;
-      case "notifications":
-        return <Notifications />;
+      case "password":
+        return <ChangePassword />;
       default:
-        return <Orders />;
+        return <PersonalInfo />;
     }
   };
 

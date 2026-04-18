@@ -1,5 +1,4 @@
 import React, { useEffect, useState, useRef, useMemo } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
 import useGet from "../../api/hooks/useGet";
 import { getImageUrl } from "../../utils/getImageUrl";
 import { useNavigate } from "react-router-dom";
@@ -11,6 +10,8 @@ const HeroSlider = () => {
   const navigate = useNavigate();
 
   const [current, setCurrent] = useState(0);
+
+  // touch
   const [touchStart, setTouchStart] = useState(0);
   const [touchEnd, setTouchEnd] = useState(0);
   const sliderRef = useRef(null);
@@ -33,7 +34,15 @@ const HeroSlider = () => {
     });
   }, [processedBanners]);
 
-  // ✅ Auto slide
+  // 🔥 AUTO SLIDE (FAST)
+  const startAutoSlide = () => {
+    if (autoSlideRef.current) clearInterval(autoSlideRef.current);
+
+    autoSlideRef.current = setInterval(() => {
+      setCurrent((prev) => (prev + 1) % bannerImages.length);
+    }, 3000);
+  };
+
   useEffect(() => {
     if (!processedBanners.length) return;
     const interval = setInterval(() => {
@@ -53,6 +62,7 @@ const HeroSlider = () => {
   // Touch handlers
   const handleTouchStart = (e) => {
     setTouchStart(e.targetTouches[0].clientX);
+    clearInterval(autoSlideRef.current); // pause only on touch
   };
 
   const handleTouchMove = (e) => {
@@ -251,29 +261,26 @@ const HeroSlider = () => {
   };
 
   if (loading) {
-    return (
-      <div className="min-h-[400px] flex items-center justify-center">
-        <div className="animate-pulse text-gray-600">Loading...</div>
-      </div>
-    );
+    return <HeroSliderSkeleton />;
   }
 
   if (!processedBanners.length) return null;
 
   return (
     <div
-      ref={sliderRef}
       className="relative w-full min-h-[400px] sm:h-[500px] md:h-[600px] lg:h-[700px] bg-[#f6f1f4] overflow-hidden"
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
+      onMouseDown={handleMouseDown}
+      onMouseUp={handleMouseUp}
     >
       {/* Sliding Track */}
       <div className="relative w-full h-full">
         {processedBanners.map((banner, i) => (
           <div
             key={i}
-            className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${
+            className={`absolute inset-0 transition-opacity duration-1000 ${
               i === current ? "opacity-100 z-10" : "opacity-0 z-0"
             }`}
           >

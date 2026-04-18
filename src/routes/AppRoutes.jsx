@@ -23,6 +23,8 @@ import Orders from "../components/account/sections/Orders";
 
 import Roles from "../pages/dashboard/Roles";
 import ShopPage from "../pages/public/ShopPage";
+import SoulfullSpecialPage from "../pages/public/SoulfullSpecialPage";
+import ExclusivePage from "../pages/public/ExclusivePage";
 import CategoryPage from "../pages/public/categorypage";
 import FreshArrivals from "../pages/public/FreshArrivals";
 import Bestsellers from "../pages/public/Bestsellers";
@@ -62,6 +64,8 @@ const AppRoutes = () => {
           <Route path="/checkout" element={<Checkout />} />
           <Route path="/account" element={<AccountPage />} />
           <Route path="/shop" element={<ShopPage />} />
+          <Route path="/soulful-special" element={<SoulfullSpecialPage />} />
+          <Route path="/exclusive" element={<ExclusivePage />} />
           <Route path="/category/:slug" element={<CategoryPage />} />
           <Route path="/fresharrivals" element={<FreshArrivals />} />
           <Route path="/bestsellers" element={<Bestsellers />} />

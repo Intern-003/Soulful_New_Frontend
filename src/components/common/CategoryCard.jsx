@@ -3,10 +3,12 @@ import { useNavigate } from "react-router-dom";
 import { getImageUrl } from "../../utils/getImageUrl";
 
 const bgVariants = [
-  "bg-[#F4F1EC]",
-  "bg-[#E6ECE9]",
-  "bg-[#EFE6DC]",
-  "bg-[#E9EDF2]",
+  "bg-[#611630]",
+  "bg-[#873250]",
+  "bg-[#af768a]",
+  "bg-[#bc8d9e]",
+  "bg-[#c9a4b1]",
+  "bg-[#e4d1d8]",
 ];
 
 const CategoryCard = ({ category, index = 0 }) => {
@@ -42,26 +44,26 @@ const CategoryCard = ({ category, index = 0 }) => {
       {/* TEXT CONTENT */}
       <div className="relative z-10 max-w-[75%]">
         {/* Small Label */}
-        <p className="text-xs uppercase tracking-widest text-gray-400 mb-3">
+        <p className="text-xs uppercase tracking-widest text-gray-50 mb-3">
           {category?.slug?.replace("-", " ") || "Category"}
         </p>
 
         {/* Title */}
-        <h3 className="text-xl md:text-2xl font-semibold text-gray-900 leading-tight mb-3">
+        <h3 className="relative text-xl md:text-1xl uppercase tracking-[0.1em] text-gray-50 leading-tight mb-3 transition-all duration-300 pb-3">
           {category?.name}
         </h3>
 
         {/* Description */}
-        <p className="text-sm text-gray-500 leading-relaxed">
+        <p className="text-sm text-gray-50 leading-relaxed">
           {category?.description ||
             "Discover premium collection crafted for modern lifestyle."}
         </p>
 
         {/* CTA */}
         <div className="mt-5">
-          <span className="text-sm font-semibold text-black inline-block">
+          <span className="text-sm font-semibold text-gray-50 inline-block">
             Shop Now
-            <span className="block h-[1px] bg-black mt-1 w-0 group-hover:w-full transition-all duration-300"></span>
+            <span className="block h-[1px] bg-gray-50 mt-1 w-0 group-hover:w-full transition-all duration-300"></span>
           </span>
         </div>
       </div>

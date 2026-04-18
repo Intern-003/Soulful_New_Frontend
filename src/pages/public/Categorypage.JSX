@@ -5,7 +5,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { fetchCategories } from "../../app/slices/categorySlice";
 import { selectParentCategories } from "../../app/selectors/categorySelectors";
 
-import Sidebar from "../../components/shop/Sidebar";
+import Sidebar from "../../components/shop/CategorySidebar";
 import ShopHeader from "../../components/shop/ShopHeader";
 import ProductGrid from "../../components/dashboard/products/ProductGrid";
 import useGet from "../../api/hooks/useGet";
@@ -38,8 +38,13 @@ const CategoryPage = () => {
   const brands = Array.isArray(brandResponse?.data) ? brandResponse.data : [];
 
   // 🔥 CURRENT CATEGORY FROM SLUG
+  // const currentCategory = useMemo(() => {
+  //   return allCategories.find((cat) => cat.slug === slug);
+  // }, [allCategories, slug]);
   const currentCategory = useMemo(() => {
-    return allCategories.find((cat) => cat.slug === slug);
+    return allCategories.find(
+      (cat) => cat.slug?.toLowerCase().trim() === slug?.toLowerCase().trim(),
+    );
   }, [allCategories, slug]);
 
   // FILTER STATE
@@ -148,7 +153,6 @@ const CategoryPage = () => {
     });
   };
 
-  // ❌ INVALID CATEGORY
   if (slug && !currentCategory) {
     return (
       <div className="p-20 text-center">
@@ -200,7 +204,7 @@ const CategoryPage = () => {
       <div className="max-w-7xl mx-auto pb-20">
         <div className="flex flex-col lg:flex-row gap-6">
           {/* SIDEBAR */}
-          <div className="hidden lg:block w-[300px]">
+          <div className="hidden lg:block w-[260px]">
             <div className="sticky top-6">
               <Sidebar
                 categories={parentCategories}
