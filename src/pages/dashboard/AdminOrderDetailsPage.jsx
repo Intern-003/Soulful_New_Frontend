@@ -16,7 +16,7 @@ const AdminOrderDetailsPage = () => {
       data: { status },
     });
 
-    refetch();
+    refetch({ force: true });
   };
 
   if (loading) return <p>Loading...</p>;

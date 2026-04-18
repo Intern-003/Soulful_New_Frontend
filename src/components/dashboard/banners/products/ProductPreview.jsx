@@ -1,33 +1,38 @@
-import React from "react";
+import { useNavigate } from "react-router-dom";
+import { getProductImageUrl, getProductPath } from "../../../utils/productHelpers";
 
-const ProductPreview = ({ product }) => {
+const ProductPreview = ({ product, onClick, className = "" }) => {
+  const navigate = useNavigate();
+
   if (!product) return null;
 
-  const getImage = () => {
-    const img = product?.primary_image?.image_url;
-   if (!img) return "/placeholder.jpg";
-
-    if (img.startsWith("http")) return img;
-
-    return `http://127.0.0.1:8000/storage/${img}`;
+  const handleClick = () => {
+    if (onClick) {
+      onClick(product);
+    } else {
+      navigate(getProductPath(product));
+    }
   };
 
   return (
-    <div className="bg-white rounded-xl shadow p-2 hover:shadow-md transition">
-      {/* Image */}
+    <div
+      onClick={handleClick}
+      className={`bg-white rounded-xl shadow p-2 hover:shadow-md transition cursor-pointer ${className}`}
+    >
       <img
-        src={getImage()}
-        alt={product.name}
+        src={getProductImageUrl(product)}
+        alt={product?.name || "Product"}
+        onError={(e) => {
+          e.target.src = "/placeholder.jpg";
+        }}
         className="w-full h-24 object-cover rounded"
       />
-
-      {/* Info */}
       <div className="mt-2">
         <p className="text-xs font-medium line-clamp-1">
-          {product.name}
+          {product?.name || "No name"}
         </p>
-        <p className="text-xs text-gray-500">
-          ₹{product.price}
+        <p className="text-xs text-gray-500 mt-0.5">
+          ₹{product?.price || 0}
         </p>
       </div>
     </div>

@@ -9,34 +9,11 @@ const usePut = (baseUrl = "") => {
   const putData = async (config = {}) => {
     try {
       setLoading(true);
-      setError(null);
 
-      const url = config.url || baseUrl;
-      let payload = config.data || {};
-
-      const isFormData = payload instanceof FormData;
-
-      let res;
-
-      // -----------------------------
-      // CASE 1: FormData (Laravel needs POST + _method)
-      // -----------------------------
-      if (isFormData) {
-        payload.append("_method", "PUT");
-
-        res = await axiosInstance.post(url, payload, {
-          headers: {
-            "Content-Type": "multipart/form-data",
-          },
-        });
-      }
-
-      // -----------------------------
-      // CASE 2: Normal JSON (use PUT)
-      // -----------------------------
-      else {
-        res = await axiosInstance.put(url, payload, config);
-      }
+      const res = await axiosInstance.post(
+        `${config.url || url}?_method=PUT`,
+        config.data
+      );
 
       setData(res.data);
       return res.data;
