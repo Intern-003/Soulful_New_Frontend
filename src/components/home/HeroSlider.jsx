@@ -3,7 +3,7 @@ import useGet from "../../api/hooks/useGet";
 import { getImageUrl } from "../../utils/getImageUrl";
 import { useNavigate } from "react-router-dom";
 import { getProductImageUrl, getProductPath } from "../../utils/productHelpers";
-
+import HeroSliderSkeleton from "./HeroSliderSkeleton";
 const HeroSlider = () => {
   const { data, loading } = useGet("/admin/banners");
   const banners = data?.data || [];
