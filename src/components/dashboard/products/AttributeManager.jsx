@@ -24,9 +24,15 @@ const AttributeManager = ({ onClose, onSuccess }) => {
   const [showValueForm, setShowValueForm] = useState(false);
   const [selectedAttributeId, setSelectedAttributeId] = useState(null);
   const [editingValue, setEditingValue] = useState(null);
-  const [valueForm, setValueForm] = useState({ value: "" });
+  const [valueForm, setValueForm] = useState({ value: "", hex: "" });
   const [valueSubmitting, setValueSubmitting] = useState(false);
+  const selectedAttribute = attributes.find(
+    (a) => a.id === selectedAttributeId
+  );
 
+  const isColor =
+    attributes.find((a) => a.id === selectedAttributeId)?.name?.toLowerCase() ===
+    "color";
   useEffect(() => {
     if (data?.data) {
       setAttributes(data.data);
@@ -59,7 +65,7 @@ const AttributeManager = ({ onClose, onSuccess }) => {
         });
         toast.success("Attribute created successfully");
       }
-      
+
       setShowAttributeForm(false);
       setEditingAttribute(null);
       setAttributeForm({ name: "" });
@@ -80,7 +86,7 @@ const AttributeManager = ({ onClose, onSuccess }) => {
 
   const handleDeleteAttribute = async (attribute) => {
     if (!window.confirm(`Delete attribute "${attribute.name}"? This will also delete all its values.`)) return;
-    
+
     try {
       await deleteData({ url: `/admin/attributes/${attribute.id}` });
       toast.success("Attribute deleted successfully");
@@ -103,20 +109,23 @@ const AttributeManager = ({ onClose, onSuccess }) => {
       if (editingValue) {
         await putData({
           url: `/admin/attribute-values/${editingValue.id}`,
-          data: { value: valueForm.value }
+          data: { value: valueForm.value, hex: isColor ? valueForm.hex : null },
+
         });
         toast.success("Value updated successfully");
       } else {
         await postData({
           url: `/admin/attributes/${selectedAttributeId}/values`,
-          data: { value: valueForm.value }
+          data: { value: valueForm.value, hex: isColor ? valueForm.hex : null },
         });
         toast.success("Value added successfully");
       }
-      
+
       setShowValueForm(false);
       setEditingValue(null);
       setValueForm({ value: "" });
+
+
       refetch({ force: true });
       onSuccess?.();
     } catch (err) {
@@ -129,13 +138,17 @@ const AttributeManager = ({ onClose, onSuccess }) => {
   const handleEditValue = (attributeId, value) => {
     setSelectedAttributeId(attributeId);
     setEditingValue(value);
-    setValueForm({ value: value.value });
+
+    setValueForm({
+      value: value.value || "",
+      hex: value.hex || "#000000",
+    });
     setShowValueForm(true);
   };
 
   const handleDeleteValue = async (valueId) => {
     if (!window.confirm("Delete this value?")) return;
-    
+
     try {
       await deleteData({ url: `/admin/attribute-values/${valueId}` });
       toast.success("Value deleted successfully");
@@ -156,7 +169,7 @@ const AttributeManager = ({ onClose, onSuccess }) => {
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex justify-center items-center z-50 p-2 sm:p-4">
       <div className="bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden shadow-2xl flex flex-col">
-        
+
         {/* Header */}
         <div className="bg-gradient-to-r from-[#7a1c3d] to-[#9b2c4f] px-6 py-4 flex justify-between items-center flex-shrink-0">
           <h2 className="text-xl sm:text-2xl font-bold text-white flex items-center gap-2">
@@ -244,15 +257,25 @@ const AttributeManager = ({ onClose, onSuccess }) => {
                           {attr.values.map((val) => (
                             <div
                               key={val.id}
-                              className="flex items-center gap-1 bg-gray-100 rounded-lg px-3 py-1.5 group"
+                              className="flex items-center gap-2 bg-gray-100 rounded-lg px-3 py-1.5 group"
                             >
+                              {/* COLOR PREVIEW */}
+                              {val.hex && (
+                                <span
+                                  className="w-4 h-4 rounded-full border"
+                                  style={{ backgroundColor: val.hex }}
+                                />
+                              )}
+
                               <span className="text-sm">{val.value}</span>
+
                               <button
                                 onClick={() => handleEditValue(attr.id, val)}
                                 className="text-blue-500 hover:text-blue-700 opacity-0 group-hover:opacity-100 transition"
                               >
                                 <Edit2 size={12} />
                               </button>
+
                               <button
                                 onClick={() => handleDeleteValue(val.id)}
                                 className="text-red-500 hover:text-red-700 opacity-0 group-hover:opacity-100 transition"
@@ -324,14 +347,54 @@ const AttributeManager = ({ onClose, onSuccess }) => {
             <h3 className="text-lg font-bold mb-4">
               {editingValue ? "Edit Value" : "Add New Value"}
             </h3>
-            <input
+            {/* <input
               type="text"
               value={valueForm.value}
               onChange={(e) => setValueForm({ value: e.target.value })}
               placeholder="Value (e.g., Large, Red, 256GB)"
               className="w-full border rounded-lg p-3 text-sm focus:ring-2 focus:ring-[#7a1c3d] outline-none"
               autoFocus
+            /> */}
+            <input
+              type="text"
+              value={valueForm.value}
+              onChange={(e) =>
+                setValueForm((prev) => ({ ...prev, value: e.target.value }))
+              }
+              placeholder="Value (e.g., Red)"
+              className="w-full border rounded-lg p-3 text-sm focus:ring-2 focus:ring-[#7a1c3d] outline-none"
+              autoFocus
             />
+            {isColor && (
+              <div className="mt-3 flex items-center gap-3">
+
+                <input
+                  type="color"
+                  value={valueForm.hex || "#000000"}
+                  onChange={(e) =>
+                    setValueForm((prev) => ({ ...prev, hex: e.target.value }))
+                  }
+                  className="w-10 h-10 cursor-pointer"
+                />
+
+                <input
+                  type="text"
+                  value={valueForm.hex}
+                  onChange={(e) =>
+                    setValueForm((prev) => ({ ...prev, hex: e.target.value }))
+                  }
+                  placeholder="#ffffff"
+                  className="border px-2 py-2 text-sm rounded w-28"
+                />
+
+                {/* preview */}
+                <div
+                  className="w-6 h-6 rounded border"
+                  style={{ backgroundColor: valueForm.hex || "#000000" }}
+                />
+              </div>
+            )}
+
             <div className="flex justify-end gap-3 mt-6">
               <button
                 onClick={() => {

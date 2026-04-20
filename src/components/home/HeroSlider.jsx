@@ -70,6 +70,16 @@ const HeroSlider = () => {
   const handleTouchMove = (e) => {
     setTouchEnd(e.targetTouches[0].clientX);
   };
+  const handleMouseDown = (e) => {
+    setTouchStart(e.clientX);
+  };
+
+  const handleMouseUp = (e) => {
+    setTouchEnd(e.clientX);
+
+    if (touchStart - e.clientX > 50) handleNext();
+    if (touchStart - e.clientX < -50) handlePrev();
+  };
 
   const handleTouchEnd = () => {
     if (touchStart - touchEnd > 50) handleNext();

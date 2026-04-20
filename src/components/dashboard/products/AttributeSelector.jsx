@@ -51,7 +51,15 @@ const AttributeSelector = ({ selected = {}, onChange, attributes = [], loading =
                     }`}
                   >
                     {isSelected && <Check size={14} />}
-                    {val.value}
+                   <div className="flex items-center gap-2">
+  {val.hex && (
+    <span
+      className="w-3 h-3 rounded-full border"
+      style={{ backgroundColor: val.hex }}
+    />
+  )}
+  <span>{val.value}</span>
+</div>
                   </button>
                 );
               })}

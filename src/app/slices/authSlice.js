@@ -23,6 +23,28 @@ export const loginUser = createAsyncThunk(
   }
 );
 
+export const googleLogin = createAsyncThunk(
+  "auth/googleLogin",
+  async (token, { rejectWithValue }) => {
+    try {
+      const res = await axiosInstance.post("/auth/google", {
+        token, // Google credential
+      });
+
+      const { access_token, user, role, permissions } = res.data;
+
+      localStorage.setItem("token", access_token);
+      localStorage.setItem("user", JSON.stringify(user));
+      localStorage.setItem("role", role);
+      localStorage.setItem("permissions", JSON.stringify(permissions));
+
+      return res.data;
+    } catch (err) {
+      return rejectWithValue(err.response?.data || { message: "Google login failed" });
+    }
+  }
+);
+
 // REGISTER
 export const registerUser = createAsyncThunk(
   "auth/register",
@@ -79,7 +101,21 @@ const authSlice = createSlice({
         state.loading = false;
         state.error = action.payload;
       })
-
+      .addCase(googleLogin.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(googleLogin.fulfilled, (state, action) => {
+        state.loading = false;
+        state.user = action.payload.user;
+        state.token = action.payload.access_token;
+        state.role = action.payload.role;
+        state.permissions = action.payload.permissions;
+      })
+      .addCase(googleLogin.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
       // REGISTER
       .addCase(registerUser.pending, (state) => {
         state.loading = true;
