@@ -31,6 +31,9 @@ import Bestsellers from "../pages/public/Bestsellers";
 import ProductDetails from "../pages/public/ProductDetails";
 import Wishlist from "../pages/public/Wishlist";
 import Contact from "../pages/public/Contact";
+import TermsPrivacy from "../pages/public/TermsPrivacy";
+import ShippingInfo from "../pages/public/ShippingInfo";
+import ReturnsExchange from "../pages/public/ReturnsExchange";
 import Support from "../pages/public/Support";
 import VendorOrdersPage from "../pages/dashboard/VendorOrdersPage";
 import VendorOrderDetailsPage from "../pages/dashboard/VendorOrderDetailsPage";
@@ -76,6 +79,9 @@ const AppRoutes = () => {
           {/* <Route path="/product/:slug" element={<ProductDetails />} /> */}
           <Route path="/product/:identifier" element={<ProductDetails />} />
           <Route path="/contact" element={<Contact />} />
+          <Route path="/termsprivacy" element={<TermsPrivacy />} />
+          <Route path="/shippinginfo" element={<ShippingInfo />} />
+          <Route path="/returnsexchange" element={<ReturnsExchange />} />
           <Route path="/support" element={<Support />} />
           <Route path="/BecomeVendor" element={<BecomeVendor />} />
         </Route>
