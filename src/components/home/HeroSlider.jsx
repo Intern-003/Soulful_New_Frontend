@@ -3,6 +3,8 @@ import useGet from "../../api/hooks/useGet";
 import { getImageUrl } from "../../utils/getImageUrl";
 import { useNavigate } from "react-router-dom";
 import { getProductImageUrl, getProductPath } from "../../utils/productHelpers";
+import HeroSliderSkeleton from "../../components/common/HeroSliderSkeleton";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 const HeroSlider = () => {
   const { data, loading } = useGet("/admin/banners");
@@ -67,6 +69,16 @@ const HeroSlider = () => {
 
   const handleTouchMove = (e) => {
     setTouchEnd(e.targetTouches[0].clientX);
+  };
+  const handleMouseDown = (e) => {
+    setTouchStart(e.clientX);
+  };
+
+  const handleMouseUp = (e) => {
+    setTouchEnd(e.clientX);
+
+    if (touchStart - e.clientX > 50) handleNext();
+    if (touchStart - e.clientX < -50) handlePrev();
   };
 
   const handleTouchEnd = () => {
