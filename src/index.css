@@ -56,4 +56,18 @@
 @keyframes shimmerMove {
   0% { transform: translateX(-100%); }
   100% { transform: translateX(100%); }
+}table th {
+  background: #f8f9fa;
+  font-weight: 600;
+  padding: 12px;
+  border-bottom: 1px solid #ddd;
+}
+
+table td {
+  padding: 12px;
+  border-bottom: 1px solid #eee;
+}
+
+table tr:hover {
+  background-color: #f9f9f9;
 }

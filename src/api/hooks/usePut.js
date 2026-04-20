@@ -10,10 +10,37 @@ const usePut = (baseUrl = "") => {
     try {
       setLoading(true);
 
-      const res = await axiosInstance.post(
-        `${config.url || url}?_method=PUT`,
-        config.data
-      );
+      const url = config.url || baseUrl;
+      let payload = config.data || {};
+
+      const method = config.method || "PUT"; // ✅ dynamic method
+      const isFormData = payload instanceof FormData;
+
+      let res;
+
+      // -----------------------------
+      // ✅ FormData (Laravel support)
+      // -----------------------------
+      if (isFormData) {
+        payload.append("_method", method); // PUT or PATCH
+
+        res = await axiosInstance.post(url, payload, {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        });
+      }
+
+      // -----------------------------
+      // ✅ JSON
+      // -----------------------------
+      else {
+        if (method === "PATCH") {
+          res = await axiosInstance.patch(url, payload, config);
+        } else {
+          res = await axiosInstance.put(url, payload, config);
+        }
+      }
 
       setData(res.data);
       return res.data;

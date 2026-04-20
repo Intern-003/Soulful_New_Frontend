@@ -3,7 +3,7 @@ import useGet from "../../api/hooks/useGet";
 import { getImageUrl } from "../../utils/getImageUrl";
 import { useNavigate } from "react-router-dom";
 import { getProductImageUrl, getProductPath } from "../../utils/productHelpers";
-import HeroSliderSkeleton from "../../components/common/HeroSliderSkeleton";
+import HeroSliderSkeleton from "../common/HeroSliderSkeleton";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
 const HeroSlider = () => {
@@ -86,9 +86,27 @@ const HeroSlider = () => {
     if (touchStart - touchEnd < -50) handlePrev();
   };
 
+  // Mouse handlers (desktop swipe)
+  const handleMouseDown = (e) => {
+    setTouchStart(e.clientX);
+  };
+
+  const handleMouseUp = (e) => {
+    setTouchEnd(e.clientX);
+
+    if (touchStart - e.clientX > 50) handleNext();
+    if (touchStart - e.clientX < -50) handlePrev();
+  };
+
   // ✅ Render layout based on banner layout type
   const renderBannerContent = (banner) => {
-    const { layout = "grid", products = [], title, subtitle, description } = banner;
+    const {
+      layout = "grid",
+      products = [],
+      title,
+      subtitle,
+      description,
+    } = banner;
 
     // ========== GRID LAYOUT ==========
     if (layout === "grid") {
@@ -103,10 +121,13 @@ const HeroSlider = () => {
               {subtitle || "Premium Collection"}
             </h1>
             <p className="text-sm sm:text-base opacity-95 drop-shadow max-w-md mb-6">
-              {description || "Discover premium quality products from our marketplace."}
+              {description ||
+                "Discover premium quality products from our marketplace."}
             </p>
-            <button 
-              onClick={() => products[0] && navigate(getProductPath(products[0]))}
+            <button
+              onClick={() =>
+                products[0] && navigate(getProductPath(products[0]))
+              }
               className="bg-white text-black px-6 py-3 rounded-md text-sm font-medium hover:bg-gray-100 transition shadow-lg"
             >
               Shop Now →
@@ -297,16 +318,20 @@ const HeroSlider = () => {
             }`}
           >
             {/* Background Image */}
-            <div 
+            <div
               className="absolute inset-0 bg-cover bg-center"
               style={{ backgroundImage: `url(${banner.fullUrl})` }}
             >
               {/* Gradient Overlay based on layout */}
-              <div className={`absolute inset-0 ${
-                banner.layout === "grid" ? "bg-gradient-to-r from-black/70 to-black/30" :
-                banner.layout === "highlight" ? "bg-gradient-to-br from-black/60 via-black/40 to-transparent" :
-                "bg-gradient-to-t from-black/80 via-black/40 to-black/20"
-              }`}></div>
+              <div
+                className={`absolute inset-0 ${
+                  banner.layout === "grid"
+                    ? "bg-gradient-to-r from-black/70 to-black/30"
+                    : banner.layout === "highlight"
+                      ? "bg-gradient-to-br from-black/60 via-black/40 to-transparent"
+                      : "bg-gradient-to-t from-black/80 via-black/40 to-black/20"
+                }`}
+              ></div>
             </div>
 
             {/* Banner Content with Products */}

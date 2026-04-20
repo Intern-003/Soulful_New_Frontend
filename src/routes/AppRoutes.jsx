@@ -41,6 +41,9 @@ import SubCategoryProducts from "../pages/dashboard/categories/SubCategoryProduc
 import SubCategoryPage from "../pages/dashboard/categories/SubCategoryPage";
 import Brands from "../pages/dashboard/brands";
 import Banner from "../pages/dashboard/Banner";
+import SupportAdmin from "../pages/dashboard/SupportAdmin";
+import Vendors from "../pages/dashboard/Vendors";
+import BecomeVendor from "../pages/public/BecomeVendor";
 import { Toaster } from "react-hot-toast";
 
 import CouponsList from "../pages/dashboard/CouponList";
@@ -74,6 +77,7 @@ const AppRoutes = () => {
           <Route path="/product/:identifier" element={<ProductDetails />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/support" element={<Support />} />
+          <Route path="/BecomeVendor" element={<BecomeVendor />} />
         </Route>
 
         {/* DASHBOARD */}
@@ -81,33 +85,42 @@ const AppRoutes = () => {
           <Route index element={<Dashboard />} />
           <Route path="products" element={<Products />} />
           <Route path="vendor/orders" element={<VendorOrdersPage />} />
-          <Route path="vendor/orders/:id" element={<VendorOrderDetailsPage />} />
+          <Route
+            path="vendor/orders/:id"
+            element={<VendorOrderDetailsPage />}
+          />
           <Route path="users" element={<Users />} />
           <Route path="categories" element={<Categories />} />
           <Route path="roles" element={<Roles />} />
           <Route path="attributes" element={<Attributes />} />
           <Route path="admin/orders" element={<AdminOrdersPage />} />
           <Route path="admin/orders/:id" element={<AdminOrderDetailsPage />} />
-          <Route path="subcategories/:id/products" element={<SubCategoryProducts />} />
+          <Route path="support" element={<SupportAdmin />} />
+          <Route path="vendors" element={<Vendors />} />
+
+          <Route
+            path="subcategories/:id/products"
+            element={<SubCategoryProducts />}
+          />
           <Route path="categories/:id" element={<SubCategoryPage />} />
           <Route path="permissions" element={<Permissions />} />
+          <Route path="banners" element={<Banner />} />
+          <Route path="/dashboard/coupons" element={<CouponsList />} />
           <Route path="banners" element={<Banner />} />
           <Route path="/dashboard/coupons" element={<CouponsList />} />
           <Route path="/dashboard/coupons/create" element={<CreateCoupon />} />
           <Route path="/dashboard/coupons/edit/:id" element={<EditCoupon />} />
 
 
+
           <Route path="brands" element={<Brands />} />
         </Route>
 
-
         {/* FALLBACK */}
         <Route path="*" element={<Navigate to="/" replace />} />
-
       </Routes>
     </>
   );
-
 };
 
 export default AppRoutes;

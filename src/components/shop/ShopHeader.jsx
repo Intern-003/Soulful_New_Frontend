@@ -34,7 +34,7 @@ const ShopHeader = ({
                 onChange={(e) => onSearch(e.target.value)}
                 className="
                   px-4 text-sm outline-none
-                  w-[220px]
+                  w-[280px]
                   h-[42px]
                 "
               />
@@ -54,31 +54,10 @@ const ShopHeader = ({
               </button>
             </div>
           </div>
+        </div>
 
-          {/* PRICE */}
-          <div className="group">
-            <p className="text-[11px] tracking-[0.18em] uppercase text-gray-500 mb-2">
-              Price Range
-            </p>
-
-            <div className="relative">
-              <select
-                value={priceValue}
-                onChange={(e) => onPriceChange(e.target.value)}
-                className="appearance-none px-4 py-2.5 text-sm border border-gray-200 rounded-xl bg-white pr-10 transition-all duration-300 hover:border-gray-300 focus:ring-2 focus:ring-[#7a1c3d]/20 outline-none"
-              >
-                <option value="">All Prices</option>
-                <option value="0-500">₹0 - ₹500</option>
-                <option value="500-2000">₹500 - ₹2000</option>
-                <option value="2000+">₹2000+</option>
-              </select>
-
-              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs">
-                ⌄
-              </span>
-            </div>
-          </div>
-
+        {/* RIGHT */}
+        <div className="flex items-end gap-8">
           {/* SORT */}
           <div className="group">
             <p className="text-[11px] tracking-[0.18em] uppercase text-gray-500 mb-2">
@@ -101,10 +80,7 @@ const ShopHeader = ({
               </span>
             </div>
           </div>
-        </div>
 
-        {/* RIGHT */}
-        <div className="flex items-end gap-8">
           {/* VIEW */}
           <div>
             <p className="text-[11px] tracking-[0.18em] uppercase text-gray-500 mb-2">

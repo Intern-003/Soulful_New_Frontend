@@ -28,7 +28,7 @@ const ProductDetails = () => {
 
   const { identifier } = useParams();
 
-const { data, loading, error } = useGet(PRODUCT.DETAILS(identifier));
+  const { data, loading, error } = useGet(PRODUCT.DETAILS(identifier));
 
   const product = data?.data;
 
@@ -66,11 +66,47 @@ const { data, loading, error } = useGet(PRODUCT.DETAILS(identifier));
 
   const [zoomStyle, setZoomStyle] = useState({});
 
-  const colors = ["#000", "#ccc", "#1e3a8a", "#b45309"];
-  const sizes = ["S", "M", "L"];
+  const variants = product?.variants || [];
 
-  const [selectedColor, setSelectedColor] = useState("#000");
-  const [selectedSize, setSelectedSize] = useState("M");
+  // unique colors
+  const colors = [
+    ...new Set(variants.map((v) => v.attributes?.Color).filter(Boolean)),
+  ];
+
+  // unique sizes
+  const sizes = [
+    ...new Set(variants.map((v) => v.attributes?.Size).filter(Boolean)),
+  ];
+
+  const [selectedColor, setSelectedColor] = useState(null);
+  const [selectedSize, setSelectedSize] = useState(null);
+
+  // const selectedVariant = variants.find(
+  //   (v) =>
+  //     v.attributes?.Color === selectedColor &&
+  //     v.attributes?.Size === selectedSize,
+  // );
+  const selectedVariant = variants.find((v) => {
+    // ✅ if both selected → exact match
+    if (selectedColor && selectedSize) {
+      return (
+        v.attributes?.Color === selectedColor &&
+        v.attributes?.Size === selectedSize
+      );
+    }
+
+    // ✅ if only color selected → match first color variant
+    if (selectedColor) {
+      return v.attributes?.Color === selectedColor;
+    }
+
+    return false;
+  });
+
+  const availableSizes = variants
+    .filter((v) => v.attributes?.Color === selectedColor)
+    .map((v) => v.attributes?.Size);
+
   const [qty, setQty] = useState(1);
 
   const reviews = product?.reviews || [];
@@ -160,6 +196,13 @@ const { data, loading, error } = useGet(PRODUCT.DETAILS(identifier));
     });
   };
 
+  // useEffect(() => {
+  //   if (variants.length > 0) {
+  //     setSelectedColor(variants[0]?.attributes?.Color || null);
+  //     setSelectedSize(variants[0]?.attributes?.Size || null);
+  //   }
+  // }, [variants]);
+
   // if (loading) return <div className="p-10">Loading...</div>;
   if (loading) return <ProductDetailsSkeleton />;
   if (error) return <div>Error loading product</div>;
@@ -216,7 +259,11 @@ const { data, loading, error } = useGet(PRODUCT.DETAILS(identifier));
                   onMouseLeave={handleMouseLeave}
                 >
                   <img
-                    src={images[currentIndex]}
+                    src={
+                      selectedVariant?.image
+                        ? getImageUrl(selectedVariant.image)
+                        : images[currentIndex]
+                    }
                     style={zoomStyle}
                     className="w-full h-full object-contain transition duration-300"
                   />
@@ -298,51 +345,81 @@ const { data, loading, error } = useGet(PRODUCT.DETAILS(identifier));
             </p>
 
             {/* COLOR */}
-            <div>
-              <div className="flex justify-between items-center mb-2">
-                <p className="font-medium text-sm">Color</p>
-                <span className="text-xs text-gray-400">Black</span>
-              </div>
+            {colors.length > 0 && (
+              <div>
+                <div className="flex justify-between items-center mb-2">
+                  <p className="font-medium text-sm">Color</p>
+                </div>
 
-              <div className="flex gap-3">
-                {colors.map((c, i) => (
-                  <div
-                    key={i}
-                    onClick={() => setSelectedColor(c)}
-                    style={{ background: c }}
-                    className={`w-9 h-9 rounded-full cursor-pointer border-2 transition-all duration-200 ${
-                      selectedColor === c
-                        ? "border-[#7a1c3d] scale-110 shadow"
-                        : "border-gray-300 hover:border-gray-400"
-                    }`}
-                  />
-                ))}
+                <div className="flex gap-3">
+                  {colors.map((color) => (
+                    <div
+                      key={color}
+                      onClick={() => {
+                        if (selectedColor === color) {
+                          // ✅ unselect
+                          setSelectedColor(null);
+                          setSelectedSize(null);
+                        } else {
+                          // ✅ select
+                          setSelectedColor(color);
+                          setSelectedSize(null);
+                        }
+                      }}
+                      className={`px-3 py-1 border rounded cursor-pointer transition ${
+                        selectedColor === color
+                          ? "bg-[#7a1c3d] text-white scale-105 shadow"
+                          : "hover:border-[#7a1c3d]"
+                      }`}
+                    >
+                      {color}
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
             {/* SIZE */}
-            <div>
-              <div className="flex justify-between items-center mb-2">
-                <p className="font-medium text-sm">Size</p>
-                <span className="text-xs text-gray-400">{selectedSize}</span>
-              </div>
+            {sizes.length > 0 && (
+              <div>
+                <div className="flex justify-between items-center mb-2">
+                  <p className="font-medium text-sm">Size</p>
+                  <span className="text-xs text-gray-400">{selectedSize}</span>
+                </div>
 
-              <div className="flex gap-3">
-                {sizes.map((s) => (
-                  <button
-                    key={s}
-                    onClick={() => setSelectedSize(s)}
-                    className={`px-4 py-2 rounded-lg border text-sm transition ${
-                      selectedSize === s
-                        ? "bg-[#7a1c3d] text-white shadow-md"
-                        : "bg-white hover:border-[#7a1c3d]"
-                    }`}
-                  >
-                    {s}
-                  </button>
-                ))}
+                <div className="flex gap-3">
+                  {sizes.map((size) => {
+                    const disabled =
+                      selectedColor && !availableSizes.includes(size);
+
+                    return (
+                      <button
+                        key={size}
+                        disabled={disabled}
+                        onClick={() => {
+                          if (selectedSize === size) {
+                            // unselect
+                            setSelectedSize(null);
+                          } else {
+                            // select
+                            setSelectedSize(size);
+                          }
+                        }}
+                        className={`px-4 py-2 border rounded transition ${
+                          disabled
+                            ? "opacity-40 cursor-not-allowed"
+                            : selectedSize === size
+                              ? "bg-[#7a1c3d] text-white scale-105"
+                              : "hover:border-[#7a1c3d]"
+                        }`}
+                      >
+                        {size}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
-            </div>
+            )}
 
             {/* QUANTITY */}
             <div>

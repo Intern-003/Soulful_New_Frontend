@@ -29,15 +29,21 @@ const ShopPage = () => {
     : [];
 
   // BRANDS
-  const { data: brandResponse } = useGet("/brands");
-  const brands = Array.isArray(brandResponse?.data) ? brandResponse.data : [];
+  const { data: brandResponse } = useGet("/brands/active");
+  const brands = Array.isArray(brandResponse)
+    ? brandResponse
+    : Array.isArray(brandResponse?.data)
+      ? brandResponse.data
+      : [];
+
+  console.log("BRANDS:", brands);
 
   // FILTER STATE
   const initialFilters = {
     category: null,
     brands: [],
     color: null,
-    price: [0, 5000],
+    price: [0, 0],
     search: "",
     sort: "",
   };
@@ -54,7 +60,10 @@ const ShopPage = () => {
   useEffect(() => {
     if (!allProducts.length) return;
 
-    const prices = allProducts.map((p) => Number(p.price) || 0);
+    // const prices = allProducts.map((p) => Number(p.price) || 0);
+    const prices = allProducts.map(
+      (p) => Number(p.discount_price || p.price) || 0,
+    );
 
     const min = Math.min(...prices);
     const max = Math.max(...prices);
@@ -71,7 +80,7 @@ const ShopPage = () => {
   const filteredProducts = useMemo(() => {
     return allProducts
       .filter((p) => {
-        const price = Number(p.price) || 0;
+        const price = Number(p.discount_price || p.price) || 0;
         const categoryId = Number(p.category_id);
         const brandId = Number(p.brand_id);
         const color = p.color?.toLowerCase();
@@ -107,8 +116,8 @@ const ShopPage = () => {
         return true;
       })
       .sort((a, b) => {
-        const priceA = Number(a.price) || 0;
-        const priceB = Number(b.price) || 0;
+        const priceA = Number(a.discount_price || a.price) || 0;
+        const priceB = Number(b.discount_price || b.price) || 0;
 
         if (filters.sort === "price_asc") return priceA - priceB;
         if (filters.sort === "price_desc") return priceB - priceA;
@@ -130,7 +139,10 @@ const ShopPage = () => {
   const handleClearFilters = () => {
     if (!allProducts.length) return;
 
-    const prices = allProducts.map((p) => Number(p.price) || 0);
+    // const prices = allProducts.map((p) => Number(p.price) || 0);
+    const prices = allProducts.map(
+      (p) => Number(p.discount_price || p.price) || 0,
+    );
 
     setFilters({
       category: null,
@@ -207,7 +219,8 @@ const ShopPage = () => {
                 selectedBrands={filters.brands}
                 selectedColor={filters.color}
                 priceRange={filters.price}
-                priceBounds={priceBounds}
+                maxPrice={priceBounds[1]}
+                minPrice={priceBounds[0]}
                 onCategoryChange={(v) => updateFilter("category", v)}
                 onBrandChange={(v) => updateFilter("brands", v)}
                 onColorChange={(v) => updateFilter("color", v)}
@@ -235,6 +248,8 @@ const ShopPage = () => {
                   selectedBrands={filters.brands}
                   selectedColor={filters.color}
                   priceRange={filters.price}
+                  maxPrice={priceBounds[1]}
+                  minPrice={priceBounds[0]}
                   onCategoryChange={(v) => updateFilter("category", v)}
                   onBrandChange={(v) => updateFilter("brands", v)}
                   onColorChange={(v) => updateFilter("color", v)}
