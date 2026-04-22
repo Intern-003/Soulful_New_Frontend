@@ -24,15 +24,15 @@ const AttributeManager = ({ onClose, onSuccess }) => {
   const [showValueForm, setShowValueForm] = useState(false);
   const [selectedAttributeId, setSelectedAttributeId] = useState(null);
   const [editingValue, setEditingValue] = useState(null);
-  const [valueForm, setValueForm] = useState({ value: "", hex: "" });
+  const [valueForm, setValueForm] = useState({ value: "", hex_code: "" });
   const [valueSubmitting, setValueSubmitting] = useState(false);
+
   const selectedAttribute = attributes.find(
     (a) => a.id === selectedAttributeId
   );
 
   const isColor =
-    attributes.find((a) => a.id === selectedAttributeId)?.name?.toLowerCase() ===
-    "color";
+    selectedAttribute?.name?.toLowerCase().includes("color");
   useEffect(() => {
     if (data?.data) {
       setAttributes(data.data);
@@ -109,21 +109,21 @@ const AttributeManager = ({ onClose, onSuccess }) => {
       if (editingValue) {
         await putData({
           url: `/admin/attribute-values/${editingValue.id}`,
-          data: { value: valueForm.value, hex: isColor ? valueForm.hex : null },
+          data: { value: valueForm.value, hex_code: isColor ? valueForm.hex_code : null },
 
         });
         toast.success("Value updated successfully");
       } else {
         await postData({
           url: `/admin/attributes/${selectedAttributeId}/values`,
-          data: { value: valueForm.value, hex: isColor ? valueForm.hex : null },
+          data: { value: valueForm.value, hex_code: isColor ? valueForm.hex_code : null },
         });
         toast.success("Value added successfully");
       }
 
       setShowValueForm(false);
       setEditingValue(null);
-      setValueForm({ value: "" });
+      setValueForm({ value: "", hex_code: "" });
 
 
       refetch({ force: true });
@@ -141,7 +141,7 @@ const AttributeManager = ({ onClose, onSuccess }) => {
 
     setValueForm({
       value: value.value || "",
-      hex: value.hex || "#000000",
+      hex_code: value.hex_code || "",
     });
     setShowValueForm(true);
   };
@@ -162,7 +162,7 @@ const AttributeManager = ({ onClose, onSuccess }) => {
   const openValueForm = (attributeId) => {
     setSelectedAttributeId(attributeId);
     setEditingValue(null);
-    setValueForm({ value: "" });
+    setValueForm({ value: "", hex_code: "" });
     setShowValueForm(true);
   };
 
@@ -260,10 +260,10 @@ const AttributeManager = ({ onClose, onSuccess }) => {
                               className="flex items-center gap-2 bg-gray-100 rounded-lg px-3 py-1.5 group"
                             >
                               {/* COLOR PREVIEW */}
-                              {val.hex && (
+                              {val.hex_code && (
                                 <span
                                   className="w-4 h-4 rounded-full border"
-                                  style={{ backgroundColor: val.hex }}
+                                  style={{ backgroundColor: val.hex_code }}
                                 />
                               )}
 
@@ -370,18 +370,18 @@ const AttributeManager = ({ onClose, onSuccess }) => {
 
                 <input
                   type="color"
-                  value={valueForm.hex || "#000000"}
+                  value={valueForm.hex_code || "#000000"}
                   onChange={(e) =>
-                    setValueForm((prev) => ({ ...prev, hex: e.target.value }))
+                    setValueForm((prev) => ({ ...prev, hex_code: e.target.value }))
                   }
                   className="w-10 h-10 cursor-pointer"
                 />
 
                 <input
                   type="text"
-                  value={valueForm.hex}
+                  value={valueForm.hex_code}
                   onChange={(e) =>
-                    setValueForm((prev) => ({ ...prev, hex: e.target.value }))
+                    setValueForm((prev) => ({ ...prev, hex_code: e.target.value }))
                   }
                   placeholder="#ffffff"
                   className="border px-2 py-2 text-sm rounded w-28"
@@ -390,7 +390,7 @@ const AttributeManager = ({ onClose, onSuccess }) => {
                 {/* preview */}
                 <div
                   className="w-6 h-6 rounded border"
-                  style={{ backgroundColor: valueForm.hex || "#000000" }}
+                  style={{ backgroundColor: valueForm.hex_code || "#000000" }}
                 />
               </div>
             )}
@@ -400,7 +400,7 @@ const AttributeManager = ({ onClose, onSuccess }) => {
                 onClick={() => {
                   setShowValueForm(false);
                   setEditingValue(null);
-                  setValueForm({ value: "" });
+                  setValueForm({ value: "", hex_code: "" });
                 }}
                 className="px-4 py-2 border rounded-lg hover:bg-gray-100 transition"
               >
