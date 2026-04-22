@@ -31,7 +31,8 @@ const VariantForm = ({ productId, data, onClose, onSuccess }) => {
     discount_price: data?.discount_price || "",
     stock: data?.stock || "",
     weight: data?.weight || "",
-    image: null,
+    images: [],
+    previews: [],
   });
 
   const [preview, setPreview] = useState(
@@ -79,23 +80,21 @@ const VariantForm = ({ productId, data, onClose, onSuccess }) => {
   // 🔹 INPUT CHANGE
   const handleChange = (e) => {
     const { name, value, files } = e.target;
-
     if (name === "image") {
-      const file = files[0];
+      const files = Array.from(files);
 
-      setForm((prev) => ({
+      setForm(prev => ({
         ...prev,
-        image: file,
+        images: [...(prev.images || []), ...files],
       }));
 
-      setPreview(URL.createObjectURL(file));
-    } else {
-      setForm((prev) => ({
-        ...prev,
-        [name]: value,
-      }));
+      setPreview(prev => [
+        ...(prev || []),
+        ...files.map(f => URL.createObjectURL(f))
+      ]);
     }
-  };
+  }
+
 
   // 🔹 FLATTEN VALUES
   const getFlatValues = () => {
@@ -132,8 +131,11 @@ const VariantForm = ({ productId, data, onClose, onSuccess }) => {
         formData.append("weight", Number(form.weight || 0));
         formData.append("barcode", form.barcode || "");
 
-        if (form.image) {
-          formData.append("image", form.image);
+
+        if (form.images?.length) {
+          form.images.forEach(img => {
+            formData.append("images[]", img);
+          });
         }
 
         await putData({
@@ -198,12 +200,17 @@ const VariantForm = ({ productId, data, onClose, onSuccess }) => {
         {/* FORM */}
         <div className="grid grid-cols-2 gap-3">
 
-          <input
+          {/* <input
             name="sku"
             value={form.sku}
             readOnly
             className="border p-2 rounded bg-gray-100"
-          />
+          /> */}
+          <div className="flex items-center gap-2">
+            <span className="font-mono text-xs sm:text-sm bg-gray-100 px-2 py-1 rounded">
+              SKU: {form.sku}
+            </span>
+          </div>
 
           <input
             name="barcode"
@@ -302,8 +309,8 @@ const VariantForm = ({ productId, data, onClose, onSuccess }) => {
                 ? "Updating..."
                 : "Update Variant"
               : postLoading
-              ? "Creating..."
-              : "Create Variant"}
+                ? "Creating..."
+                : "Create Variant"}
           </button>
 
         </div>

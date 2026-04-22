@@ -4,7 +4,6 @@ import usePut from "../../../api/hooks/usePut";
 import ProductImages from "./ProductImages";
 import VariantSection from "./VariantSection";
 import AttributeSelector from "./AttributeSelector";
-import VariantGenerator from "./VariantGenerator";
 import ProductSpecifications from "./ProductSpecifications";
 import { X, Save, AlertCircle, Package, Image as ImageIcon, Tag, Settings, ChevronLeft, ChevronRight } from "lucide-react";
 import toast from "react-hot-toast";
@@ -43,7 +42,7 @@ const EditProductModal = ({ productId, onClose, onSuccess }) => {
       short_description: product.short_description || "",
       description: product.description || "",
       price: product.price ?? "",
-      discount_price: product.discount_price ?? "",
+      discount_price: product.discount_price ?? "", // FIXED: Added discount_price
       cost_price: product.cost_price ?? "",
       stock: product.stock ?? "",
       category_id: product.category_id || "",
@@ -77,14 +76,16 @@ const EditProductModal = ({ productId, onClose, onSuccess }) => {
 
     const selectedAttrs = {};
     product.variants.forEach(variant => {
-      variant.attributes.forEach(attr => {
-        if (!selectedAttrs[attr.attribute_id]) {
-          selectedAttrs[attr.attribute_id] = [];
-        }
-        if (!selectedAttrs[attr.attribute_id].includes(attr.value_id)) {
-          selectedAttrs[attr.attribute_id].push(attr.value_id);
-        }
-      });
+      if (variant.attributes) {
+        variant.attributes.forEach(attr => {
+          if (!selectedAttrs[attr.attribute_id]) {
+            selectedAttrs[attr.attribute_id] = [];
+          }
+          if (!selectedAttrs[attr.attribute_id].includes(attr.value_id)) {
+            selectedAttrs[attr.attribute_id].push(attr.value_id);
+          }
+        });
+      }
     });
     setSelectedAttributeValues(selectedAttrs);
   }, [product?.variants]);
@@ -107,19 +108,81 @@ const EditProductModal = ({ productId, onClose, onSuccess }) => {
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
-    const numberFields = ["price", "discount_price", "cost_price", "stock"];
+    const numberFields = ["price", "discount_price", "cost_price", "stock", "length", "width", "height", "weight"];
     setForm((prev) => ({
       ...prev,
       [name]: type === "checkbox" ? checked : numberFields.includes(name) ? (value === "" ? "" : Number(value)) : value,
     }));
   };
 
+  const generateVariants = (selectedValues, attributesList) => {
+    const selectedAttributes = attributesList.filter(attr => 
+      selectedValues[attr.id]?.length > 0
+    );
+
+    if (selectedAttributes.length === 0) return [];
+
+    const valueArrays = selectedAttributes.map(attr => {
+      const selectedValueIds = selectedValues[attr.id] || [];
+      return attr.values.filter(v => selectedValueIds.includes(v.id));
+    });
+
+    const combinations = valueArrays.reduce(
+      (acc, curr) => acc.flatMap(a => curr.map(b => [...a, b])),
+      [[]]
+    );
+
+    return combinations.map(combo => ({
+      attribute_value_ids: combo.map(c => c.id),
+      sku: combo.map(c => c.value).join("-").toUpperCase(),
+      price: "",
+      stock: "",
+      weight: "",
+      barcode: "",
+      newImages: [],
+      previews: [],
+      isSaved: false,
+      isNew: true,
+      isModified: false,
+    }));
+  };
+
+  const handleConfirmVariants = (selected) => {
+    const attributes = attributeData?.data || [];
+    const generated = generateVariants(selected, attributes);
+
+    const map = new Map();
+    const filtered = generated.filter(v => {
+      const key = v.sku?.toLowerCase();
+      if (!key) return false;
+      if (map.has(key)) return false;
+      map.set(key, true);
+      return true;
+    });
+
+    setPendingVariants(filtered);
+    setActiveTab("variants");
+  };
+
   const handleUpdate = async () => {
     try {
       const payload = {
-        ...form,
+        name: form.name,
+        short_description: form.short_description,
+        description: form.description,
+        price: Number(form.price || 0),
+        discount_price: Number(form.discount_price || 0), // FIXED: Added discount_price
+        cost_price: Number(form.cost_price || 0),
+        stock: Number(form.stock || 0),
+        category_id: form.category_id,
+        brand_id: form.brand_id || null,
+        weight: Number(form.weight || 0),
+        length: Number(form.length || 0),
+        width: Number(form.width || 0),
+        height: Number(form.height || 0),
+        is_featured: form.is_featured ? 1 : 0,
         specifications: specifications.length ? specifications : null,
-        approval_status: "pending", // reset on edit
+        approval_status: "pending",
         status: false,
       };
 
@@ -164,7 +227,6 @@ const EditProductModal = ({ productId, onClose, onSuccess }) => {
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex justify-center items-center z-50 p-2 sm:p-4">
       <div className="bg-white rounded-xl sm:rounded-2xl w-full max-w-6xl max-h-[95vh] sm:max-h-[90vh] overflow-hidden shadow-2xl flex flex-col">
-
         {/* Header */}
         <div className="bg-gradient-to-r from-[#7a1c3d] to-[#9b2c4f] px-4 sm:px-6 py-3 sm:py-4 flex justify-between items-center flex-shrink-0">
           <h2 className="text-lg sm:text-2xl font-bold text-white">✏️ Edit Product</h2>
@@ -175,7 +237,6 @@ const EditProductModal = ({ productId, onClose, onSuccess }) => {
 
         {/* Status Banner */}
         {product?.approval_status === "pending" && (
-
           <div className="bg-yellow-50 border-l-4 border-yellow-400 p-3 sm:p-4 mx-3 sm:mx-6 mt-3 sm:mt-4 rounded flex-shrink-0">
             <div className="flex items-start sm:items-center gap-2">
               <AlertCircle className="text-yellow-600 flex-shrink-0" size={16} />
@@ -268,16 +329,16 @@ const EditProductModal = ({ productId, onClose, onSuccess }) => {
                 </select>
               </div>
 
-              <div><label className="block text-sm font-medium mb-1">Price *</label><input name="price" type="number" value={form.price} onChange={handleChange} className="w-full border rounded-lg p-2 sm:p-3 text-sm sm:text-base" /></div>
-              <div><label className="block text-sm font-medium mb-1">Discount Price</label><input name="discount_price" type="number" value={form.discount_price} onChange={handleChange} className="w-full border rounded-lg p-2 sm:p-3 text-sm sm:text-base" /></div>
-              <div><label className="block text-sm font-medium mb-1">Cost Price</label><input name="cost_price" type="number" value={form.cost_price} onChange={handleChange} className="w-full border rounded-lg p-2 sm:p-3 text-sm sm:text-base" /></div>
+              <div><label className="block text-sm font-medium mb-1">Price *</label><input name="price" type="number" step="0.01" value={form.price} onChange={handleChange} className="w-full border rounded-lg p-2 sm:p-3 text-sm sm:text-base" /></div>
+              <div><label className="block text-sm font-medium mb-1">Discount Price</label><input name="discount_price" type="number" step="0.01" value={form.discount_price} onChange={handleChange} className="w-full border rounded-lg p-2 sm:p-3 text-sm sm:text-base" /></div>
+              <div><label className="block text-sm font-medium mb-1">Cost Price</label><input name="cost_price" type="number" step="0.01" value={form.cost_price} onChange={handleChange} className="w-full border rounded-lg p-2 sm:p-3 text-sm sm:text-base" /></div>
               <div><label className="block text-sm font-medium mb-1">Stock</label><input name="stock" type="number" value={form.stock} onChange={handleChange} className="w-full border rounded-lg p-2 sm:p-3 text-sm sm:text-base" /></div>
 
               <div className="grid grid-cols-2 gap-3 sm:col-span-2">
-                <div><label className="block text-sm font-medium mb-1">Length (cm)</label><input name="length" value={form.length} onChange={handleChange} className="w-full border rounded-lg p-2 sm:p-3" /></div>
-                <div><label className="block text-sm font-medium mb-1">Width (cm)</label><input name="width" value={form.width} onChange={handleChange} className="w-full border rounded-lg p-2 sm:p-3" /></div>
-                <div><label className="block text-sm font-medium mb-1">Height (cm)</label><input name="height" value={form.height} onChange={handleChange} className="w-full border rounded-lg p-2 sm:p-3" /></div>
-                <div><label className="block text-sm font-medium mb-1">Weight (kg)</label><input name="weight" value={form.weight} onChange={handleChange} className="w-full border rounded-lg p-2 sm:p-3" /></div>
+                <div><label className="block text-sm font-medium mb-1">Length (cm)</label><input name="length" type="number" step="0.01" value={form.length} onChange={handleChange} className="w-full border rounded-lg p-2 sm:p-3" /></div>
+                <div><label className="block text-sm font-medium mb-1">Width (cm)</label><input name="width" type="number" step="0.01" value={form.width} onChange={handleChange} className="w-full border rounded-lg p-2 sm:p-3" /></div>
+                <div><label className="block text-sm font-medium mb-1">Height (cm)</label><input name="height" type="number" step="0.01" value={form.height} onChange={handleChange} className="w-full border rounded-lg p-2 sm:p-3" /></div>
+                <div><label className="block text-sm font-medium mb-1">Weight (kg)</label><input name="weight" type="number" step="0.01" value={form.weight} onChange={handleChange} className="w-full border rounded-lg p-2 sm:p-3" /></div>
               </div>
 
               <div className="sm:col-span-2">
@@ -313,17 +374,12 @@ const EditProductModal = ({ productId, onClose, onSuccess }) => {
               attributes={attributes}
               selected={selectedAttributeValues}
               onChange={setSelectedAttributeValues}
+              onConfirmVariants={handleConfirmVariants}
             />
           )}
 
           {activeTab === "variants" && (
             <div className="space-y-4 sm:space-y-6">
-              <VariantGenerator
-                attributes={attributes}
-                selectedValues={selectedAttributeValues}
-                onGenerated={setPendingVariants}
-                existingVariants={existingVariants}
-              />
               <VariantSection
                 ref={variantRef}
                 productId={productId}

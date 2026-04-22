@@ -16,7 +16,7 @@ const ProductSpecifications = ({ productId, isLocked = false, onSpecificationsCh
   // ✅ Load specifications when data changes
   useEffect(() => {
     if (data?.data?.specifications) {
-      console.log("Loading specifications:", data.data.specifications);
+      //console.log("Loading specifications:", data.data.specifications);
       setSpecifications(data.data.specifications);
       if (onSpecificationsChange) {
         onSpecificationsChange(data.data.specifications);

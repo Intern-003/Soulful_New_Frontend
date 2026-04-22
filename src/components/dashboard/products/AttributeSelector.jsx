@@ -1,13 +1,13 @@
 import { useEffect } from "react";
 import { Check, Tag } from "lucide-react";
 
-const AttributeSelector = ({ selected = {}, onChange, attributes = [], loading = false }) => {
+const AttributeSelector = ({ selected = {}, onChange, attributes = [], loading = false, onConfirmVariants }) => {
   const toggle = (attrId, valueId) => {
     const existing = selected[attrId] || [];
-    const updatedValues = existing.includes(valueId) 
+    const updatedValues = existing.includes(valueId)
       ? existing.filter((id) => id !== valueId)
       : [...existing, valueId];
-    
+
     onChange({ ...selected, [attrId]: updatedValues });
   };
 
@@ -51,15 +51,15 @@ const AttributeSelector = ({ selected = {}, onChange, attributes = [], loading =
                     }`}
                   >
                     {isSelected && <Check size={14} />}
-                   <div className="flex items-center gap-2">
-  {val.hex && (
-    <span
-      className="w-3 h-3 rounded-full border"
-      style={{ backgroundColor: val.hex }}
-    />
-  )}
-  <span>{val.value}</span>
-</div>
+                    <div className="flex items-center gap-2">
+                      {val.hex_code && (
+                        <span
+                          className="w-3 h-3 rounded-full border"
+                          style={{ backgroundColor: val.hex_code }}
+                        />
+                      )}
+                      <span>{val.value}</span>
+                    </div>
                   </button>
                 );
               })}
@@ -67,6 +67,18 @@ const AttributeSelector = ({ selected = {}, onChange, attributes = [], loading =
           </div>
         ))}
       </div>
+      
+      {onConfirmVariants && (
+        <div className="flex justify-end mt-6">
+          <button
+            onClick={() => onConfirmVariants(selected)}
+            disabled={!Object.values(selected).some(arr => arr?.length)}
+            className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
+          >
+            Confirm Variants
+          </button>
+        </div>
+      )}
     </div>
   );
 };

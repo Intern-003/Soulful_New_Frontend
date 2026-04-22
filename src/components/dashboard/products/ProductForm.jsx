@@ -4,7 +4,6 @@ import usePut from "../../../api/hooks/usePut";
 import useGet from "../../../api/hooks/useGet";
 import VariantSection from "./VariantSection";
 import AttributeSelector from "./AttributeSelector";
-import VariantGenerator from "./VariantGenerator";
 import ProductSpecifications from "./ProductSpecifications";
 import { X, Upload, Save, AlertCircle, CheckCircle, Image as ImageIcon, Package, Settings, Tag, ChevronRight, ChevronLeft } from "lucide-react";
 import toast from "react-hot-toast";
@@ -28,6 +27,7 @@ const ProductForm = ({ data, onClose, onSuccess }) => {
   const [currentStep, setCurrentStep] = useState(1);
   const [isProductSaved, setIsProductSaved] = useState(!!data);
   const [specifications, setSpecifications] = useState([]);
+  const [generatedVariants, setGeneratedVariants] = useState([]);
 
   const [form, setForm] = useState({
     name: "", short_description: "", description: "", price: "", discount_price: "",
@@ -44,7 +44,7 @@ const ProductForm = ({ data, onClose, onSuccess }) => {
 
   useEffect(() => {
     if (!data) return;
-    
+
     setForm({
       name: data.name || "",
       short_description: data.short_description || "",
@@ -68,11 +68,11 @@ const ProductForm = ({ data, onClose, onSuccess }) => {
   }, [data]);
 
   useEffect(() => {
-    if (pendingVariants.length) {
-      variantRef.current?.addVariants(pendingVariants);
-      setPendingVariants([]);
+    if (generatedVariants.length) {
+      variantRef.current?.addVariants(generatedVariants);
+      setGeneratedVariants([]);
     }
-  }, [pendingVariants]);
+  }, [generatedVariants]);
 
   const handleCategoryChange = async (e) => {
     const id = e.target.value;
@@ -120,7 +120,7 @@ const ProductForm = ({ data, onClose, onSuccess }) => {
       short_description: form.short_description,
       description: form.description,
       price: Number(form.price || 0),
-      discount_price: Number(form.discount_price || 0),
+      discount_price: Number(form.discount_price || 0), // FIXED: Added discount_price
       cost_price: Number(form.cost_price || 0),
       stock: Number(form.stock || 0),
       category_id: form.category_id,
@@ -174,7 +174,7 @@ const ProductForm = ({ data, onClose, onSuccess }) => {
     try {
       const fd = new FormData();
       images.forEach(file => fd.append("images[]", file));
-      fd.append("is_primary", 1);
+      fd.append("is_primary", 0); // Let backend handle primary
 
       await postData({
         url: `/vendor/products/${productId}/images`,
@@ -198,7 +198,72 @@ const ProductForm = ({ data, onClose, onSuccess }) => {
   const handleNextStep = () => {
     if (currentStep === 1) createProduct();
     else if (currentStep === 2) uploadProductImages();
-    else if (currentStep < 5) setCurrentStep(currentStep + 1);
+    else if (currentStep < 4) setCurrentStep(currentStep + 1);
+  };
+
+  const generateVariants = (selectedValues, attributesList) => {
+    const selectedAttributes = attributesList.filter(attr =>
+      selectedValues[attr.id]?.length > 0
+    );
+
+    if (selectedAttributes.length === 0) return [];
+
+    const valueArrays = selectedAttributes.map(attr => {
+      const selectedValueIds = selectedValues[attr.id] || [];
+      return attr.values.filter(v => selectedValueIds.includes(v.id));
+    });
+
+    const combinations = valueArrays.reduce(
+      (acc, curr) => acc.flatMap(a => curr.map(b => [...a, b])),
+      [[]]
+    );
+
+    return combinations.map(combo => ({
+      attribute_value_ids: combo.map(c => c.id),
+      sku: combo.map(c => c.value).join("-").toUpperCase(),
+      price: "",
+      stock: "",
+      weight: "",
+      barcode: "",
+      newImages: [],
+      previews: [],
+      isSaved: false,
+      isNew: true,
+      isModified: false,
+    }));
+  };
+
+  const handleConfirmVariants = () => {
+    const attributes = attributeData?.data || [];
+    const generated = generateVariants(selectedAttributeValues, attributes);
+
+    if (generated.length === 0) {
+      toast.error("Please select at least one attribute value");
+      return;
+    }
+
+    // Merge with existing variants - preserve existing data
+    const mergedVariants = generated.map(newVariant => {
+      const existingVariant = existingVariants.find(ev => ev.sku === newVariant.sku);
+      if (existingVariant) {
+        // Preserve existing values
+        return {
+          ...newVariant,
+          price: existingVariant.price || newVariant.price,
+          stock: existingVariant.stock || newVariant.stock,
+          weight: existingVariant.weight || newVariant.weight,
+          barcode: existingVariant.barcode || newVariant.barcode,
+          discount_price: existingVariant.discount_price || newVariant.discount_price,
+          existingImages: existingVariant.existingImages || [],
+          previews: existingVariant.previews || [],
+          isSaved: existingVariant.isSaved || false,
+        };
+      }
+      return newVariant;
+    });
+
+    setGeneratedVariants(mergedVariants);
+    setCurrentStep(5);
   };
 
   const handleFinalSubmit = async () => {
@@ -225,14 +290,13 @@ const ProductForm = ({ data, onClose, onSuccess }) => {
     { number: 1, title: "Basic Info", icon: Package },
     { number: 2, title: "Images", icon: ImageIcon },
     { number: 3, title: "Specifications", icon: Tag },
-    { number: 4, title: "Attributes", icon: Settings },
-    { number: 5, title: "Variants", icon: Package },
+    { number: 4, title: "Attributes & Variants", icon: Settings },
+    { number: 5, title: "Review Variants", icon: Package },
   ];
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex justify-center items-center z-50 p-2 sm:p-4">
       <div className="bg-white rounded-2xl w-full max-w-6xl max-h-[95vh] sm:max-h-[90vh] overflow-hidden shadow-2xl flex flex-col">
-        
         {/* Header */}
         <div className="bg-gradient-to-r from-[#7a1c3d] to-[#9b2c4f] px-4 sm:px-6 py-4 flex justify-between items-center flex-shrink-0">
           <h2 className="text-xl sm:text-2xl font-bold text-white">
@@ -243,7 +307,7 @@ const ProductForm = ({ data, onClose, onSuccess }) => {
           </button>
         </div>
 
-        {/* Step Progress Bar */}
+        {/* Step Progress Bar - Only for new products */}
         {!isEdit && (
           <div className="px-4 sm:px-6 pt-4 sm:pt-6 border-b">
             <div className="flex justify-between items-center">
@@ -274,6 +338,7 @@ const ProductForm = ({ data, onClose, onSuccess }) => {
         <div className="flex-1 overflow-y-auto p-4 sm:p-6">
           {currentStep === 1 && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
+              {/* Form fields - same as before */}
               <div className="sm:col-span-2">
                 <label className="block text-sm font-medium mb-1">Product Name *</label>
                 <input name="name" value={form.name} onChange={handleChange} placeholder="Enter product name"
@@ -310,15 +375,15 @@ const ProductForm = ({ data, onClose, onSuccess }) => {
                   {brands.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
                 </select>
               </div>
-              <div><label className="block text-sm font-medium mb-1">Price *</label><input name="price" type="number" value={form.price} onChange={handleChange} placeholder="0.00" className="w-full border rounded-lg p-2 sm:p-3" /></div>
-              <div><label className="block text-sm font-medium mb-1">Discount Price</label><input name="discount_price" type="number" value={form.discount_price} onChange={handleChange} placeholder="0.00" className="w-full border rounded-lg p-2 sm:p-3" /></div>
-              <div><label className="block text-sm font-medium mb-1">Cost Price</label><input name="cost_price" type="number" value={form.cost_price} onChange={handleChange} placeholder="0.00" className="w-full border rounded-lg p-2 sm:p-3" /></div>
+              <div><label className="block text-sm font-medium mb-1">Price *</label><input name="price" type="number" step="0.01" value={form.price} onChange={handleChange} placeholder="0.00" className="w-full border rounded-lg p-2 sm:p-3" /></div>
+              <div><label className="block text-sm font-medium mb-1">Discount Price</label><input name="discount_price" type="number" step="0.01" value={form.discount_price} onChange={handleChange} placeholder="0.00" className="w-full border rounded-lg p-2 sm:p-3" /></div>
+              <div><label className="block text-sm font-medium mb-1">Cost Price</label><input name="cost_price" type="number" step="0.01" value={form.cost_price} onChange={handleChange} placeholder="0.00" className="w-full border rounded-lg p-2 sm:p-3" /></div>
               <div><label className="block text-sm font-medium mb-1">Stock Quantity</label><input name="stock" type="number" value={form.stock} onChange={handleChange} placeholder="0" className="w-full border rounded-lg p-2 sm:p-3" /></div>
               <div className="grid grid-cols-2 gap-3 sm:col-span-2">
-                <div><label className="block text-sm font-medium mb-1">Length (cm)</label><input name="length" type="number" value={form.length} onChange={handleChange} className="w-full border rounded-lg p-2 sm:p-3" /></div>
-                <div><label className="block text-sm font-medium mb-1">Width (cm)</label><input name="width" type="number" value={form.width} onChange={handleChange} className="w-full border rounded-lg p-2 sm:p-3" /></div>
-                <div><label className="block text-sm font-medium mb-1">Height (cm)</label><input name="height" type="number" value={form.height} onChange={handleChange} className="w-full border rounded-lg p-2 sm:p-3" /></div>
-                <div><label className="block text-sm font-medium mb-1">Weight (kg)</label><input name="weight" type="number" value={form.weight} onChange={handleChange} className="w-full border rounded-lg p-2 sm:p-3" /></div>
+                <div><label className="block text-sm font-medium mb-1">Length (cm)</label><input name="length" type="number" step="0.01" value={form.length} onChange={handleChange} className="w-full border rounded-lg p-2 sm:p-3" /></div>
+                <div><label className="block text-sm font-medium mb-1">Width (cm)</label><input name="width" type="number" step="0.01" value={form.width} onChange={handleChange} className="w-full border rounded-lg p-2 sm:p-3" /></div>
+                <div><label className="block text-sm font-medium mb-1">Height (cm)</label><input name="height" type="number" step="0.01" value={form.height} onChange={handleChange} className="w-full border rounded-lg p-2 sm:p-3" /></div>
+                <div><label className="block text-sm font-medium mb-1">Weight (kg)</label><input name="weight" type="number" step="0.01" value={form.weight} onChange={handleChange} className="w-full border rounded-lg p-2 sm:p-3" /></div>
               </div>
               <div className="sm:col-span-2">
                 <label className="flex items-center gap-3 cursor-pointer">
@@ -362,14 +427,16 @@ const ProductForm = ({ data, onClose, onSuccess }) => {
           )}
 
           {currentStep === 4 && (
-            <AttributeSelector selected={selectedAttributeValues} onChange={setSelectedAttributeValues} attributes={attributes} />
+            <AttributeSelector
+              selected={selectedAttributeValues}
+              onChange={setSelectedAttributeValues}
+              attributes={attributes}
+              onConfirmVariants={handleConfirmVariants}
+            />
           )}
 
           {currentStep === 5 && productId && (
-            <div className="space-y-4 sm:space-y-6">
-              <VariantGenerator attributes={attributes} selectedValues={selectedAttributeValues} onGenerated={setPendingVariants} disabled={!productId || submitting} existingVariants={existingVariants} />
-              <VariantSection ref={variantRef} productId={productId} onVariantsLoaded={setExistingVariants} />
-            </div>
+            <VariantSection ref={variantRef} productId={productId} onVariantsLoaded={setExistingVariants} />
           )}
         </div>
 
@@ -381,12 +448,16 @@ const ProductForm = ({ data, onClose, onSuccess }) => {
           </button>
           <div className="flex flex-col sm:flex-row gap-3">
             <button onClick={onClose} className="px-4 sm:px-6 py-2 border rounded-lg hover:bg-gray-100 transition text-sm sm:text-base">Cancel</button>
-            {currentStep < steps.length ? (
-              <button onClick={handleNextStep} disabled={submitting || uploadingImages || (currentStep === 1 && isProductSaved && !isEdit)}
-                className="bg-[#7a1c3d] text-white px-6 sm:px-8 py-2 rounded-lg hover:bg-[#5e132f] disabled:opacity-50 transition flex items-center justify-center gap-2 text-sm sm:text-base">
+            {currentStep < 5 ? (
+              <button
+                onClick={handleNextStep}
+                disabled={submitting || uploadingImages || (currentStep === 1 && isProductSaved && !isEdit) || currentStep === 4}
+                className="bg-[#7a1c3d] text-white px-6 sm:px-8 py-2 rounded-lg hover:bg-[#5e132f] disabled:opacity-50 transition flex items-center justify-center gap-2 text-sm sm:text-base"
+              >
                 {currentStep === 1 && !isProductSaved && !isEdit ? (submitting ? "Creating..." : "Create Product")
                   : currentStep === 2 ? (uploadingImages ? "Uploading..." : "Upload Images")
-                  : <>Next <ChevronRight size={16} /></>}
+                    : currentStep === 4 ? "Select Attributes Below" : "Next"}
+                {currentStep !== 4 && <ChevronRight size={16} />}
               </button>
             ) : (
               <button onClick={handleFinalSubmit} className="bg-green-600 text-white px-6 sm:px-8 py-2 rounded-lg hover:bg-green-700 transition flex items-center justify-center gap-2 text-sm sm:text-base">
