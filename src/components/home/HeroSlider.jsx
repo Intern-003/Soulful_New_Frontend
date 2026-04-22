@@ -86,17 +86,7 @@ const HeroSlider = () => {
     if (touchStart - touchEnd < -50) handlePrev();
   };
 
-  // Mouse handlers (desktop swipe)
-  const handleMouseDown = (e) => {
-    setTouchStart(e.clientX);
-  };
-
-  const handleMouseUp = (e) => {
-    setTouchEnd(e.clientX);
-
-    if (touchStart - e.clientX > 50) handleNext();
-    if (touchStart - e.clientX < -50) handlePrev();
-  };
+ 
 
   // ✅ Render layout based on banner layout type
   const renderBannerContent = (banner) => {

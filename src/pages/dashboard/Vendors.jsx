@@ -1,120 +1,267 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
+
 import useGet from "../../api/hooks/useGet";
 import usePut from "../../api/hooks/usePut";
 
-import VendorTable from "../../components/dashboard/vendors/VendorTable";
-import VendorKYCModal from "../../components/dashboard/vendors/VendorKYCModal";
+import VendorStats from "../../components/dashboard/vendors/admin/VendorStats";
+import VendorFilters from "../../components/dashboard/vendors/admin/VendorFilters";
+import VendorTable from "../../components/dashboard/vendors/admin/VendorTable";
+import VendorKYCModal from "../../components/dashboard/vendors/admin/VendorKYCModal";
+import VendorDetailsDrawer from "../../components/dashboard/vendors/admin/VendorDetailsDrawer";
 
 const Vendors = () => {
-  // 🔹 FETCH VENDORS
-  const { data, loading, refetch } = useGet("/admin/vendors");
+  const { data, loading, refetch } =
+    useGet("/admin/vendors");
 
-  // 🔹 PUT HOOK
   const { putData } = usePut();
 
-  // 🔹 STATE
-  const [selectedVendor, setSelectedVendor] = useState(null);
-  const [actionLoading, setActionLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
+  const [search, setSearch] =
+    useState("");
 
-  const vendors = data?.data || [];
+  const [status, setStatus] =
+    useState("all");
 
-  // ✅ APPROVE VENDOR
-  const handleApprove = async (id) => {
-    try {
-      setActionLoading(true);
-      setError("");
-      setSuccess("");
+  const [selectedVendor, setSelectedVendor] =
+    useState(null);
 
-      await putData({
-        url: `/admin/vendors/${id}/approve`,
-      });
+  const [kycVendor, setKycVendor] =
+    useState(null);
 
-      setSuccess("Vendor approved successfully");
-      refetch({ force: true });
-    } catch (err) {
-      console.error(err);
-      setError("Failed to approve vendor");
-    } finally {
-      setActionLoading(false);
-    }
-  };
+  const [actionLoading, setActionLoading] =
+    useState(false);
 
-  // ❌ REJECT VENDOR
-  const handleReject = async (id) => {
-    try {
-      setActionLoading(true);
-      setError("");
-      setSuccess("");
+  const [message, setMessage] =
+    useState("");
 
-      await putData({
-        url: `/admin/vendors/${id}/reject`,
-      });
+  const [error, setError] =
+    useState("");
 
-      setSuccess("Vendor rejected successfully");
-      refetch({ force: true });
-    } catch (err) {
-      console.error(err);
-      setError("Failed to reject vendor");
-    } finally {
-      setActionLoading(false);
-    }
-  };
+  const vendors =
+    data?.data || [];
 
-  // 🔹 CLOSE MODAL + REFRESH (important for KYC updates)
-  const handleCloseModal = () => {
-    setSelectedVendor(null);
-    refetch({ force: true });
-  };
+  const filteredVendors =
+    useMemo(() => {
+      return vendors.filter(
+        (vendor) => {
+          const matchesSearch =
+            vendor.store_name
+              ?.toLowerCase()
+              .includes(
+                search.toLowerCase()
+              ) ||
+            vendor.store_slug
+              ?.toLowerCase()
+              .includes(
+                search.toLowerCase()
+              ) ||
+            String(
+              vendor.user_id
+            ).includes(search);
+
+          const matchesStatus =
+            status === "all"
+              ? true
+              : vendor.status ===
+                status;
+
+          return (
+            matchesSearch &&
+            matchesStatus
+          );
+        }
+      );
+    }, [
+      vendors,
+      search,
+      status,
+    ]);
+
+  const handleApprove =
+    async (id) => {
+      try {
+        setActionLoading(
+          true
+        );
+        setError("");
+        setMessage("");
+
+        await putData({
+          url: `/admin/vendors/${id}/approve`,
+        });
+
+        setMessage(
+          "Vendor approved successfully."
+        );
+
+        refetch({
+          force: true,
+        });
+      } catch (err) {
+        setError(
+          "Unable to approve vendor."
+        );
+      } finally {
+        setActionLoading(
+          false
+        );
+      }
+    };
+
+  const handleReject =
+    async (id) => {
+      try {
+        setActionLoading(
+          true
+        );
+        setError("");
+        setMessage("");
+
+        await putData({
+          url: `/admin/vendors/${id}/reject`,
+        });
+
+        setMessage(
+          "Vendor rejected successfully."
+        );
+
+        refetch({
+          force: true,
+        });
+      } catch (err) {
+        setError(
+          "Unable to reject vendor."
+        );
+      } finally {
+        setActionLoading(
+          false
+        );
+      }
+    };
 
   return (
-    <div style={styles.container}>
-      <h2 style={styles.title}>Vendor Management</h2>
+    <div className="p-6 space-y-6">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-slate-900">
+            Vendor Management
+          </h1>
 
-      {/* ❌ ERROR */}
-      {error && <p style={styles.error}>{error}</p>}
+          <p className="text-sm text-slate-500 mt-1">
+            Manage vendor approvals, KYC and marketplace sellers.
+          </p>
+        </div>
 
-      {/* ✅ SUCCESS */}
-      {success && <p style={styles.success}>{success}</p>}
+        <button
+          onClick={() =>
+            refetch({
+              force: true,
+            })
+          }
+          className="rounded-xl border border-slate-300 px-5 py-3 text-sm font-medium hover:bg-slate-50"
+        >
+          Refresh
+        </button>
+      </div>
 
-      {/* 🔹 TABLE */}
-      <VendorTable
-        vendors={vendors}
-        loading={loading}
-        actionLoading={actionLoading}
-        onApprove={handleApprove}
-        onReject={handleReject}
-        onViewKYC={setSelectedVendor}
+      {/* Alerts */}
+      {message && (
+        <div className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
+          {message}
+        </div>
+      )}
+
+      {error && (
+        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {error}
+        </div>
+      )}
+
+      {/* Stats */}
+      <VendorStats
+        vendors={
+          vendors
+        }
       />
 
-      {/* 🔹 KYC MODAL */}
-      {selectedVendor && (
+      {/* Filters */}
+      <VendorFilters
+        search={
+          search
+        }
+        setSearch={
+          setSearch
+        }
+        status={
+          status
+        }
+        setStatus={
+          setStatus
+        }
+        total={
+          filteredVendors.length
+        }
+      />
+
+      {/* Table */}
+      <VendorTable
+        vendors={
+          filteredVendors
+        }
+        loading={
+          loading
+        }
+        actionLoading={
+          actionLoading
+        }
+        onApprove={
+          handleApprove
+        }
+        onReject={
+          handleReject
+        }
+        onViewKYC={
+          setKycVendor
+        }
+        onViewDetails={
+          setSelectedVendor
+        }
+      />
+
+      {/* KYC Modal */}
+      {kycVendor && (
         <VendorKYCModal
-          vendor={selectedVendor}
-          onClose={handleCloseModal}
+          vendor={
+            kycVendor
+          }
+          onClose={() =>
+            setKycVendor(
+              null
+            )
+          }
+          onRefresh={() =>
+            refetch({
+              force: true,
+            })
+          }
+        />
+      )}
+
+      {/* Details Drawer */}
+      {selectedVendor && (
+        <VendorDetailsDrawer
+          vendor={
+            selectedVendor
+          }
+          onClose={() =>
+            setSelectedVendor(
+              null
+            )
+          }
         />
       )}
     </div>
   );
-};
-
-// 🎨 STYLES
-const styles = {
-  container: {
-    padding: "20px",
-  },
-  title: {
-    marginBottom: "15px",
-  },
-  error: {
-    color: "red",
-    marginBottom: "10px",
-  },
-  success: {
-    color: "green",
-    marginBottom: "10px",
-  },
 };
 
 export default Vendors;
