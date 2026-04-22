@@ -7,6 +7,7 @@ import {
   User,
   Search,
   Menu,
+  Shield,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useLocation } from "react-router-dom";
@@ -254,7 +255,6 @@ const Header = () => {
                 >
                   {item.name}
 
-                  {/* <span className="absolute left-0 -bottom-1 h-[1.5px] w-0 bg-[#7A1C3D] transition-all duration-300 group-hover:w-full"></span> */}
                   <span
                     className={`absolute left-0 -bottom-1 h-[1.5px] bg-[#7A1C3D] transition-all duration-300
                       ${location.pathname === item.path ? "w-full" : "w-0 group-hover:w-full"}
@@ -313,7 +313,6 @@ const Header = () => {
               { name: "Fresh Arrivals", path: "/fresharrivals" },
               { name: "Essentials", path: "/category/essentials" },
               { name: "Exclusive", path: "/exclusive" },
-              {name: "Become a Vendor", path: "/BecomeVendor"},
             ].map((item, i) => (
               <span
                 key={i}
@@ -334,6 +333,34 @@ const Header = () => {
                 />
               </span>
             ))}
+          </div>
+          {/* RIGHT SIDE ICONS */}
+          <div className="flex items-center gap-4">
+            <div
+              onClick={() => navigate("/admin")}
+              title="Admin Panel"
+              className="
+                relative overflow-hidden
+                cursor-pointer
+                flex items-center justify-center
+                w-9 h-9 rounded-full
+                bg-[#7A1C3D]/10
+                hover:bg-[#7A1C3D]
+                transition-all duration-300
+                group
+              "
+            >
+              {/* AUTO SHINE (LEFT → RIGHT CONTINUOUS) */}
+              <span
+                className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent"
+                style={{
+                  animation: "shineMove 2.2s linear infinite",
+                }}
+              ></span>
+
+              {/* ICON */}
+              <Shield className="w-5 h-5 text-[#7A1C3D] group-hover:text-white transition duration-300 z-10" />
+            </div>
           </div>
         </div>
       </nav>
@@ -412,10 +439,6 @@ const Header = () => {
               >
                 Become a Vendor
               </span> */}
-
-
-
-
 
               {hasPermission(permissions, "dashboard", "view") && (
                 <span
