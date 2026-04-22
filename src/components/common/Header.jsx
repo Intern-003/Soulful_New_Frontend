@@ -359,7 +359,10 @@ const Header = () => {
               ></span>
 
               {/* ICON */}
-              <Shield className="w-5 h-5 text-[#7A1C3D] group-hover:text-white transition duration-300 z-10" />
+              <Shield
+                onClick={() => navigate("/dashboard")}
+                className="w-5 h-5 text-[#7A1C3D] group-hover:text-white transition duration-300 z-10"
+              />
             </div>
           </div>
         </div>
@@ -440,7 +443,7 @@ const Header = () => {
                 Become a Vendor
               </span> */}
 
-              {hasPermission(permissions, "dashboard", "view") && (
+              {/* {hasPermission(permissions, "dashboard", "view") && (
                 <span
                   onClick={() => {
                     navigate("/dashboard");
@@ -450,7 +453,7 @@ const Header = () => {
                 >
                   Dashboard
                 </span>
-              )}
+              )} */}
               <hr />
               {/* Mobile Search */}
               <div className="relative">

@@ -63,12 +63,11 @@ const Footer = () => {
 
           <ul className="space-y-2 text-sm">
             {[
-              { label: "New Arrivals", path: "/shop" },
-              { label: "Bestsellers", path: "/shop" },
-              { label: "Women's Clothing", path: "/shop" },
-              { label: "Men's Clothing", path: "/shop" },
-              { label: "Accessories", path: "/shop" },
-              { label: "Sale", path: "/shop" },
+              { label: "New Arrivals", path: "/fresharrivals" },
+              { label: "Bestsellers", path: "/bestsellers" },
+              { label: "Shop all", path: "/shop" },
+              { label: "Essentials", path: "/category/essentials" },
+              { label: "Sale", path: "/soulful-special" },
             ].map((item, i) => (
               <li
                 key={i}
@@ -92,10 +91,9 @@ const Footer = () => {
           <ul className="space-y-2 text-sm">
             {[
               { label: "Help Center", path: "/support" },
-              { label: "Order Status", path: "/account" },
-              { label: "Shipping Info", path: "/shipping" },
-              { label: "Returns & Exchanges", path: "/returns" },
-              { label: "Size Guide", path: "/size-guide" },
+              { label: "Shipping Info", path: "/shippinginfo" },
+              { label: "Returns & Exchanges", path: "/returnsexchange" },
+              { label: "Terms & Privacy", path: "/termsprivacy" },
               { label: "Contact Us", path: "/contact" },
             ].map((item, i) => (
               <li
