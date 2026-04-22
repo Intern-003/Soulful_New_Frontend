@@ -86,7 +86,6 @@ const HeroSlider = () => {
     if (touchStart - touchEnd < -50) handlePrev();
   };
 
- 
 
   // ✅ Render layout based on banner layout type
   const renderBannerContent = (banner) => {

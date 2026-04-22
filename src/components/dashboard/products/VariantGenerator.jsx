@@ -7,7 +7,7 @@ const VariantGenerator = ({ attributes, selectedValues, onGenerated, disabled, e
   };
 
   const generate = () => {
-    const hasSelection = Object.values(selectedValues).some((arr) => arr && arr.length > 0);
+    const hasSelection = Object.values(selectedValues).some(arr => arr?.length);
 
     if (!hasSelection) {
       toast.error("Please select attribute values first");
@@ -15,57 +15,44 @@ const VariantGenerator = ({ attributes, selectedValues, onGenerated, disabled, e
     }
 
     const grouped = {};
-    attributes.forEach((attr) => {
+    attributes.forEach(attr => {
       const ids = selectedValues[attr.id] || [];
-      const vals = attr.values.filter((v) => ids.includes(v.id));
+      const vals = attr.values.filter(v => ids.includes(v.id));
       if (vals.length) grouped[attr.id] = vals;
     });
 
     const combos = generateCombinations(Object.values(grouped));
 
-    if (!combos.length) {
-      toast.error("No combinations could be generated");
-      return;
-    }
-
-    const existingSkus = new Set(existingVariants.map(v => v.sku?.toLowerCase()));
-    
-    const result = combos.map((combo) => ({
-      attribute_value_ids: combo.map((c) => c.id),
-      sku: combo.map((c) => c.value).join("-"),
+    const result = combos.map(combo => ({
+      attribute_value_ids: combo.map(c => c.id),
+      sku: combo.map(c => c.value).join("-").toUpperCase(),
       price: "",
       stock: "",
       weight: "",
       barcode: "",
-      image: null,
-      preview: null,
-    })).filter(variant => !existingSkus.has(variant.sku.toLowerCase()));
-
-    if (result.length === 0) {
-      toast.error("All variant combinations already exist");
-      return;
-    }
+      images: [],
+      previews: [],
+      isSaved: false,
+      isNew: true,
+      isEdited: false
+    }));
 
     onGenerated(result);
-    toast.success(`${result.length} new variant(s) generated! 🚀`);
   };
 
   const selectedCount = Object.values(selectedValues).reduce((sum, arr) => sum + (arr?.length || 0), 0);
 
   return (
     <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-5">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-       
-        <button
-          onClick={generate}
-          disabled={disabled || selectedCount === 0}
-          className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 transition flex items-center gap-2"
-        >
-          <Sparkles size={18} />
-          Confirm Variants
-        </button>
-      </div>
-      
+      <button
+        onClick={generate}
+        disabled={disabled || selectedCount === 0}
+        className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white py-3 rounded-lg hover:from-purple-700 hover:to-indigo-700 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+      >
+        <Sparkles size={18} />
+        Generate Variants
+      </button>
+
       {selectedCount === 0 && (
         <div className="mt-3 flex items-center gap-2 text-amber-600 bg-amber-50 p-2 rounded">
           <AlertTriangle size={16} />
