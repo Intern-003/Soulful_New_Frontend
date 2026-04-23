@@ -9,6 +9,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import { Minus, Plus, Trash2 } from "lucide-react";
 import { getImageUrl } from "../../utils/getImageUrl";
+import CartSkeleton from "../../components/shop/CartSkeleton";
 
 const Cart = () => {
   const dispatch = useDispatch();
@@ -34,7 +35,7 @@ const Cart = () => {
   };
 
   if (status === "loading" && items.length === 0) {
-    return <div className="p-10 text-center">Loading cart...</div>;
+    return <CartSkeleton />;
   }
 
   return (

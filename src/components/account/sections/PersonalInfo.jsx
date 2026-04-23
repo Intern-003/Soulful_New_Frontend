@@ -80,12 +80,8 @@ export default function PersonalInfo() {
     }
   };
 
-  // ✅ LOADING
-  if (loading) {
-    return <p className="text-sm text-gray-500">Loading profile...</p>;
-  }
+  if (loading) return <PersonalInfoSkeleton />;
 
-  // ❌ ERROR
   if (error) {
     return <p className="text-red-500">Failed to load profile</p>;
   }
@@ -210,6 +206,44 @@ export default function PersonalInfo() {
               <option value="other">Other</option>
             </select>
           </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PersonalInfoSkeleton() {
+  return (
+    <div className="relative max-w-4xl mx-auto animate-pulse">
+      <div className="bg-white/80 border border-gray-200 rounded-2xl p-6 md:p-8 shadow-sm">
+        {/* HEADER */}
+        <div className="flex justify-between items-center mb-8">
+          <div className="space-y-2">
+            <div className="h-6 w-40 bg-gray-200 rounded"></div>
+            <div className="h-3 w-56 bg-gray-200 rounded"></div>
+          </div>
+
+          <div className="h-9 w-28 bg-gray-200 rounded-lg"></div>
+        </div>
+
+        {/* PROFILE */}
+        <div className="flex items-center gap-6 mb-10">
+          <div className="w-20 h-20 rounded-full bg-gray-200"></div>
+
+          <div className="space-y-2">
+            <div className="h-4 w-32 bg-gray-200 rounded"></div>
+            <div className="h-3 w-40 bg-gray-200 rounded"></div>
+          </div>
+        </div>
+
+        {/* FORM */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="space-y-2">
+              <div className="h-3 w-24 bg-gray-200 rounded"></div>
+              <div className="h-10 w-full bg-gray-200 rounded-lg"></div>
+            </div>
+          ))}
         </div>
       </div>
     </div>

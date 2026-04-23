@@ -16,15 +16,8 @@ export default function Orders() {
 
   const orders = data?.data?.data || []; // 👈 important (pagination structure)
 
-  // ✅ LOADING
-  if (loading) {
-    return <p className="text-sm text-gray-500">Loading orders...</p>;
-  }
-
-  // ❌ ERROR
-  if (error) {
-    return <p className="text-red-500">Failed to load orders</p>;
-  }
+  if (loading) return <OrdersSkeleton />;
+  if (error) return <p className="text-red-500">Failed to load orders</p>;
 
   return (
     <div className="relative">
@@ -145,6 +138,56 @@ export default function Orders() {
               )}
             </AnimatePresence>
           </motion.div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function OrdersSkeleton() {
+  return (
+    <div className="relative animate-pulse">
+      {/* HEADER */}
+      <div className="mb-8 space-y-2">
+        <div className="h-6 w-32 bg-gray-200 rounded"></div>
+        <div className="h-3 w-56 bg-gray-200 rounded"></div>
+      </div>
+
+      {/* CARDS */}
+      <div className="space-y-5">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <div
+            key={i}
+            className="bg-white/80 backdrop-blur-xl border border-gray-200 rounded-2xl p-5"
+          >
+            {/* TOP ROW */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              {/* LEFT */}
+              <div className="space-y-2">
+                <div className="h-3 w-20 bg-gray-200 rounded"></div>
+                <div className="h-4 w-32 bg-gray-200 rounded"></div>
+                <div className="h-3 w-24 bg-gray-200 rounded"></div>
+              </div>
+
+              {/* DATE */}
+              <div className="space-y-2 md:text-center">
+                <div className="h-3 w-16 bg-gray-200 rounded"></div>
+                <div className="h-4 w-20 bg-gray-200 rounded"></div>
+              </div>
+
+              {/* STATUS */}
+              <div className="h-6 w-20 bg-gray-200 rounded-full"></div>
+
+              {/* TOTAL */}
+              <div className="space-y-2 md:text-right">
+                <div className="h-3 w-12 bg-gray-200 rounded"></div>
+                <div className="h-4 w-20 bg-gray-200 rounded"></div>
+              </div>
+
+              {/* ACTION BTN */}
+              <div className="w-9 h-9 bg-gray-200 rounded-full"></div>
+            </div>
+          </div>
         ))}
       </div>
     </div>

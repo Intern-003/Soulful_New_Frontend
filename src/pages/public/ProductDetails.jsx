@@ -22,9 +22,6 @@ import { addToWishlist } from "../../app/slices/wishlistSlice";
 
 const ProductDetails = () => {
   const navigate = useNavigate();
-  // const { slug } = useParams();
-
-  // const { data, loading, error } = useGet(PRODUCT.DETAILS(slug));
 
   const { identifier } = useParams();
 
@@ -44,7 +41,13 @@ const ProductDetails = () => {
   );
 
   const images =
-    product?.images?.map((img) => getImageUrl(img.image_url)) || [];
+    product?.images?.length > 0
+      ? product.images.map((img) =>
+          typeof img?.image_url === "string"
+            ? getImageUrl(img.image_url)
+            : "/fallback.png",
+        )
+      : ["/fallback.png"];
 
   const [currentIndex, setCurrentIndex] = useState(0);
 
@@ -68,44 +71,35 @@ const ProductDetails = () => {
 
   const variants = product?.variants || [];
 
-  // unique colors
   const colors = [
-    ...new Set(variants.map((v) => v.attributes?.Color).filter(Boolean)),
+    ...new Set(variants.map((v) => v.attributes?.Color?.value).filter(Boolean)),
   ];
 
-  // unique sizes
   const sizes = [
-    ...new Set(variants.map((v) => v.attributes?.Size).filter(Boolean)),
+    ...new Set(variants.map((v) => v.attributes?.Size?.value).filter(Boolean)),
   ];
 
   const [selectedColor, setSelectedColor] = useState(null);
   const [selectedSize, setSelectedSize] = useState(null);
 
-  // const selectedVariant = variants.find(
-  //   (v) =>
-  //     v.attributes?.Color === selectedColor &&
-  //     v.attributes?.Size === selectedSize,
-  // );
   const selectedVariant = variants.find((v) => {
-    // ✅ if both selected → exact match
     if (selectedColor && selectedSize) {
       return (
-        v.attributes?.Color === selectedColor &&
-        v.attributes?.Size === selectedSize
+        v.attributes?.Color?.value === selectedColor &&
+        v.attributes?.Size?.value === selectedSize
       );
     }
 
-    // ✅ if only color selected → match first color variant
     if (selectedColor) {
-      return v.attributes?.Color === selectedColor;
+      return v.attributes?.Color?.value === selectedColor;
     }
 
     return false;
   });
 
   const availableSizes = variants
-    .filter((v) => v.attributes?.Color === selectedColor)
-    .map((v) => v.attributes?.Size);
+    .filter((v) => v.attributes?.Color?.value === selectedColor)
+    .map((v) => v.attributes?.Size?.value);
 
   const [qty, setQty] = useState(1);
 
@@ -196,14 +190,6 @@ const ProductDetails = () => {
     });
   };
 
-  // useEffect(() => {
-  //   if (variants.length > 0) {
-  //     setSelectedColor(variants[0]?.attributes?.Color || null);
-  //     setSelectedSize(variants[0]?.attributes?.Size || null);
-  //   }
-  // }, [variants]);
-
-  // if (loading) return <div className="p-10">Loading...</div>;
   if (loading) return <ProductDetailsSkeleton />;
   if (error) return <div>Error loading product</div>;
 
@@ -260,9 +246,10 @@ const ProductDetails = () => {
                 >
                   <img
                     src={
-                      selectedVariant?.image
+                      selectedVariant?.image &&
+                      typeof selectedVariant.image === "string"
                         ? getImageUrl(selectedVariant.image)
-                        : images[currentIndex]
+                        : images[currentIndex] || "/fallback.png"
                     }
                     style={zoomStyle}
                     className="w-full h-full object-contain transition duration-300"

@@ -337,7 +337,6 @@ const Header = () => {
           {/* RIGHT SIDE ICONS */}
           <div className="flex items-center gap-4">
             <div
-              onClick={() => navigate("/admin")}
               title="Admin Panel"
               className="
                 relative overflow-hidden
