@@ -3,7 +3,13 @@ export const AUTH = {
   REGISTER: "/auth/register",
   LOGOUT: "/auth/logout",
   ME: "/auth/me",
+  SEND_OTP: "/send-otp",
+  VERIFY_OTP: "/auth/verify-register",
+
+  GOOGLE: "/auth/google",
 };
+
+
 
 export const PRODUCT = {
   DETAILS: (identifier) => `/products/${identifier}`,

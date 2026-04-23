@@ -57,7 +57,29 @@ export const registerUser = createAsyncThunk(
     }
   }
 );
+export const sendOtp = createAsyncThunk(
+  "auth/sendOtp",
+  async (data, { rejectWithValue }) => {
+    try {
+      const res = await axiosInstance.post(AUTH.SEND_OTP, data);
+      return res.data;
+    } catch (err) {
+      return rejectWithValue(err.response?.data || { message: "OTP send failed" });
+    }
+  }
+);
 
+export const verifyOtp = createAsyncThunk(
+  "auth/verifyOtp",
+  async (data, { rejectWithValue }) => {
+    try {
+      const res = await axiosInstance.post(AUTH.VERIFY_OTP, data);
+      return res.data;
+    } catch (err) {
+      return rejectWithValue(err.response?.data || { message: "OTP verify failed" });
+    }
+  }
+);
 const authSlice = createSlice({
   name: "auth",
   initialState: {
@@ -65,6 +87,10 @@ const authSlice = createSlice({
     token: localStorage.getItem("token") || null,
     role: localStorage.getItem("role") || null,
     permissions: JSON.parse(localStorage.getItem("permissions")) || [],
+
+    otpSent: false,
+    otpVerified: false,
+
     loading: false,
     error: null,
   },
@@ -113,6 +139,30 @@ const authSlice = createSlice({
         state.permissions = action.payload.permissions;
       })
       .addCase(googleLogin.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
+      .addCase(sendOtp.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(sendOtp.fulfilled, (state) => {
+        state.loading = false;
+        state.otpSent = true;
+      })
+      .addCase(sendOtp.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
+
+      .addCase(verifyOtp.pending, (state) => {
+        state.loading = true;
+      })
+      .addCase(verifyOtp.fulfilled, (state) => {
+        state.loading = false;
+        state.otpVerified = true;
+      })
+      .addCase(verifyOtp.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
       })
