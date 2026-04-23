@@ -2,7 +2,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { loginUser, googleLogin } from "../../app/slices/authSlice";
 import LoginForm from "../../components/forms/LoginForm";
 import { useNavigate, Link } from "react-router-dom";
-import { GoogleLogin } from "@react-oauth/google";
+// import { GoogleLogin } from "@react-oauth/google";
 
 export default function Login() {
   const dispatch = useDispatch();
@@ -58,7 +58,7 @@ export default function Login() {
             {/* </div> */}
 
             <div className="mt-4">
-              <GoogleLogin
+              {/* <GoogleLogin
                 onSuccess={async (credentialResponse) => {
                   if (!credentialResponse?.credential) return;
 
@@ -73,7 +73,7 @@ export default function Login() {
                 onError={() => {
                   alert("Google login failed. Try again.");
                 }}
-              />
+              /> */}
             </div>
             {/* Footer */}
             <p className="text-center text-sm text-gray-500 mt-6">
