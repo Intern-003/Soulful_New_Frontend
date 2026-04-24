@@ -1,10 +1,8 @@
 import { useMemo, useState } from "react";
-
+import { getImageUrl } from "../../../../utils/getImageUrl";
 import useGet from "../../../../api/hooks/useGet";
 import usePut from "../../../../api/hooks/usePut";
 
-const BASE_URL =
-  "http://127.0.0.1:8000";
 
 const VendorKYCModal = ({
   vendor,
@@ -274,7 +272,7 @@ const DocumentCard = ({
   onVerify,
   onReject,
 }) => {
-  const fileUrl = `${BASE_URL}/${doc.document_file}`;
+  const fileUrl = getImageUrl(doc.document_file);
 
   const image =
     /\.(jpg|jpeg|png|webp)$/i.test(

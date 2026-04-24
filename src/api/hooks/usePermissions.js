@@ -1,6 +1,8 @@
 import { useSelector } from "react-redux";
 import { useMemo } from "react";
 
+const BASE_URL = import.meta.env.VITE_API_URL;
+
 const usePermissions = () => {
   const permissions = useSelector((state) => state.auth.permissions);
 

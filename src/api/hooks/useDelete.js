@@ -3,6 +3,8 @@
 import { useState } from "react"; // ✅ THIS WAS MISSING
 import axiosInstance from "../axiosInstance";
 
+const BASE_URL = import.meta.env.VITE_API_URL;
+
 const useDelete = (url) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);

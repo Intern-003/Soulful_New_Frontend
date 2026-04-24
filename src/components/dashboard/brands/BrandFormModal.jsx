@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import usePost from "../../../api/hooks/usePost";
 import usePut from "../../../api/hooks/usePut";
 import useGet from "../../../api/hooks/useGet";
+import { getImageUrl } from "../../../utils/getImageUrl";
+
 
 const BrandFormModal = ({ open, onClose, editData, refresh }) => {
   const { postData, loading: postLoading } = usePost();
@@ -41,11 +43,11 @@ const BrandFormModal = ({ open, onClose, editData, refresh }) => {
         logo: null,
       });
 
-      setPreview(
-        editData.logo
-          ? `http://localhost:8000/${editData.logo}`
-          : null
-      );
+setPreview(
+  editData.logo
+    ? getImageUrl(editData.logo)
+    : null
+);
 
       const subIds = editData.subcategories?.map((s) => s.id) || [];
       setSelectedSubcategories(subIds);

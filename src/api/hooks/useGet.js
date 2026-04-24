@@ -1,6 +1,8 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import axiosInstance from "../axiosInstance";
 
+const BASE_URL = import.meta.env.VITE_API_URL;
+
 const cache = {};
 const pendingRequests = {}; // 🔥 prevents duplicate in-flight calls
 

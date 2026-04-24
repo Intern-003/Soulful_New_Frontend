@@ -1,32 +1,31 @@
 import React, { useMemo } from "react";
-import { getImageUrl } from "../../../utils/getImageUrl"; 
+import { getImageUrl } from "../../../utils/getImageUrl";
 
 const CategoryItem = ({ item, onClick, onEdit, onDelete }) => {
-
-  // ✅ Memoized image URL (prevents recalculation)
+  // ✅ Memoized image URL
   const imageUrl = useMemo(() => {
-    if (!item?.image) return "/no-image.png";
-    return `http://127.0.0.1:8000/${item.image}`;
+    return item?.image
+      ? getImageUrl(item.image)
+      : "/no-image.png";
   }, [item?.image]);
 
   return (
     <div className="flex justify-between items-center p-4 border-b hover:bg-gray-50 transition">
-
       {/* LEFT SIDE */}
       <div
         onClick={() => onClick?.(item)}
         className="flex items-center gap-3 cursor-pointer"
       >
-<img
-  src={getImageUrl(item?.image)}
-  alt="category"
-  className="h-10 w-10 object-cover rounded border bg-gray-100"
-  loading="lazy"
-  onError={(e) => {
-    if (e.currentTarget.src.includes("no-image.png")) return;
-    e.currentTarget.src = "/no-image.png";
-  }}
-/>
+        <img
+          src={imageUrl}
+          alt="category"
+          className="h-10 w-10 object-cover rounded border bg-gray-100"
+          loading="lazy"
+          onError={(e) => {
+            if (e.currentTarget.src.includes("no-image.png")) return;
+            e.currentTarget.src = "/no-image.png";
+          }}
+        />
 
         <div>
           <p className="font-semibold text-gray-800">
@@ -41,7 +40,6 @@ const CategoryItem = ({ item, onClick, onEdit, onDelete }) => {
 
       {/* RIGHT SIDE */}
       <div className="flex items-center gap-2">
-
         {/* POSITION */}
         <span className="text-xs text-gray-400">
           #{item?.position ?? "-"}

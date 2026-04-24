@@ -4,6 +4,8 @@ import axios from "axios";
 
 import ProductCard from "../../../components/dashboard/products/ProductCard";
 
+const API_URL = import.meta.env.VITE_API_URL;
+
 const SubCategoryProducts = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -16,23 +18,26 @@ const SubCategoryProducts = () => {
     fetchAll();
   }, [id]);
 
-  // ✅ COMBINED FETCH (better)
   const fetchAll = async () => {
     try {
       setLoading(true);
 
       const [productsRes, categoryRes] = await Promise.all([
         axios.get(
-          `http://127.0.0.1:8000/api/products?category=${id}`
+          `${API_URL}/products?category=${id}`
         ),
         axios.get(
-          `http://127.0.0.1:8000/api/categories/${id}`
+          `${API_URL}/categories/${id}`
         ),
       ]);
 
-      // ✅ SAFE DATA
-      setProducts(productsRes.data?.data?.data || []);
-      setSubcategory(categoryRes.data?.data || {});
+      setProducts(
+        productsRes.data?.data?.data || []
+      );
+
+      setSubcategory(
+        categoryRes.data?.data || {}
+      );
     } catch (err) {
       console.error(err);
     } finally {
@@ -42,7 +47,6 @@ const SubCategoryProducts = () => {
 
   return (
     <div className="p-6 space-y-6">
-
       {/* HEADER */}
       <div className="flex justify-between items-center">
         <div>
@@ -64,7 +68,9 @@ const SubCategoryProducts = () => {
 
         <button
           onClick={() =>
-            navigate(`/dashboard/products/create?category=${id}`)
+            navigate(
+              `/dashboard/products/create?category=${id}`
+            )
           }
           className="bg-green-600 text-white px-4 py-2 rounded hover:opacity-90"
         >
@@ -89,7 +95,10 @@ const SubCategoryProducts = () => {
       ) : (
         <div className="grid grid-cols-3 gap-4">
           {products.map((product) => (
-            <ProductCard key={product.id} product={product} />
+            <ProductCard
+              key={product.id}
+              product={product}
+            />
           ))}
         </div>
       )}
