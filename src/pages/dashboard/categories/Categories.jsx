@@ -1,38 +1,41 @@
 import { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
-  ShieldCheck,
+  FolderTree,
   Plus,
 } from "lucide-react";
 
-import useGet from "../../api/hooks/useGet";
-import useDelete from "../../api/hooks/useDelete";
+import useGet from "../../../api/hooks/useGet";
+import useDelete from "../../../api/hooks/useDelete";
 
-import RoleStats from "../../components/dashboard/roles/RoleStats";
-import RoleFilters from "../../components/dashboard/roles/RoleFilters";
-import RoleTable from "../../components/dashboard/roles/RoleTable";
-import RoleMobileCard from "../../components/dashboard/roles/RoleMobileCard";
-import RoleFormModal from "../../components/dashboard/roles/RoleFormModal";
+import CategoryStats from "../../../components/dashboard/categories/CategoryStats";
+import CategoryFilters from "../../../components/dashboard/categories/CategoryFilters";
+import CategoryTable from "../../../components/dashboard/categories/CategoryTable";
+import CategoryMobileCard from "../../../components/dashboard/categories/CategoryMobileCard";
+import CategoryFormModal from "../../../components/dashboard/categories/CategoryFormModal";
 
 /* ==========================================================
-   FILE NAME: Roles.jsx
+   FILE NAME: Categories.jsx
 
-   ROLES PAGE
-   Elite Final Production Grade
+   FINAL ELITE PRODUCTION GRADE
 
    APIs:
-   GET    /admin/roles
-   POST   /admin/roles
-   PUT    /admin/roles/:id
-   DELETE /admin/roles/:id
+   GET    /categories
+   POST   /admin/categories
+   PUT    /admin/categories/:id
+   DELETE /admin/categories/:id
 ========================================================== */
 
-const Roles = () => {
+const Categories = () => {
+  const navigate =
+    useNavigate();
+
   const {
     data,
     loading,
     refetch,
   } = useGet(
-    "/admin/roles"
+    "/categories"
   );
 
   const {
@@ -50,8 +53,8 @@ const Roles = () => {
   );
 
   const [
-    selectedRole,
-    setSelectedRole,
+    selected,
+    setSelected,
   ] = useState(
     null
   );
@@ -62,8 +65,8 @@ const Roles = () => {
   ] = useState("");
 
   const [
-    selectedType,
-    setSelectedType,
+    selectedStatus,
+    setSelectedStatus,
   ] = useState("");
 
   const [
@@ -74,32 +77,32 @@ const Roles = () => {
   );
 
   /* ==========================================
-     NORMALIZE DATA
+     SAFE DATA
   ========================================== */
-  const roles =
+  const categories =
     data?.data ||
     data ||
     [];
 
   /* ==========================================
-     FILTERED ROLES
+     FILTER + SORT
   ========================================== */
-  const filteredRoles =
+  const filtered =
     useMemo(() => {
       let result = [
-        ...roles,
+        ...categories,
       ];
 
-      /* Search */
+      /* SEARCH */
       if (
         search.trim()
       ) {
         result =
           result.filter(
             (
-              role
+              item
             ) =>
-              role.name
+              item.name
                 ?.toLowerCase()
                 .includes(
                   search.toLowerCase()
@@ -107,193 +110,118 @@ const Roles = () => {
           );
       }
 
-      /* Type */
+      /* STATUS */
       if (
-        selectedType ===
-        "admin"
+        selectedStatus ===
+        "active"
       ) {
         result =
           result.filter(
             (
-              role
+              item
             ) =>
-              role.name
-                ?.toLowerCase()
-                .includes(
-                  "admin"
-                )
+              item.status ===
+                true ||
+              item.status ===
+                1 ||
+              item.status ===
+                "1"
           );
       }
 
       if (
-        selectedType ===
-        "system"
+        selectedStatus ===
+        "inactive"
       ) {
-        const systemRoles =
-          [
-            "admin",
-            "super admin",
-            "vendor",
-            "user",
-            "customer",
-          ];
-
         result =
           result.filter(
             (
-              role
+              item
             ) =>
-              systemRoles.includes(
-                role.name?.toLowerCase()
+              !(
+                item.status ===
+                  true ||
+                item.status ===
+                  1 ||
+                item.status ===
+                  "1"
               )
           );
       }
 
-      if (
-        selectedType ===
-        "custom"
+      /* SORT */
+      switch (
+        sortBy
       ) {
-        const systemRoles =
-          [
-            "admin",
-            "super admin",
-            "vendor",
-            "user",
-            "customer",
-          ];
-
-        result =
-          result.filter(
+        case "az":
+          result.sort(
             (
-              role
+              a,
+              b
             ) =>
-              !systemRoles.includes(
-                role.name?.toLowerCase()
+              a.name.localeCompare(
+                b.name
               )
           );
-      }
+          break;
 
-      /* Sorting */
-      if (
-        sortBy ===
-        "az"
-      ) {
-        result.sort(
-          (
-            a,
-            b
-          ) =>
-            a.name.localeCompare(
-              b.name
-            )
-        );
-      }
+        case "za":
+          result.sort(
+            (
+              a,
+              b
+            ) =>
+              b.name.localeCompare(
+                a.name
+              )
+          );
+          break;
 
-      if (
-        sortBy ===
-        "za"
-      ) {
-        result.sort(
-          (
-            a,
-            b
-          ) =>
-            b.name.localeCompare(
-              a.name
-            )
-        );
-      }
+        case "oldest":
+          result.sort(
+            (
+              a,
+              b
+            ) =>
+              new Date(
+                a.created_at
+              ) -
+              new Date(
+                b.created_at
+              )
+          );
+          break;
 
-      if (
-        sortBy ===
-        "permissions-high"
-      ) {
-        result.sort(
-          (
-            a,
-            b
-          ) =>
-            (b
-              .permissions
-              ?.length ||
-              0) -
-            (a
-              .permissions
-              ?.length ||
-              0)
-        );
-      }
-
-      if (
-        sortBy ===
-        "permissions-low"
-      ) {
-        result.sort(
-          (
-            a,
-            b
-          ) =>
-            (a
-              .permissions
-              ?.length ||
-              0) -
-            (b
-              .permissions
-              ?.length ||
-              0)
-        );
-      }
-
-      if (
-        sortBy ===
-        "oldest"
-      ) {
-        result.sort(
-          (
-            a,
-            b
-          ) =>
-            new Date(
-              a.created_at
-            ) -
-            new Date(
-              b.created_at
-            )
-        );
-      }
-
-      if (
-        sortBy ===
-        "latest"
-      ) {
-        result.sort(
-          (
-            a,
-            b
-          ) =>
-            new Date(
-              b.created_at
-            ) -
-            new Date(
-              a.created_at
-            )
-        );
+        default:
+          result.sort(
+            (
+              a,
+              b
+            ) =>
+              new Date(
+                b.created_at
+              ) -
+              new Date(
+                a.created_at
+              )
+          );
       }
 
       return result;
     }, [
-      roles,
+      categories,
       search,
-      selectedType,
+      selectedStatus,
       sortBy,
     ]);
 
   /* ==========================================
      ACTIONS
   ========================================== */
-  const openCreate =
+
+  const handleCreate =
     () => {
-      setSelectedRole(
+      setSelected(
         null
       );
       setOpenModal(
@@ -301,23 +229,30 @@ const Roles = () => {
       );
     };
 
-  const openEdit =
-    (role) => {
-      setSelectedRole(
-        role
+  const handleEdit =
+    (item) => {
+      setSelected(
+        item
       );
       setOpenModal(
         true
       );
     };
 
+  const handleOpen =
+    (item) => {
+      navigate(
+        `/dashboard/categories/${item.id}`
+      );
+    };
+
   const handleDelete =
     async (
-      role
+      item
     ) => {
       const ok =
         window.confirm(
-          `Delete "${role.name}" role?`
+          `Delete "${item.name}" category?`
         );
 
       if (!ok)
@@ -326,24 +261,26 @@ const Roles = () => {
       try {
         await deleteData(
           {
-            url: `/admin/roles/${role.id}`,
+            url: `/admin/categories/${item.id}`,
           }
         );
 
         refetch();
-      } catch (error) {
+      } catch (
+        error
+      ) {
         console.error(
           error
         );
       }
     };
 
-  const resetFilters =
+  const handleReset =
     () => {
       setSearch(
         ""
       );
-      setSelectedType(
+      setSelectedStatus(
         ""
       );
       setSortBy(
@@ -351,30 +288,34 @@ const Roles = () => {
       );
     };
 
-  const exportRoles =
+  const handleExport =
     () => {
-      const rows =
-        filteredRoles.map(
-          (
-            role
-          ) => ({
-            Name: role.name,
-            Permissions:
-              role
-                .permissions
-                ?.length ||
-              0,
-            Created:
-              role.created_at ||
-              "",
-          })
-        );
-
       if (
-        rows.length ===
+        filtered.length ===
         0
       )
         return;
+
+      const rows =
+        filtered.map(
+          (
+            item
+          ) => ({
+            Name: item.name,
+            Status:
+              item.status
+                ? "Active"
+                : "Inactive",
+            Subcategories:
+              item
+                ?.children
+                ?.length ||
+              0,
+            Products:
+              item.products_count ||
+              0,
+          })
+        );
 
       const csv =
         [
@@ -415,9 +356,10 @@ const Roles = () => {
           "a"
         );
 
-      link.href = url;
+      link.href =
+        url;
       link.download =
-        "roles.csv";
+        "categories.csv";
       link.click();
 
       URL.revokeObjectURL(
@@ -430,47 +372,46 @@ const Roles = () => {
   ========================================== */
   return (
     <div className="space-y-6">
-      {/* PAGE HEADER */}
+      {/* HEADER */}
       <div className="rounded-3xl border border-slate-200 bg-white px-6 py-5 shadow-sm">
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <h1 className="flex items-center gap-2 text-2xl font-bold text-slate-900">
-              <ShieldCheck
+              <FolderTree
                 size={24}
                 className="text-[#7b183f]"
               />
-              Roles
-              Management
+              Categories
             </h1>
 
             <p className="mt-1 text-sm text-slate-500">
-              Create roles and control permissions across the system.
+              Manage categories and organize product hierarchy.
             </p>
           </div>
 
           <button
             onClick={
-              openCreate
+              handleCreate
             }
             className="inline-flex items-center gap-2 rounded-2xl bg-[#7b183f] px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:opacity-95"
           >
             <Plus
               size={18}
             />
-            Add Role
+            Add Category
           </button>
         </div>
       </div>
 
       {/* STATS */}
-      <RoleStats
-        roles={
-          roles
+      <CategoryStats
+        categories={
+          categories
         }
       />
 
       {/* FILTERS */}
-      <RoleFilters
+      <CategoryFilters
         search={
           search
         }
@@ -483,34 +424,37 @@ const Roles = () => {
         setSortBy={
           setSortBy
         }
-        selectedType={
-          selectedType
+        selectedStatus={
+          selectedStatus
         }
-        setSelectedType={
-          setSelectedType
+        setSelectedStatus={
+          setSelectedStatus
         }
-        roles={
-          roles
+        categories={
+          categories
         }
         onReset={
-          resetFilters
+          handleReset
         }
         onExport={
-          exportRoles
+          handleExport
         }
       />
 
       {/* DESKTOP */}
       <div className="hidden lg:block">
-        <RoleTable
-          roles={
-            filteredRoles
+        <CategoryTable
+          categories={
+            filtered
           }
           loading={
             loading
           }
+          onClick={
+            handleOpen
+          }
           onEdit={
-            openEdit
+            handleEdit
           }
           onDelete={
             handleDelete
@@ -522,33 +466,36 @@ const Roles = () => {
       <div className="grid gap-4 lg:hidden">
         {loading
           ? Array.from({
-              length: 5,
+              length: 6,
             }).map(
               (
                 _,
-                index
+                i
               ) => (
                 <div
                   key={
-                    index
+                    i
                   }
-                  className="h-44 animate-pulse rounded-3xl bg-slate-200"
+                  className="h-64 animate-pulse rounded-3xl bg-slate-200"
                 />
               )
             )
-          : filteredRoles.map(
+          : filtered.map(
               (
-                role
+                item
               ) => (
-                <RoleMobileCard
+                <CategoryMobileCard
                   key={
-                    role.id
+                    item.id
                   }
-                  role={
-                    role
+                  item={
+                    item
+                  }
+                  onClick={
+                    handleOpen
                   }
                   onEdit={
-                    openEdit
+                    handleEdit
                   }
                   onDelete={
                     handleDelete
@@ -559,12 +506,12 @@ const Roles = () => {
       </div>
 
       {/* MODAL */}
-      <RoleFormModal
+      <CategoryFormModal
         open={
           openModal
         }
         data={
-          selectedRole
+          selected
         }
         onClose={() =>
           setOpenModal(
@@ -579,4 +526,4 @@ const Roles = () => {
   );
 };
 
-export default Roles;
+export default Categories;

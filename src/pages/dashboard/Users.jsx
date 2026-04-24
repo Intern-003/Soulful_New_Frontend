@@ -1,179 +1,411 @@
-import { useState } from "react";
-import useGet from "../../api/hooks/useGet";
-import usePost from "../../api/hooks/usePost";
+import { useEffect, useMemo, useState } from "react";
+import { Users as UsersIcon } from "lucide-react";
 
-const ITEMS_PER_PAGE = 5;
+import useGet from "../../api/hooks/useGet";
+
+import UserStats from "../../components/dashboard/users/UserStats";
+import UserFilters from "../../components/dashboard/users/UserFilters";
+import UserTable from "../../components/dashboard/users/UserTable";
+import UserMobileCard from "../../components/dashboard/users/UserMobileCard";
+import UserDetailsModal from "../../components/dashboard/users/UserDetailsModal";
+
+/* ==========================================================
+   USERS PAGE
+   Elite Final Production Grade
+
+   APIs Used:
+   GET /admin/users
+   GET /admin/roles
+========================================================== */
 
 const Users = () => {
-  const { data, loading, refetch } = useGet("/admin/users-with-roles");
-  const { data: roleData } = useGet("/admin/roles");
-  const { postData } = usePost();
+const {
+  data: usersRes,
+  loading: usersLoading,
+  refetch: refetchUsers,
+} = useGet("/admin/users-with-roles");
 
-  const users = data || [];
-  const roles = roleData || [];
+const {
+  data: rolesRes,
+} = useGet("/admin/roles");
 
-  const [search, setSearch] = useState("");
-  const [page, setPage] = useState(1);
+  const [search, setSearch] =
+    useState("");
 
-  // 🔥 Assign Role
-  const handleRoleChange = async (userId, roleId) => {
-    try {
-      await postData({
-        url: `/admin/users/${userId}/assign-role`,
-        data: { role_id: Number(roleId) },
-      });
-      refetch();
-    } catch (err) {
-      console.error(err);
-      alert("Failed to update role");
-    }
-  };
+  const [
+    selectedRole,
+    setSelectedRole,
+  ] = useState("");
 
-  // 🔍 Filter
-  const filteredUsers = users.filter((u) =>
-    u.name.toLowerCase().includes(search.toLowerCase()) ||
-    u.email.toLowerCase().includes(search.toLowerCase())
-  );
+  const [
+    selectedStatus,
+    setSelectedStatus,
+  ] = useState("");
 
-  // 📄 Pagination Logic
-  const totalPages = Math.ceil(filteredUsers.length / ITEMS_PER_PAGE);
-  const startIndex = (page - 1) * ITEMS_PER_PAGE;
-  const paginatedUsers = filteredUsers.slice(
-    startIndex,
-    startIndex + ITEMS_PER_PAGE
-  );
+  const [
+    selectedUser,
+    setSelectedUser,
+  ] = useState(null);
+
+  const [
+    modalOpen,
+    setModalOpen,
+  ] = useState(false);
+
+  /* ==========================================
+     NORMALIZE DATA
+  ========================================== */
+  const users =
+    usersRes?.data ||
+    usersRes ||
+    [];
+
+  const roles =
+    rolesRes?.data ||
+    rolesRes ||
+    [];
+
+  /* ==========================================
+     FILTER USERS
+  ========================================== */
+  const filteredUsers =
+    useMemo(() => {
+      return users.filter(
+        (user) => {
+          const matchesSearch =
+            user.name
+              ?.toLowerCase()
+              .includes(
+                search.toLowerCase()
+              ) ||
+            user.email
+              ?.toLowerCase()
+              .includes(
+                search.toLowerCase()
+              );
+
+          const matchesRole =
+            selectedRole ===
+              "" ||
+            String(
+              user.role
+                ?.id ||
+                user.role_id
+            ) ===
+              String(
+                selectedRole
+              );
+
+          const matchesStatus =
+            selectedStatus ===
+              "" ||
+            (selectedStatus ===
+              "active" &&
+              isActive(
+                user.status
+              )) ||
+            (selectedStatus ===
+              "inactive" &&
+              !isActive(
+                user.status
+              ));
+
+          return (
+            matchesSearch &&
+            matchesRole &&
+            matchesStatus
+          );
+        }
+      );
+    }, [
+      users,
+      search,
+      selectedRole,
+      selectedStatus,
+    ]);
+
+  /* ==========================================
+     RESET FILTERS
+  ========================================== */
+  const resetFilters =
+    () => {
+      setSearch("");
+      setSelectedRole(
+        ""
+      );
+      setSelectedStatus(
+        ""
+      );
+    };
+
+  /* ==========================================
+     EXPORT CSV
+  ========================================== */
+  const exportUsers =
+    () => {
+      const rows =
+        filteredUsers.map(
+          (
+            user
+          ) => ({
+            Name: user.name,
+            Email:
+              user.email,
+            Role: getRoleName(
+              user
+            ),
+            Status:
+              isActive(
+                user.status
+              )
+                ? "Active"
+                : "Inactive",
+          })
+        );
+
+      const csv =
+        [
+          Object.keys(
+            rows[0] ||
+              {}
+          ).join(","),
+          ...rows.map(
+            (
+              row
+            ) =>
+              Object.values(
+                row
+              ).join(",")
+          ),
+        ].join("\n");
+
+      const blob =
+        new Blob(
+          [csv],
+          {
+            type: "text/csv",
+          }
+        );
+
+      const url =
+        URL.createObjectURL(
+          blob
+        );
+
+      const link =
+        document.createElement(
+          "a"
+        );
+
+      link.href = url;
+      link.download =
+        "users.csv";
+      link.click();
+
+      URL.revokeObjectURL(
+        url
+      );
+    };
+
+  /* ==========================================
+     VIEW USER
+  ========================================== */
+  const handleView =
+    (user) => {
+      setSelectedUser(
+        user
+      );
+      setModalOpen(
+        true
+      );
+    };
+
+  /* ==========================================
+     DELETE PLACEHOLDER
+  ========================================== */
+  const handleDelete =
+    (user) => {
+      alert(
+        `Delete user: ${user.name}`
+      );
+    };
 
   return (
-    <div className="p-6 space-y-6">
-      {/* HEADER */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-800">
-            Users Management
-          </h1>
-          <p className="text-gray-500 text-sm">
-            Manage users, roles and access
-          </p>
-        </div>
+    <div className="space-y-6">
+      {/* PAGE HEADER */}
+      <div className="rounded-3xl border border-slate-200 bg-white px-6 py-5 shadow-sm">
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div>
+            <h1 className="flex items-center gap-2 text-2xl font-bold text-slate-900">
+              <UsersIcon
+                size={24}
+                className="text-[#7b183f]"
+              />
+              Users
+              Management
+            </h1>
 
-        {/* SEARCH */}
-        <input
-          type="text"
-          placeholder="Search users..."
-          value={search}
-          onChange={(e) => {
-            setSearch(e.target.value);
-            setPage(1);
-          }}
-          className="px-4 py-2 border rounded-xl text-sm w-full md:w-64 focus:outline-none focus:ring-2 focus:ring-[#7a1c3d]"
+            <p className="mt-1 text-sm text-slate-500">
+              Manage all
+              registered
+              users,
+              roles and
+              permissions.
+            </p>
+          </div>
+
+          <div className="rounded-2xl bg-[#7b183f]/10 px-4 py-2 text-sm font-semibold text-[#7b183f]">
+            {
+              filteredUsers.length
+            }{" "}
+            Users
+          </div>
+        </div>
+      </div>
+
+      {/* STATS */}
+      <UserStats
+        users={users}
+      />
+
+      {/* FILTERS */}
+      <UserFilters
+        search={search}
+        setSearch={
+          setSearch
+        }
+        selectedRole={
+          selectedRole
+        }
+        setSelectedRole={
+          setSelectedRole
+        }
+        selectedStatus={
+          selectedStatus
+        }
+        setSelectedStatus={
+          setSelectedStatus
+        }
+        roles={roles}
+        onReset={
+          resetFilters
+        }
+        onExport={
+          exportUsers
+        }
+      />
+
+      {/* DESKTOP TABLE */}
+      <div className="hidden lg:block">
+        <UserTable
+          users={
+            filteredUsers
+          }
+          roles={roles}
+          loading={
+            usersLoading
+          }
+          onRefresh={
+            refetchUsers
+          }
+          onView={
+            handleView
+          }
+          onDelete={
+            handleDelete
+          }
         />
       </div>
 
-      {/* TABLE */}
-      <div className="bg-white rounded-2xl shadow border overflow-hidden">
-        {loading ? (
-          <div className="p-6 space-y-3">
-            {[1, 2, 3, 4].map((i) => (
-              <div
-                key={i}
-                className="h-12 bg-gray-200 animate-pulse rounded"
-              />
-            ))}
-          </div>
-        ) : (
-          <>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="bg-gray-100 text-gray-600 uppercase text-xs">
-                  <tr>
-                    <th className="px-6 py-3 text-left">User</th>
-                    <th className="px-6 py-3 text-left">Email</th>
-                    <th className="px-6 py-3 text-left">Role</th>
-                    <th className="px-6 py-3 text-left">Status</th>
-                  </tr>
-                </thead>
-
-                <tbody>
-                  {paginatedUsers.map((user) => (
-                    <tr
-                      key={user.id}
-                      className="border-t hover:bg-gray-50 transition"
-                    >
-                      <td className="px-6 py-4 font-medium text-gray-800">
-                        {user.name}
-                      </td>
-
-                      <td className="px-6 py-4 text-gray-600">
-                        {user.email}
-                      </td>
-
-                      <td className="px-6 py-4">
-                        <select
-                          value={user.role_id}
-                          onChange={(e) =>
-                            handleRoleChange(user.id, e.target.value)
-                          }
-                          className="px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-[#7a1c3d]"
-                        >
-                          {roles.map((role) => (
-                            <option key={role.id} value={role.id}>
-                              {role.name}
-                            </option>
-                          ))}
-                        </select>
-                      </td>
-
-                      <td className="px-6 py-4">
-                        <span className="px-3 py-1 text-xs rounded-full bg-green-100 text-green-700 font-medium">
-                          Active
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-
-                  {paginatedUsers.length === 0 && (
-                    <tr>
-                      <td
-                        colSpan="4"
-                        className="text-center py-6 text-gray-400"
-                      >
-                        No users found
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-
-            {/* PAGINATION */}
-            <div className="flex items-center justify-between px-6 py-4 border-t">
-              <p className="text-sm text-gray-500">
-                Page {page} of {totalPages || 1}
-              </p>
-
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setPage((p) => Math.max(p - 1, 1))}
-                  disabled={page === 1}
-                  className="px-3 py-1 border rounded-lg text-sm disabled:opacity-50"
-                >
-                  Prev
-                </button>
-
-                <button
-                  onClick={() => setPage((p) => Math.min(p + 1, totalPages))}
-                  disabled={page === totalPages || totalPages === 0}
-                  className="px-3 py-1 border rounded-lg text-sm disabled:opacity-50"
-                >
-                  Next
-                </button>
-              </div>
-            </div>
-          </>
-        )}
+      {/* MOBILE CARDS */}
+      <div className="grid gap-4 lg:hidden">
+        {usersLoading
+          ? Array.from({
+              length: 5,
+            }).map(
+              (
+                _,
+                index
+              ) => (
+                <div
+                  key={
+                    index
+                  }
+                  className="h-44 animate-pulse rounded-3xl bg-slate-200"
+                />
+              )
+            )
+          : filteredUsers.map(
+              (
+                user
+              ) => (
+                <UserMobileCard
+                  key={
+                    user.id
+                  }
+                  user={
+                    user
+                  }
+                  roles={
+                    roles
+                  }
+                  onRefresh={
+                    refetchUsers
+                  }
+                  onView={
+                    handleView
+                  }
+                  onDelete={
+                    handleDelete
+                  }
+                />
+              )
+            )}
       </div>
+
+      {/* DETAILS MODAL */}
+      <UserDetailsModal
+        open={
+          modalOpen
+        }
+        user={
+          selectedUser
+        }
+        onClose={() =>
+          setModalOpen(
+            false
+          )
+        }
+      />
     </div>
   );
 };
 
 export default Users;
+
+/* ==========================================================
+   HELPERS
+========================================================== */
+
+function isActive(
+  status
+) {
+  return (
+    status === true ||
+    status === 1 ||
+    status === "1" ||
+    status ===
+      "active"
+  );
+}
+
+function getRoleName(
+  user
+) {
+  return (
+    user?.role
+      ?.name ||
+    user?.role ||
+    "No Role"
+  );
+}
