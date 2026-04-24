@@ -1,52 +1,44 @@
 import { useState } from "react";
 import axiosInstance from "../axiosInstance";
 
-const usePost = (baseUrl = "") => {
-  const [data, setData] = useState(null);
+const BASE_URL = import.meta.env.VITE_API_URL;
+
+const usePost = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  const postData = async (payload = {}, customConfig = {}) => {
+  const postData = async ({ url, data, headers = {}, config = {} }) => {
     try {
       setLoading(true);
       setError(null);
 
-      // ================= URL =================
-      const url = payload?.url || baseUrl;
+      const token = localStorage.getItem("token");
 
-      // ================= BODY =================
-      const body = payload?.data || payload;
-
-      // ================= FORCE POST =================
-      const res = await axiosInstance({
-        method: "POST", // 🔥 FORCE POST (NO MORE PUT BUG)
-        url,
-        data: body,
-
+      const response = await axiosInstance.post(url, data, {
+        ...config,
         headers: {
-          // auto detect formdata
-          ...(body instanceof FormData
-            ? { "Content-Type": "multipart/form-data" }
-            : { "Content-Type": "application/json" }),
+          Accept: "application/json",
+          Authorization: token ? `Bearer ${token}` : "",
+          ...headers,
         },
-
-        // allow extra configs but NOT method override
-        ...customConfig,
       });
 
-      setData(res.data);
-      return res.data;
+      return response.data;
     } catch (err) {
-      const errorData = err.response?.data || err.message;
-      setError(errorData);
-      throw errorData;
+      const message =
+        err.response?.data?.message ||
+        err.response?.data ||
+        err.message ||
+        "Request failed";
+
+      setError(message);
+      throw err.response?.data || err;
     } finally {
       setLoading(false);
     }
   };
 
   return {
-    data,
     loading,
     error,
     postData,

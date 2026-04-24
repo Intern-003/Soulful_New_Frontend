@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import usePost from "../../../api/hooks/usePost";
 import usePut from "../../../api/hooks/usePut";
 import AttributeSelector from "./AttributeSelector";
+import { getImageUrl } from "../../../utils/getImageUrl";
 
 // 🔥 REAL SKU GENERATOR (FIXED)
 const generateSKU = (values = [], attributes = []) => {
@@ -35,28 +36,31 @@ const VariantForm = ({ productId, data, onClose, onSuccess }) => {
     previews: [],
   });
 
-  const [preview, setPreview] = useState(
-    data?.image
-      ? `http://localhost:8000/storage/${data.image}`
-      : null
-  );
+const API_URL = import.meta.env.VITE_API_URL;
 
-  // 🔥 GROUPED STATE
-  const [selectedValues, setSelectedValues] = useState({});
+const [preview, setPreview] = useState(
+  data?.image
+    ? getImageUrl(data.image)
+    : null
+);
 
-  // 🔹 LOAD ATTRIBUTES (IMPORTANT)
-  useEffect(() => {
-    const fetchAttributes = async () => {
-      try {
-        const res = await fetch(
-          "http://localhost:8000/api/admin/attributes-with-values"
-        );
-        const json = await res.json();
-        setAttributes(json.data || []);
-      } catch (err) {
-        console.error(err);
-      }
-    };
+// 🔥 GROUPED STATE
+const [selectedValues, setSelectedValues] = useState({});
+
+// 🔹 LOAD ATTRIBUTES
+useEffect(() => {
+  const fetchAttributes = async () => {
+    try {
+      const res = await fetch(
+        `${API_URL}/admin/attributes-with-values`
+      );
+
+      const json = await res.json();
+      setAttributes(json.data || []);
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
     fetchAttributes();
   }, []);

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from "react";
+import { useMemo } from "react";
 import { useForm } from "react-hook-form";
 
 const MAX_DESCRIPTION = 300;
@@ -9,161 +9,132 @@ const VendorBasicForm = ({
     store_name: "",
     description: "",
   },
-  setForm,
   loading = false,
   onSubmit,
 }) => {
-  const firstErrorRef = useRef(null);
-
   const {
     register,
     handleSubmit,
     watch,
-    setValue,
     setError,
-    formState: { errors, isValid, isSubmitting },
+    formState: {
+      errors,
+      isValid,
+      isSubmitting,
+      touchedFields,
+    },
   } = useForm({
     mode: "onChange",
     defaultValues: {
-      phone: form.phone || "",
-      store_name: form.store_name || "",
-      description: form.description || "",
+      phone:
+        form.phone || "",
+      store_name:
+        form.store_name ||
+        "",
+      description:
+        form.description ||
+        "",
     },
   });
 
-  const descriptionValue =
-    watch("description") || "";
+  const description =
+    watch(
+      "description"
+    ) || "";
 
-  // Sync external state if parent changes
-  useEffect(() => {
-    setValue("phone", form.phone || "");
-    setValue(
-      "store_name",
-      form.store_name || ""
-    );
-    setValue(
-      "description",
-      form.description || ""
-    );
-  }, [form, setValue]);
+  const phone =
+    watch("phone") ||
+    "";
 
-  // Focus first invalid field
-  useEffect(() => {
-    const firstErrorKey =
-      Object.keys(errors)[0];
+  const busy =
+    loading ||
+    isSubmitting;
 
-    if (!firstErrorKey) return;
+  const progress =
+    useMemo(() => {
+      let count = 0;
 
-    const el =
-      document.querySelector(
-        `[name="${firstErrorKey}"]`
+      if (
+        phone.trim()
+          .length >= 10
+      )
+        count++;
+
+      if (
+        watch(
+          "store_name"
+        )
+          ?.trim()
+          .length >= 3
+      )
+        count++;
+
+      if (
+        description.trim()
+      )
+        count++;
+
+      return Math.round(
+        (count / 3) *
+          100
       );
+    }, [
+      phone,
+      description,
+      watch,
+    ]);
 
-    el?.focus();
-  }, [errors]);
+  const summary =
+    useMemo(() => {
+      if (
+        Object.keys(
+          errors
+        ).length
+      ) {
+        return "Please fix highlighted fields";
+      }
 
-  const phoneRegister = register(
-    "phone",
-    {
-      required:
-        "Phone number is required",
-      validate: (value) => {
-        const clean =
-          value.replace(/\D/g, "");
+      if (isValid) {
+        return "Ready to continue";
+      }
 
-        if (
-          clean.length < 10 ||
-          clean.length > 12
-        ) {
-          return "Enter valid phone number";
-        }
+      return "Fill all required details";
+    }, [
+      errors,
+      isValid,
+    ]);
 
-        return true;
-      },
-      onChange: (e) => {
-        const clean =
-          e.target.value.replace(
-            /[^0-9+]/g,
-            ""
-          );
+  const submitHandler =
+    async (
+      values
+    ) => {
+      const payload =
+        {
+          phone:
+            values.phone.trim(),
+          store_name:
+            values.store_name.trim(),
+          description:
+            values.description.trim(),
+        };
 
-        setValue(
-          "phone",
-          clean,
+      try {
+        await onSubmit?.(
+          payload
+        );
+      } catch (
+        err
+      ) {
+        setError(
+          "root",
           {
-            shouldValidate: true,
+            message:
+              err?.message ||
+              "Unable to continue",
           }
         );
-      },
-    }
-  );
-
-  const storeRegister = register(
-    "store_name",
-    {
-      required:
-        "Store name is required",
-      minLength: {
-        value: 3,
-        message:
-          "Store name must be at least 3 characters",
-      },
-      validate: (value) =>
-        value.trim().length >= 3 ||
-        "Store name is required",
-    }
-  );
-
-  const descRegister = register(
-    "description",
-    {
-      maxLength: {
-        value: MAX_DESCRIPTION,
-        message:
-          "Description too long",
-      },
-    }
-  );
-
-  const remaining =
-    MAX_DESCRIPTION -
-    descriptionValue.length;
-
-  const submitHandler = async (
-    values
-  ) => {
-    const payload = {
-      phone: values.phone.trim(),
-      store_name:
-        values.store_name.trim(),
-      description:
-        values.description.trim(),
+      }
     };
-
-    try {
-      setForm?.(payload);
-      await onSubmit?.(payload);
-    } catch (err) {
-      setError("root", {
-        message:
-          err?.message ||
-          "Submission failed",
-      });
-    }
-  };
-
-  const isBusy =
-    loading || isSubmitting;
-
-  const formSummary = useMemo(
-    () => ({
-      hasErrors:
-        Object.keys(errors).length >
-        0,
-      ready: isValid,
-    }),
-    [errors, isValid]
-  );
 
   return (
     <form
@@ -171,208 +142,231 @@ const VendorBasicForm = ({
         submitHandler
       )}
       noValidate
-      className="space-y-6"
+      className="space-y-7"
     >
       {/* Header */}
       <div>
-        <h3 className="text-2xl font-bold text-slate-900">
-          Business Information
-        </h3>
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <h3 className="text-2xl md:text-3xl font-bold text-slate-900">
+              Business
+              Details
+            </h3>
 
-        <p className="text-sm text-slate-500 mt-1">
-          Tell us about your store
-          to start vendor
-          onboarding.
-        </p>
+            <p className="text-sm text-slate-500 mt-1">
+              Enter your
+              store
+              information
+              to begin
+              vendor
+              onboarding.
+            </p>
+          </div>
+
+          <div className="text-right">
+            <p className="text-xs uppercase tracking-wide text-slate-400">
+              Progress
+            </p>
+
+            <p className="text-xl font-bold text-[#7b1238]">
+              {progress}%
+            </p>
+          </div>
+        </div>
+
+        <div className="mt-4 h-2 rounded-full bg-slate-100 overflow-hidden">
+          <div
+            className="h-full bg-[#7b1238] transition-all duration-300"
+            style={{
+              width: `${progress}%`,
+            }}
+          />
+        </div>
       </div>
 
       {/* Global Error */}
       {errors.root && (
-        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-          {errors.root.message}
+        <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {
+            errors
+              .root
+              .message
+          }
         </div>
       )}
 
-      {/* Phone */}
-      <div>
-        <label
-          htmlFor="phone"
-          className="block text-sm font-medium text-slate-700 mb-2"
-        >
-          Phone Number
-        </label>
-
-        <input
-          id="phone"
-          type="text"
-          name="phone"
-          autoComplete="tel"
-          placeholder="Enter phone number"
-          aria-invalid={
-            !!errors.phone
-          }
-          aria-describedby="phone-error"
-          {...phoneRegister}
-          ref={(e) => {
-            phoneRegister.ref(e);
-            if (
-              errors.phone &&
-              !firstErrorRef.current
-            ) {
-              firstErrorRef.current =
-                e;
-            }
-          }}
-          className={`w-full rounded-xl border px-4 py-3 outline-none transition ${
+      {/* Grid */}
+      <div className="grid md:grid-cols-2 gap-5">
+        {/* Phone */}
+        <Field
+          label="Phone Number"
+          required
+          error={
             errors.phone
-              ? "border-red-300 ring-2 ring-red-100"
-              : "border-slate-300 focus:ring-2 focus:ring-[#7b1238]/20"
-          }`}
-        />
-
-        {errors.phone && (
-          <p
-            id="phone-error"
-            className="mt-2 text-xs text-red-500"
-          >
-            {
-              errors.phone
-                .message
-            }
-          </p>
-        )}
-      </div>
-
-      {/* Store Name */}
-      <div>
-        <label
-          htmlFor="store_name"
-          className="block text-sm font-medium text-slate-700 mb-2"
-        >
-          Store Name
-        </label>
-
-        <input
-          id="store_name"
-          type="text"
-          name="store_name"
-          placeholder="Your brand / business name"
-          aria-invalid={
-            !!errors.store_name
+              ?.message
           }
-          aria-describedby="store-error"
-          {...storeRegister}
-          className={`w-full rounded-xl border px-4 py-3 outline-none transition ${
-            errors.store_name
-              ? "border-red-300 ring-2 ring-red-100"
-              : "border-slate-300 focus:ring-2 focus:ring-[#7b1238]/20"
-          }`}
-        />
-
-        {errors.store_name && (
-          <p
-            id="store-error"
-            className="mt-2 text-xs text-red-500"
-          >
-            {
-              errors
-                .store_name
-                .message
-            }
-          </p>
-        )}
-      </div>
-
-      {/* Description */}
-      <div>
-        <label
-          htmlFor="description"
-          className="block text-sm font-medium text-slate-700 mb-2"
         >
-          Store Description
-        </label>
-
-        <textarea
-          id="description"
-          rows="5"
-          name="description"
-          placeholder="Tell customers about your products and business"
-          aria-invalid={
-            !!errors.description
-          }
-          aria-describedby="description-error"
-          {...descRegister}
-          className={`w-full rounded-xl border px-4 py-3 outline-none resize-none transition ${
-            errors.description
-              ? "border-red-300 ring-2 ring-red-100"
-              : "border-slate-300 focus:ring-2 focus:ring-[#7b1238]/20"
-          }`}
-        />
-
-        <div className="mt-2 flex items-center justify-between">
-          {errors.description ? (
-            <p
-              id="description-error"
-              className="text-xs text-red-500"
-            >
+          <input
+            type="text"
+            placeholder="Enter phone number"
+            autoComplete="tel"
+            {...register(
+              "phone",
               {
-                errors
-                  .description
-                  .message
-              }
-            </p>
-          ) : (
-            <span />
-          )}
+                required:
+                  "Phone number is required",
+                validate:
+                  (
+                    value
+                  ) => {
+                    const clean =
+                      value.replace(
+                        /\D/g,
+                        ""
+                      );
 
-          <p
-            className={`text-xs ${
-              remaining < 40
-                ? "text-amber-500"
-                : "text-slate-400"
-            }`}
+                    return clean.length >=
+                      10 ||
+                      "Enter valid phone number";
+                  },
+              }
+            )}
+            className={inputClass(
+              errors.phone
+            )}
+          />
+        </Field>
+
+        {/* Store */}
+        <Field
+          label="Store Name"
+          required
+          error={
+            errors
+              .store_name
+              ?.message
+          }
+        >
+          <input
+            type="text"
+            placeholder="Your store / brand name"
+            {...register(
+              "store_name",
+              {
+                required:
+                  "Store name is required",
+                minLength:
+                  {
+                    value: 3,
+                    message:
+                      "Minimum 3 characters required",
+                  },
+              }
+            )}
+            className={inputClass(
+              errors.store_name
+            )}
+          />
+        </Field>
+
+        {/* Description */}
+        <div className="md:col-span-2">
+          <Field
+            label="Store Description"
+            error={
+              errors
+                .description
+                ?.message
+            }
           >
-            {
-              descriptionValue.length
-            }
-            /
-            {
-              MAX_DESCRIPTION
-            }
-          </p>
+            <textarea
+              rows="5"
+              placeholder="Tell customers about your products, quality and business..."
+              {...register(
+                "description",
+                {
+                  maxLength:
+                    {
+                      value:
+                        MAX_DESCRIPTION,
+                      message:
+                        "Maximum 300 characters allowed",
+                    },
+                }
+              )}
+              className={inputClass(
+                errors.description
+              )}
+            />
+
+            <div className="mt-2 flex items-center justify-between">
+              <p className="text-xs text-slate-400">
+                Optional but recommended
+              </p>
+
+              <p
+                className={`text-xs ${
+                  MAX_DESCRIPTION -
+                    description.length <
+                  40
+                    ? "text-amber-600"
+                    : "text-slate-400"
+                }`}
+              >
+                {
+                  description.length
+                }
+                /
+                {
+                  MAX_DESCRIPTION
+                }
+              </p>
+            </div>
+          </Field>
         </div>
       </div>
 
-      {/* Info Box */}
-      <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
-        <p className="text-sm text-slate-600 leading-6">
-          Next step: Upload
-          business KYC
-          documents such as
-          GST, PAN, Aadhaar,
-          bank proof and
-          additional licenses.
+      {/* Tips */}
+      <div className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
+        <h4 className="font-semibold text-slate-800">
+          Next Step:
+          KYC Upload
+        </h4>
+
+        <p className="mt-2 text-sm text-slate-600 leading-6">
+          You will upload
+          GST, PAN,
+          Aadhaar, bank
+          proof and any
+          additional
+          required vendor
+          documents.
         </p>
       </div>
 
       {/* Footer */}
-      <div className="flex items-center justify-between gap-4">
-        <div className="text-xs text-slate-500">
-          {formSummary.hasErrors
-            ? "Please fix highlighted fields"
-            : formSummary.ready
-            ? "Ready to continue"
-            : "Fill required fields"}
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+          <p className="text-sm font-medium text-slate-700">
+            {summary}
+          </p>
+
+          <p className="text-xs text-slate-400 mt-1">
+            Secure vendor
+            onboarding &
+            fast approval
+          </p>
         </div>
 
         <button
           type="submit"
           disabled={
-            !isValid || isBusy
+            !isValid ||
+            busy
           }
-          className="min-w-[190px] rounded-xl bg-[#7b1238] px-6 py-3 font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+          className="min-w-[220px] rounded-2xl bg-[#7b1238] px-6 py-3.5 font-semibold text-white shadow-md hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition"
         >
-          {isBusy
+          {busy
             ? "Submitting..."
             : "Continue to KYC"}
         </button>
@@ -380,5 +374,41 @@ const VendorBasicForm = ({
     </form>
   );
 };
+
+const Field = ({
+  label,
+  children,
+  error,
+  required,
+}) => (
+  <div>
+    <label className="mb-2 block text-sm font-semibold text-slate-700">
+      {label}
+
+      {required && (
+        <span className="text-red-500 ml-1">
+          *
+        </span>
+      )}
+    </label>
+
+    {children}
+
+    {error && (
+      <p className="mt-2 text-xs text-red-500">
+        {error}
+      </p>
+    )}
+  </div>
+);
+
+const inputClass = (
+  hasError
+) =>
+  `w-full rounded-2xl border px-4 py-3.5 text-sm outline-none transition resize-none ${
+    hasError
+      ? "border-red-300 ring-2 ring-red-100"
+      : "border-slate-300 focus:ring-2 focus:ring-[#7b1238]/20 focus:border-[#7b1238]"
+  }`;
 
 export default VendorBasicForm;

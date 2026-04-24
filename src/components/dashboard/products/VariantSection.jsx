@@ -28,7 +28,7 @@ const VariantSection = forwardRef(({ productId, onVariantsLoaded }, ref) => {
         const existingImages = v.images || [];
         const previews = existingImages.map(img => {
           const url = img.image_url || img.image;
-          return url ? (url.startsWith('http') ? url : `http://localhost:8000/${url}`) : null;
+          return url ? (url.startsWith('http') ? url : `${BASE_URL}${url}`) : null;
         }).filter(Boolean);
 
         return {
