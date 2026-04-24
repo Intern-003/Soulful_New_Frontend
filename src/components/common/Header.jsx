@@ -194,10 +194,9 @@ const Header = () => {
             {/* DROPDOWN */}
             <div
               className={`absolute right-0 top-full pt-2 z-50 transition-all duration-200
-                ${
-                  profileOpen
-                    ? "opacity-100 visible translate-y-0"
-                    : "opacity-0 invisible translate-y-2"
+                ${profileOpen
+                  ? "opacity-100 visible translate-y-0"
+                  : "opacity-0 invisible translate-y-2"
                 }
               `}
             >
@@ -318,10 +317,9 @@ const Header = () => {
                 key={i}
                 onClick={() => item.path && navigate(item.path)}
                 className={`relative cursor-pointer transition group
-                  ${
-                    location.pathname === item.path
-                      ? "text-[#7A1C3D]"
-                      : "text-gray-700 hover:text-[#7A1C3D]"
+                  ${location.pathname === item.path
+                    ? "text-[#7A1C3D]"
+                    : "text-gray-700 hover:text-[#7A1C3D]"
                   }
                 `}
               >
@@ -336,6 +334,34 @@ const Header = () => {
           </div>
           {/* RIGHT SIDE ICONS */}
           <div className="flex items-center gap-4">
+
+            {/* 
+         {can("dashboard", "view") && (
+  <div
+    title="Admin Panel"
+    className="
+      relative overflow-hidden
+      cursor-pointer
+      flex items-center justify-center
+      w-9 h-9 rounded-full
+      bg-[#7A1C3D]/10
+      hover:bg-[#7A1C3D]
+      transition-all duration-300
+      group
+    "
+  >
+    <span
+      className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent"
+      style={{ animation: "shineMove 2.2s linear infinite" }}
+    />
+
+    <Shield
+      onClick={() => navigate("/dashboard")}
+      className="w-5 h-5 text-[#7A1C3D] group-hover:text-white transition duration-300 z-10"
+    />
+  </div>
+)} */}
+
             <div
               title="Admin Panel"
               className="
