@@ -1,157 +1,221 @@
 import { useState } from "react";
 
-export default function RegisterForm({ onSubmit, loading }) {
+export default function RegisterForm({ onSendOtp, loading }) {
   const [form, setForm] = useState({
     firstName: "",
     lastName: "",
     email: "",
+    phone: "",
     password: "",
     confirmPassword: "",
     subscribeNewsletter: false,
     agreeTerms: false,
   });
 
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [sendMethod, setSendMethod] = useState(null);
+
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     setForm({ ...form, [name]: type === "checkbox" ? checked : value });
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (!form.agreeTerms) return;
+  const validateForm = () => {
+    if (!form.firstName.trim()) return "First name is required";
+    if (!form.lastName.trim()) return "Last name is required";
+    if (!form.password) return "Password is required";
+    if (form.password.length < 6) return "Password must be at least 6 characters";
+    if (form.password !== form.confirmPassword) return "Passwords do not match";
+    if (!form.agreeTerms) return "You must agree to Terms of Service";
+    return null;
+  };
 
-    onSubmit({
-      name: `${form.firstName} ${form.lastName}`,
-      email: form.email,
-      password: form.password,
-      password_confirmation: form.confirmPassword,
-    });
+  const handleSendOtpClick = (type) => {
+    const validationError = validateForm();
+    if (validationError) {
+      alert(validationError);
+      return;
+    }
+
+    if (type === "email" && !form.email) {
+      alert("Please enter email address");
+      return;
+    }
+    if (type === "phone" && !form.phone) {
+      alert("Please enter phone number");
+      return;
+    }
+
+    setSendMethod(type);
+    onSendOtp(form, type);
   };
 
   return (
-    <form onSubmit={handleSubmit} className="w-full">
+    <form className="space-y-5" onSubmit={(e) => e.preventDefault()}>
+      <div className="text-center mb-6">
+        <h1 className="text-3xl font-bold text-[#52233c]">Create Account</h1>
+        <p className="text-sm text-gray-600 mt-2">Join us and start shopping</p>
+      </div>
 
       {/* Names */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <label className="block text-[13px] font-medium text-[#52233c] mb-1">
-            First Name
+            First Name *
           </label>
           <input
             name="firstName"
             placeholder="John"
             value={form.firstName}
             onChange={handleChange}
-            className="w-full h-[38px] px-3 border border-gray-300 rounded-md text-[13px] text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-[#8b0d3a] focus:border-[#8b0d3a]"
+            className="w-full h-[42px] px-3 border border-gray-300 rounded-lg text-[13px] focus:outline-none focus:ring-2 focus:ring-[#8b0d3a] focus:border-transparent"
             required
           />
         </div>
 
         <div>
           <label className="block text-[13px] font-medium text-[#52233c] mb-1">
-            Last Name
+            Last Name *
           </label>
           <input
             name="lastName"
             placeholder="Doe"
             value={form.lastName}
             onChange={handleChange}
-            className="w-full h-[38px] px-3 border border-gray-300 rounded-md text-[13px] text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-[#8b0d3a] focus:border-[#8b0d3a]"
+            className="w-full h-[42px] px-3 border border-gray-300 rounded-lg text-[13px] focus:outline-none focus:ring-2 focus:ring-[#8b0d3a] focus:border-transparent"
             required
           />
         </div>
       </div>
 
       {/* Email */}
-      <div className="mb-5">
+      <div>
         <label className="block text-[13px] font-medium text-[#52233c] mb-1">
           Email Address
         </label>
-        <input
-          name="email"
-          type="email"
-          placeholder="you@example.com"
-          value={form.email}
-          onChange={handleChange}
-          className="w-full h-[38px] px-3 border border-gray-300 rounded-md text-[13px] text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-[#8b0d3a] focus:border-[#8b0d3a]"
-          required
-        />
+        <div className="flex gap-2">
+          <input
+            name="email"
+            type="email"
+            placeholder="your@email.com"
+            value={form.email}
+            onChange={handleChange}
+            className="flex-1 h-[42px] px-3 border border-gray-300 rounded-lg text-[13px] focus:outline-none focus:ring-2 focus:ring-[#8b0d3a] focus:border-transparent"
+          />
+          <button
+            type="button"
+            disabled={loading}
+            onClick={() => handleSendOtpClick("email")}
+            className="px-4 bg-[#8b0d3a] hover:bg-[#6b0a2d] text-white rounded-lg font-medium transition disabled:opacity-50"
+          >
+            {loading && sendMethod === "email" ? "..." : "Send OTP"}
+          </button>
+        </div>
       </div>
 
-      {/* Password */}
-      <div className="mb-4">
+      {/* Phone */}
+      <div>
         <label className="block text-[13px] font-medium text-[#52233c] mb-1">
-          Password
+          Phone Number
         </label>
-
-        <div className="relative">
+        <div className="flex gap-2">
           <input
-            name="password"
-            type="password"
-            placeholder="At least 8 characters"
-            value={form.password}
+            name="phone"
+            placeholder="+1234567890"
+            value={form.phone}
             onChange={handleChange}
-            className="w-full h-[38px] px-3 pr-9 border border-gray-300 rounded-md text-[13px] text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-[#8b0d3a] focus:border-[#8b0d3a]"
-            required
+            className="flex-1 h-[42px] px-3 border border-gray-300 rounded-lg text-[13px] focus:outline-none focus:ring-2 focus:ring-[#8b0d3a] focus:border-transparent"
           />
-          <span className="absolute right-3 top-[9px] text-gray-400 text-sm">
-            👁
-          </span>
+          <button
+            type="button"
+            disabled={loading}
+            onClick={() => handleSendOtpClick("phone")}
+            className="px-4 bg-[#8b0d3a] hover:bg-[#6b0a2d] text-white rounded-lg font-medium transition disabled:opacity-50"
+          >
+            {loading && sendMethod === "phone" ? "..." : "Send OTP"}
+          </button>
         </div>
-
-        <p className="mt-1 text-[11px] text-gray-500 leading-snug">
-          Must be at least 8 characters long and include uppercase, lowercase,
-          number, and special character
+        <p className="text-[11px] text-gray-500 mt-1">
+          You'll receive OTP on either email or phone
         </p>
       </div>
 
-      {/* Confirm Password */}
-      <div className="mb-5">
+      {/* Password */}
+      <div>
         <label className="block text-[13px] font-medium text-[#52233c] mb-1">
-          Confirm Password
+          Password *
         </label>
+        <div className="relative">
+          <input
+            name="password"
+            type={showPassword ? "text" : "password"}
+            placeholder="At least 6 characters"
+            value={form.password}
+            onChange={handleChange}
+            className="w-full h-[42px] px-3 pr-10 border border-gray-300 rounded-lg text-[13px] focus:outline-none focus:ring-2 focus:ring-[#8b0d3a] focus:border-transparent"
+            required
+          />
+          <button
+            type="button"
+            onClick={() => setShowPassword(!showPassword)}
+            className="absolute right-3 top-[12px] text-gray-400 hover:text-gray-600"
+          >
+            {showPassword ? "🙈" : "👁"}
+          </button>
+        </div>
+      </div>
 
+      {/* Confirm Password */}
+      <div>
+        <label className="block text-[13px] font-medium text-[#52233c] mb-1">
+          Confirm Password *
+        </label>
         <div className="relative">
           <input
             name="confirmPassword"
-            type="password"
+            type={showConfirmPassword ? "text" : "password"}
             placeholder="Repeat your password"
             value={form.confirmPassword}
             onChange={handleChange}
-            className="w-full h-[38px] px-3 pr-9 border border-gray-300 rounded-md text-[13px] text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-[#8b0d3a] focus:border-[#8b0d3a]"
+            className="w-full h-[42px] px-3 pr-10 border border-gray-300 rounded-lg text-[13px] focus:outline-none focus:ring-2 focus:ring-[#8b0d3a] focus:border-transparent"
             required
           />
-          <span className="absolute right-3 top-[9px] text-gray-400 text-sm">
-            👁
-          </span>
+          <button
+            type="button"
+            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+            className="absolute right-3 top-[12px] text-gray-400 hover:text-gray-600"
+          >
+            {showConfirmPassword ? "🙈" : "👁"}
+          </button>
         </div>
       </div>
 
       {/* Newsletter */}
-      {/* <div className="flex items-start gap-2 mb-4">
+      <div className="flex items-center gap-2">
         <input
           type="checkbox"
           name="subscribeNewsletter"
           checked={form.subscribeNewsletter}
           onChange={handleChange}
-          className="mt-[2px] w-4 h-4 border-gray-300 rounded"
+          className="w-4 h-4 text-[#8b0d3a] rounded border-gray-300 focus:ring-[#8b0d3a]"
         />
-        <span className="text-[13px] text-gray-600 leading-snug">
-          Subscribe to our newsletter for exclusive offers and updates
-        </span>
-      </div> */}
+        <label className="text-[13px] text-gray-600">
+          Subscribe to our newsletter for updates
+        </label>
+      </div>
 
       {/* Terms */}
-      <div className="flex items-start gap-2 mb-6">
+      <div className="flex items-start gap-2">
         <input
           type="checkbox"
           name="agreeTerms"
           checked={form.agreeTerms}
           onChange={handleChange}
-          className="mt-[2px] w-4 h-4 border-gray-300 rounded"
+          className="mt-[2px] w-4 h-4 text-[#8b0d3a] rounded border-gray-300 focus:ring-[#8b0d3a]"
           required
         />
-        <span className="text-[13px] text-gray-600 leading-snug">
+        <label className="text-[13px] text-gray-600 leading-snug">
           I agree to the{" "}
           <a href="/terms" className="text-[#8b0d3a] font-medium hover:underline">
             Terms of Service
@@ -160,17 +224,8 @@ export default function RegisterForm({ onSubmit, loading }) {
           <a href="/privacy" className="text-[#8b0d3a] font-medium hover:underline">
             Privacy Policy
           </a>
-        </span>
+        </label>
       </div>
-
-      {/* Button */}
-      <button
-        type="submit"
-        disabled={loading}
-        className="w-full h-[40px] bg-[#8b0d3a] hover:bg-[#6f0a2e] text-white text-[14px] font-medium rounded-md transition"
-      >
-        {loading ? "Creating account..." : "Create Account"}
-      </button>
     </form>
   );
 }
