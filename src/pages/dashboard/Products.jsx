@@ -27,6 +27,18 @@ const Products = () => {
   const [selectedProducts, setSelectedProducts] = useState(new Set());
   const [bulkActionLoading, setBulkActionLoading] = useState(false);
 
+  // Modal states
+  const [approvalModal, setApprovalModal] = useState({
+    open: false,
+    product: null,
+    action: null,
+  });
+  
+  const [bulkModal, setBulkModal] = useState({
+    open: false,
+    action: null,
+  });
+
   // Use ref to track initial load
   const isInitialLoad = useRef(true);
 
@@ -89,22 +101,24 @@ const Products = () => {
     setSelectedProducts(newSelected);
   };
 
-  const [approvalModal, setApprovalModal] = useState({
-    open: false,
-    product: null,
-    action: null, // 'approve' | 'reject'
-  });
-
-  // Bulk Approve/Reject handler
-  const handleBulkAction = async (action) => {
+  // Bulk Approve/Reject handler - Opens modal instead of confirm
+  const handleBulkAction = (action) => {
     if (selectedProducts.size === 0) {
       toast.error("Please select products to " + action);
       return;
     }
+    
+    // Open bulk modal
+    setBulkModal({
+      open: true,
+      action: action
+    });
+  };
 
-    if (!window.confirm(`Are you sure you want to ${action} ${selectedProducts.size} product(s)?`)) return;
-
+  // Handle bulk modal submit
+  const handleBulkSubmit = async ({ action, commission, rejection_reason }) => {
     setBulkActionLoading(true);
+    setBulkModal({ open: false, action: null });
 
     // Optimistic update - Update all selected products in UI
     const isApprove = action === 'approve';
@@ -113,7 +127,9 @@ const Products = () => {
         ? {
           ...p,
           approval_status: isApprove ? "approved" : "rejected",
-          status: isApprove ? 1 : 0
+          status: isApprove ? 1 : 0,
+          commission: commission || p.commission,
+          rejection_reason: rejection_reason || p.rejection_reason,
         }
         : p
     ));
@@ -123,7 +139,9 @@ const Products = () => {
         url: `/admin/products/bulk-toggle-approval`,
         data: {
           ids: Array.from(selectedProducts),
-          action: action
+          action: action,
+          commission: commission,
+          rejection_reason: rejection_reason,
         }
       });
 
@@ -140,7 +158,7 @@ const Products = () => {
   };
 
   // Handle dropdown approval change
-  const handleApprovalChange = async (productId, newStatus) => {
+  const handleApprovalChange = (productId, newStatus) => {
     // Don't do anything if status is the same
     const product = localProducts.find(p => p.id === productId);
     if (product.approval_status === newStatus) return;
@@ -161,6 +179,7 @@ const Products = () => {
     }
   };
 
+  // Single Product Approval Modal Component
   const ApprovalModal = ({ product, action, onClose, onSubmit }) => {
     const [commission, setCommission] = useState("");
     const [reason, setReason] = useState("");
@@ -184,51 +203,161 @@ const Products = () => {
     };
 
     return (
-      <div className="fixed inset-0 bg-black/50 flex justify-center items-center z-50">
-        <div className="bg-white p-6 rounded-xl w-[400px] max-w-[90%]">
-          <h2 className="text-lg font-bold mb-4">
-            {action === "approve" ? "Approve" : "Reject"}: {product.name}
-          </h2>
+      <div className="fixed inset-0 bg-black/50 flex justify-center items-center z-50 p-4">
+        <div className="bg-white rounded-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
+          <div className="p-6">
+            <h2 className="text-xl font-bold text-gray-800 mb-4">
+              {action === "approve" ? "Approve Product" : "Reject Product"}
+            </h2>
+            <p className="text-sm text-gray-600 mb-4 break-words">
+              {action === "approve" ? "Approve:" : "Reject:"} {product.name}
+            </p>
 
-          {action === "approve" && (
-            <div className="mb-3">
-              <label className="block text-sm font-medium mb-1">Commission %</label>
-              <input
-                type="number"
-                placeholder="Enter commission percentage"
-                value={commission}
-                onChange={(e) => setCommission(e.target.value)}
-                className="w-full border p-2 rounded focus:ring-2 focus:ring-[#7a1c3d] outline-none"
-              />
+            {action === "approve" && (
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Commission Percentage <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  placeholder="Enter commission percentage"
+                  value={commission}
+                  onChange={(e) => setCommission(e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#7a1c3d] focus:border-transparent outline-none transition"
+                  autoFocus
+                />
+              </div>
+            )}
+
+            {action === "reject" && (
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Rejection Reason <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  placeholder="Enter rejection reason"
+                  value={reason}
+                  onChange={(e) => setReason(e.target.value)}
+                  rows="3"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#7a1c3d] focus:border-transparent outline-none transition resize-none"
+                  autoFocus
+                />
+              </div>
+            )}
+
+            <div className="flex justify-end gap-3 mt-6">
+              <button
+                onClick={onClose}
+                className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition font-medium"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSubmit}
+                className="px-4 py-2 bg-[#7a1c3d] text-white rounded-lg hover:bg-[#5e132f] transition font-medium"
+              >
+                {action === "approve" ? "Approve" : "Reject"}
+              </button>
             </div>
-          )}
+          </div>
+        </div>
+      </div>
+    );
+  };
 
-          {action === "reject" && (
-            <div className="mb-3">
-              <label className="block text-sm font-medium mb-1">Rejection Reason</label>
-              <textarea
-                placeholder="Enter rejection reason"
-                value={reason}
-                onChange={(e) => setReason(e.target.value)}
-                rows="3"
-                className="w-full border p-2 rounded focus:ring-2 focus:ring-[#7a1c3d] outline-none"
-              />
+  // Bulk Approval Modal Component
+  const BulkApprovalModal = ({ action, selectedCount, onClose, onSubmit }) => {
+    const [commission, setCommission] = useState("");
+    const [reason, setReason] = useState("");
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
+    const handleSubmit = async () => {
+      if (action === "approve" && !commission) {
+        toast.error("Please enter commission percentage");
+        return;
+      }
+      if (action === "reject" && !reason) {
+        toast.error("Please enter rejection reason");
+        return;
+      }
+
+      setIsSubmitting(true);
+      await onSubmit({
+        action,
+        commission,
+        rejection_reason: reason,
+      });
+      setIsSubmitting(false);
+    };
+
+    return (
+      <div className="fixed inset-0 bg-black/50 flex justify-center items-center z-50 p-4">
+        <div className="bg-white rounded-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
+          <div className="p-6">
+            <h2 className="text-xl font-bold text-gray-800 mb-2">
+              {action === "approve" ? "Bulk Approve" : "Bulk Reject"} Products
+            </h2>
+            <p className="text-sm text-gray-600 mb-4">
+              You are about to {action} <span className="font-semibold text-[#7a1c3d]">{selectedCount}</span> product(s)
+            </p>
+
+            {action === "approve" && (
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Commission Percentage <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  placeholder="Enter commission percentage for all products"
+                  value={commission}
+                  onChange={(e) => setCommission(e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#7a1c3d] focus:border-transparent outline-none transition"
+                  autoFocus
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  This commission will apply to all selected products
+                </p>
+              </div>
+            )}
+
+            {action === "reject" && (
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Rejection Reason <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  placeholder="Enter rejection reason for all products"
+                  value={reason}
+                  onChange={(e) => setReason(e.target.value)}
+                  rows="3"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#7a1c3d] focus:border-transparent outline-none transition resize-none"
+                  autoFocus
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  This reason will apply to all selected products
+                </p>
+              </div>
+            )}
+
+            <div className="flex justify-end gap-3 mt-6">
+              <button
+                onClick={onClose}
+                disabled={isSubmitting}
+                className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition font-medium disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSubmit}
+                disabled={isSubmitting}
+                className="px-4 py-2 bg-[#7a1c3d] text-white rounded-lg hover:bg-[#5e132f] transition font-medium disabled:opacity-50 flex items-center gap-2"
+              >
+                {isSubmitting && <RefreshCw size={16} className="animate-spin" />}
+                {action === "approve" ? "Approve All" : "Reject All"}
+              </button>
             </div>
-          )}
-
-          <div className="flex justify-end gap-2 mt-4">
-            <button 
-              onClick={onClose}
-              className="px-4 py-2 border rounded-lg hover:bg-gray-50 transition"
-            >
-              Cancel
-            </button>
-            <button 
-              onClick={handleSubmit} 
-              className="bg-[#7a1c3d] text-white px-4 py-2 rounded-lg hover:bg-[#5e132f] transition"
-            >
-              Submit
-            </button>
           </div>
         </div>
       </div>
@@ -276,6 +405,8 @@ const Products = () => {
               ...p,
               approval_status: action === "approve" ? "approved" : "rejected",
               status: action === "approve" ? 1 : 0,
+              commission: commission || p.commission,
+              rejection_reason: rejection_reason || p.rejection_reason,
             }
             : p
         )
@@ -384,13 +515,13 @@ const Products = () => {
       )}
 
       {/* Filters */}
-      <div className="flex flex-wrap gap-3 mb-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
         <input
           type="text"
           placeholder="Search product..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="border px-3 py-2 rounded-lg w-full sm:w-64 text-sm focus:ring-2 focus:ring-[#7a1c3d] outline-none"
+          className="border px-3 py-2 rounded-lg text-sm focus:ring-2 focus:ring-[#7a1c3d] outline-none"
         />
         <select
           value={stockFilter}
@@ -432,7 +563,7 @@ const Products = () => {
               <th className="p-3 sm:p-4 w-10">
                 <button
                   onClick={toggleSelectAll}
-                  className="text-gray-600 hover:text-gray-800"
+                  className="text-gray-600 hover:text-gray-800 transition"
                 >
                   {selectedProducts.size === filteredProducts.length && filteredProducts.length > 0 ? (
                     <CheckSquare size={18} />
@@ -464,11 +595,11 @@ const Products = () => {
                   product?.images?.[0]?.image_url;
 
                 return (
-                  <tr key={product.id} className="border-t hover:bg-gray-50">
+                  <tr key={product.id} className="border-t hover:bg-gray-50 transition">
                     <td className="p-3 sm:p-4">
                       <button
                         onClick={() => toggleSelectProduct(product.id)}
-                        className="text-gray-600 hover:text-gray-800"
+                        className="text-gray-600 hover:text-gray-800 transition"
                       >
                         {selectedProducts.has(product.id) ? (
                           <CheckSquare size={18} />
@@ -511,7 +642,7 @@ const Products = () => {
                             : product.approval_status === "rejected"
                             ? "bg-red-100 text-red-700 border-red-300"
                             : "bg-yellow-100 text-yellow-700 border-yellow-300"
-                        } disabled:opacity-50`}
+                        } disabled:opacity-50 cursor-pointer`}
                       >
                         <option value="pending" className="bg-white text-yellow-700">
                           ⏳ Pending
@@ -575,13 +706,22 @@ const Products = () => {
         </table>
       </div>
 
-      {/* Approval Modal */}
+      {/* Modals */}
       {approvalModal.open && (
         <ApprovalModal
           product={approvalModal.product}
           action={approvalModal.action}
           onClose={() => setApprovalModal({ open: false, product: null, action: null })}
           onSubmit={handleApprovalSubmit}
+        />
+      )}
+
+      {bulkModal.open && (
+        <BulkApprovalModal
+          action={bulkModal.action}
+          selectedCount={selectedProducts.size}
+          onClose={() => setBulkModal({ open: false, action: null })}
+          onSubmit={handleBulkSubmit}
         />
       )}
 
@@ -621,7 +761,7 @@ const Products = () => {
         </div>
       )}
 
-      {/* Modals */}
+      {/* Other Modals */}
       {showModal && (
         <ProductForm
           onClose={() => setShowModal(false)}
