@@ -1,9 +1,10 @@
-// ✅ FINAL PRO CATEGORY FORM (WITH TOAST + IMAGE + CREATE/UPDATE FIXED)
+// ✅ FINAL PRO CATEGORY FORM (FIXED FOR API + IMAGE URL + LOCAL/PRODUCTION READY)
 
 import { useEffect, useState } from "react";
 import usePost from "../../../api/hooks/usePost";
 import usePut from "../../../api/hooks/usePut";
 import toast from "react-hot-toast";
+import { getImageUrl } from "../../../utils/getImageUrl";
 
 const CategoryForm = ({ data, onClose, onSuccess }) => {
   const isEdit = !!data?.id;
@@ -31,7 +32,9 @@ const CategoryForm = ({ data, onClose, onSuccess }) => {
       });
 
       if (data.image) {
-        setPreview(`http://127.0.0.1:8000/storage/${data.image}`);
+        setPreview(getImageUrl(data.image));
+      } else {
+        setPreview(null);
       }
     }
   }, [data]);
@@ -86,8 +89,8 @@ const CategoryForm = ({ data, onClose, onSuccess }) => {
         toast.success("Category created successfully");
       }
 
-      onSuccess();
-      onClose();
+      onSuccess?.();
+      onClose?.();
     } catch (err) {
       console.error(err);
 
@@ -105,7 +108,7 @@ const CategoryForm = ({ data, onClose, onSuccess }) => {
 
   return (
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
-      <div className="bg-white rounded-2xl shadow-xl p-6 w-[420px] space-y-5 animate-fadeIn">
+      <div className="bg-white rounded-2xl shadow-xl p-6 w-[420px] space-y-5">
         <h2 className="text-xl font-semibold text-gray-800">
           {isEdit ? "Edit Category" : "Create Category"}
         </h2>
@@ -121,7 +124,7 @@ const CategoryForm = ({ data, onClose, onSuccess }) => {
           value={form.name}
           onChange={handleChange}
           placeholder="Category Name"
-          className="w-full border p-2 rounded-lg focus:ring-2 focus:ring-blue-400"
+          className="w-full border p-2 rounded-lg"
         />
 
         <textarea
@@ -129,7 +132,7 @@ const CategoryForm = ({ data, onClose, onSuccess }) => {
           value={form.description}
           onChange={handleChange}
           placeholder="Description"
-          className="w-full border p-2 rounded-lg focus:ring-2 focus:ring-blue-400"
+          className="w-full border p-2 rounded-lg"
         />
 
         <input
@@ -149,7 +152,7 @@ const CategoryForm = ({ data, onClose, onSuccess }) => {
         <button
           onClick={handleSubmit}
           disabled={loading}
-          className="w-full bg-blue-600 hover:bg-blue-700 transition text-white py-2 rounded-lg flex justify-center"
+          className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg"
         >
           {loading ? "Saving..." : "Save"}
         </button>
@@ -166,23 +169,3 @@ const CategoryForm = ({ data, onClose, onSuccess }) => {
 };
 
 export default CategoryForm;
-
-
-// ✅ IMAGE HELPER (NO ERRORS)
-
-export const getImage = (path) => {
-  if (!path || path.includes("tmp")) return "/no-image.png";
-  return `http://127.0.0.1:8000/storage/${path}`;
-};
-
-// ✅ USE LIKE:
-// <img
-//   src={getImage(item.image)}
-//   onError={(e) => (e.target.src = "/no-image.png")}
-// />
-
-
-// ✅ IMPORTANT: ADD THIS IN App.jsx
-
-// import { Toaster } from "react-hot-toast";
-// <Toaster position="top-right" />

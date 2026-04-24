@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import useGet from "../../../api/hooks/useGet";
 import useDelete from "../../../api/hooks/useDelete";
 import VariantForm from "./VariantForm";
+import { getImageUrl } from "../../../utils/getImageUrl";
 
 const VariantManager = ({ productId }) => {
   const { data, loading, refetch } = useGet(
@@ -23,7 +24,7 @@ const VariantManager = ({ productId }) => {
     }
   }, [data]);
 
-  // 🔥 DELETE (INSTANT UI)
+  // 🔥 DELETE
   const handleDelete = async (id) => {
     if (!window.confirm("Delete variant?")) return;
 
@@ -32,8 +33,9 @@ const VariantManager = ({ productId }) => {
         url: `/vendor/product-variants/${id}`,
       });
 
-      // ✅ instant remove
-      setVariants((prev) => prev.filter((v) => v.id !== id));
+      setVariants((prev) =>
+        prev.filter((v) => v.id !== id)
+      );
 
       alert("Variant Deleted ❌");
     } catch (err) {
@@ -41,14 +43,13 @@ const VariantManager = ({ productId }) => {
     }
   };
 
-  // 🔥 HANDLE SUCCESS (CREATE / UPDATE)
+  // 🔥 SUCCESS
   const handleSuccess = () => {
-    refetch(); // keep backend sync
+    refetch();
   };
 
   return (
     <div className="mt-8">
-
       {/* HEADER */}
       <div className="flex justify-between items-center mb-4">
         <h3 className="text-lg font-semibold text-gray-800">
@@ -84,7 +85,6 @@ const VariantManager = ({ productId }) => {
       {variants.length > 0 && (
         <div className="overflow-x-auto border rounded-lg">
           <table className="w-full text-sm">
-
             <thead className="bg-gray-100 text-gray-700">
               <tr>
                 <th className="p-3 text-left">Image</th>
@@ -98,15 +98,21 @@ const VariantManager = ({ productId }) => {
 
             <tbody>
               {variants.map((v) => (
-                <tr key={v.id} className="border-t hover:bg-gray-50">
-
+                <tr
+                  key={v.id}
+                  className="border-t hover:bg-gray-50"
+                >
                   {/* IMAGE */}
                   <td className="p-3">
                     {v.image ? (
                       <img
-                        src={`http://127.0.0.1:8000/storage/${v.image}`}
+                        src={getImageUrl(v.image)}
                         alt="variant"
                         className="h-12 w-12 object-cover rounded border"
+                        onError={(e) => {
+                          e.currentTarget.src =
+                            "/no-image.png";
+                        }}
                       />
                     ) : (
                       <div className="h-12 w-12 bg-gray-200 rounded flex items-center justify-center text-xs text-gray-400">
@@ -164,30 +170,28 @@ const VariantManager = ({ productId }) => {
 
                   {/* ACTIONS */}
                   <td className="p-3 flex gap-2">
-
                     <button
                       onClick={() => {
                         setSelected(v);
                         setOpen(true);
                       }}
-                      className="bg-blue-500 text-white px-3 py-1 rounded text-xs hover:opacity-90"
+                      className="bg-blue-500 text-white px-3 py-1 rounded text-xs"
                     >
                       Edit
                     </button>
 
                     <button
-                      onClick={() => handleDelete(v.id)}
-                      className="bg-red-500 text-white px-3 py-1 rounded text-xs hover:opacity-90"
+                      onClick={() =>
+                        handleDelete(v.id)
+                      }
+                      className="bg-red-500 text-white px-3 py-1 rounded text-xs"
                     >
                       Delete
                     </button>
-
                   </td>
-
                 </tr>
               ))}
             </tbody>
-
           </table>
         </div>
       )}
@@ -201,7 +205,6 @@ const VariantManager = ({ productId }) => {
           onSuccess={handleSuccess}
         />
       )}
-
     </div>
   );
 };
