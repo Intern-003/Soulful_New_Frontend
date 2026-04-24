@@ -10,15 +10,13 @@ const HeroSlider = () => {
   const { data, loading } = useGet("/admin/banners");
   const banners = data?.data || [];
   const navigate = useNavigate();
+  const autoSlideRef = useRef(null);
 
   const [current, setCurrent] = useState(0);
-
-  // touch
   const [touchStart, setTouchStart] = useState(0);
   const [touchEnd, setTouchEnd] = useState(0);
-  const sliderRef = useRef(null);
 
-  // ✅ Process banners with full data
+  // Process banners with full data
   const processedBanners = useMemo(() => {
     return banners.map((banner) => ({
       ...banner,
@@ -27,7 +25,7 @@ const HeroSlider = () => {
     }));
   }, [banners]);
 
-  // ✅ Preload images
+  // Preload images
   useEffect(() => {
     if (!processedBanners.length) return;
     processedBanners.forEach((b) => {
@@ -36,15 +34,7 @@ const HeroSlider = () => {
     });
   }, [processedBanners]);
 
-  // 🔥 AUTO SLIDE (FAST)
-  const startAutoSlide = () => {
-    if (autoSlideRef.current) clearInterval(autoSlideRef.current);
-
-    autoSlideRef.current = setInterval(() => {
-      setCurrent((prev) => (prev + 1) % bannerImages.length);
-    }, 3000);
-  };
-
+  // Auto slide
   useEffect(() => {
     if (!processedBanners.length) return;
     const interval = setInterval(() => {
@@ -61,22 +51,21 @@ const HeroSlider = () => {
     setCurrent((prev) => (prev === 0 ? processedBanners.length - 1 : prev - 1));
   };
 
-  // Touch handlers
   const handleTouchStart = (e) => {
     setTouchStart(e.targetTouches[0].clientX);
-    clearInterval(autoSlideRef.current); // pause only on touch
+    if (autoSlideRef.current) clearInterval(autoSlideRef.current);
   };
 
   const handleTouchMove = (e) => {
     setTouchEnd(e.targetTouches[0].clientX);
   };
+
   const handleMouseDown = (e) => {
     setTouchStart(e.clientX);
   };
 
   const handleMouseUp = (e) => {
     setTouchEnd(e.clientX);
-
     if (touchStart - e.clientX > 50) handleNext();
     if (touchStart - e.clientX < -50) handlePrev();
   };
@@ -86,67 +75,62 @@ const HeroSlider = () => {
     if (touchStart - touchEnd < -50) handlePrev();
   };
 
-  // ✅ Render layout based on banner layout type
+  // Render layout based on banner layout type
   const renderBannerContent = (banner) => {
-    const {
-      layout = "grid",
-      products = [],
-      title,
-      subtitle,
-      description,
-    } = banner;
+    const { layout = "grid", products = [], title, subtitle, description } = banner;
 
     // ========== GRID LAYOUT ==========
     if (layout === "grid") {
       return (
-        <div className="relative z-10 p-4 sm:p-6 md:p-8 h-full flex flex-col md:flex-row items-center justify-between gap-6">
-          {/* LEFT SIDE - Text */}
-          <div className="text-white flex-1">
-            <span className="inline-block bg-white/20 backdrop-blur-sm px-4 py-1.5 rounded-full text-xs font-semibold tracking-wide mb-4">
-              {title || "Special Offer"}
+        <div className="relative z-10 p-6 sm:p-8 md:p-10 lg:p-12 h-full flex flex-col lg:flex-row items-center justify-between gap-6 lg:gap-10">
+          {/* LEFT SIDE - Text Section */}
+          <div className="text-white flex-1 text-center lg:text-left max-w-xl">
+            <span className="inline-block bg-white/20 backdrop-blur-md px-5 py-2 rounded-full text-xs sm:text-sm font-semibold tracking-wider mb-4 sm:mb-5 shadow-lg">
+              {title || "EXCLUSIVE OFFER"}
             </span>
-            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-4 drop-shadow-lg">
+            <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold mb-4 sm:mb-5 drop-shadow-2xl leading-tight">
               {subtitle || "Premium Collection"}
             </h1>
-            <p className="text-sm sm:text-base opacity-95 drop-shadow max-w-md mb-6">
-              {description ||
-                "Discover premium quality products from our marketplace."}
+            <p className="text-base sm:text-lg md:text-xl opacity-95 drop-shadow-lg mb-6 sm:mb-8 leading-relaxed">
+              {description || "Discover premium quality products from our curated marketplace."}
             </p>
             <button
-              onClick={() =>
-                products[0] && navigate(getProductPath(products[0]))
-              }
-              className="bg-white text-black px-6 py-3 rounded-md text-sm font-medium hover:bg-gray-100 transition shadow-lg"
+              onClick={() => products[0] && navigate(getProductPath(products[0]))}
+              className="bg-white text-gray-900 px-8 py-3.5 rounded-lg text-base sm:text-lg font-semibold hover:bg-gray-50 transition-all duration-300 shadow-xl hover:shadow-2xl hover:scale-105 transform inline-flex items-center gap-2"
             >
-              Shop Now →
+              Shop Now
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+              </svg>
             </button>
           </div>
 
-          {/* RIGHT SIDE - Products Grid */}
+          {/* RIGHT SIDE - Products Grid - Square Images */}
           {products.length > 0 && (
-            <div className="w-full md:w-1/2 lg:w-2/5">
-              <div className="grid grid-cols-2 gap-3 sm:gap-4">
+            <div className="w-full lg:w-1/2 xl:w-2/5">
+              <div className="grid grid-cols-2 gap-4 sm:gap-5">
                 {products.slice(0, 4).map((product) => (
                   <div
                     key={product.id}
                     onClick={() => navigate(getProductPath(product))}
-                    className="group cursor-pointer rounded-lg overflow-hidden transition hover:scale-[1.02] shadow-lg bg-white/95 backdrop-blur-sm hover:bg-white"
+                    className="group cursor-pointer rounded-xl overflow-hidden transition-all duration-300 hover:shadow-2xl bg-white/95 backdrop-blur-sm hover:bg-white hover:scale-105"
                   >
-                    <div className="flex items-center gap-2 p-2 sm:p-3">
+                    {/* SQUARE IMAGE - 1:1 Aspect Ratio */}
+                    <div className="relative w-full pt-[100%]">
                       <img
                         src={getProductImageUrl(product)}
-                        className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 object-cover rounded-md"
+                        className="absolute inset-0 w-full h-full object-cover"
                         alt={product.name}
                         onError={(e) => (e.target.src = "/placeholder.jpg")}
                       />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs sm:text-sm font-semibold text-gray-800 line-clamp-2">
-                          {product.name}
-                        </p>
-                        <p className="text-xs text-gray-600 mt-1 font-medium">
-                          ₹{Number(product.price || 0).toLocaleString()}
-                        </p>
-                      </div>
+                    </div>
+                    <div className="p-3 sm:p-4">
+                      <p className="text-sm sm:text-base font-bold text-gray-800 line-clamp-2 mb-1.5">
+                        {product.name}
+                      </p>
+                      <p className="text-base sm:text-lg font-extrabold text-green-600">
+                        ₹{Number(product.price || 0).toLocaleString()}
+                      </p>
                     </div>
                   </div>
                 ))}
@@ -157,37 +141,41 @@ const HeroSlider = () => {
       );
     }
 
-    // ========== HIGHLIGHT LAYOUT ==========
+    // ========== HIGHLIGHT LAYOUT - SQUARE IMAGE NOW ==========
     if (layout === "highlight") {
       const product = products[0];
       return (
-        <div className="relative z-10 p-4 sm:p-6 md:p-8 h-full">
-          {/* Product Card - TOP RIGHT */}
+        <div className="relative z-10 p-6 sm:p-8 md:p-10 lg:p-12 h-full">
+          {/* Product Card - TOP RIGHT - With Square Image */}
           {product && (
             <div className="flex justify-end">
-              <div className="w-full sm:w-80 md:w-96">
+              <div className="w-full sm:w-80 md:w-96 lg:w-[420px]">
                 <div
                   onClick={() => navigate(getProductPath(product))}
-                  className="bg-white rounded-xl overflow-hidden cursor-pointer hover:scale-[1.02] transition shadow-2xl"
+                  className="bg-white rounded-2xl overflow-hidden cursor-pointer transition-all duration-300 hover:scale-105 hover:shadow-2xl shadow-xl"
                 >
-                  <div className="flex gap-3 p-3 sm:p-4">
+                  {/* SQUARE IMAGE - Same as grid and carousel */}
+                  <div className="relative w-full pt-[100%]">
                     <img
                       src={getProductImageUrl(product)}
-                      className="w-20 h-20 sm:w-24 sm:h-24 object-cover rounded-lg"
+                      className="absolute inset-0 w-full h-full object-cover"
                       alt={product.name}
                       onError={(e) => (e.target.src = "/placeholder.jpg")}
                     />
-                    <div className="flex-1">
-                      <h3 className="font-bold text-gray-800 line-clamp-2 text-sm sm:text-base">
-                        {product.name}
-                      </h3>
-                      <p className="text-lg sm:text-xl font-bold text-green-600 mt-2">
-                        ₹{Number(product.price || 0).toLocaleString()}
-                      </p>
-                      <button className="mt-2 text-xs bg-black text-white px-3 py-1 rounded hover:bg-gray-800 transition">
-                        Shop Now
-                      </button>
-                    </div>
+                  </div>
+                  <div className="p-4 sm:p-5">
+                    <h3 className="font-bold text-gray-800 line-clamp-2 text-base sm:text-lg md:text-xl mb-2">
+                      {product.name}
+                    </h3>
+                    <p className="text-xl sm:text-2xl md:text-3xl font-extrabold text-green-600 mb-3">
+                      ₹{Number(product.price || 0).toLocaleString()}
+                    </p>
+                    <button className="text-sm bg-gradient-to-r from-gray-900 to-black text-white px-5 py-2.5 rounded-lg hover:from-black hover:to-gray-900 transition-all shadow-md inline-flex items-center gap-2 w-full sm:w-auto justify-center">
+                      Shop Now
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                      </svg>
+                    </button>
                   </div>
                 </div>
               </div>
@@ -195,15 +183,15 @@ const HeroSlider = () => {
           )}
 
           {/* Banner Text - BOTTOM LEFT */}
-          <div className="absolute bottom-4 sm:bottom-6 md:bottom-8 left-4 sm:left-6 md:left-8 max-w-md">
-            <span className="inline-block bg-white/20 backdrop-blur-sm px-4 py-1.5 rounded-full text-xs font-semibold tracking-wide mb-3">
-              {title || "Featured"}
+          <div className="absolute bottom-6 sm:bottom-8 md:bottom-10 left-6 sm:left-8 md:left-10 max-w-lg">
+            <span className="inline-block bg-white/20 backdrop-blur-md px-5 py-2 rounded-full text-xs sm:text-sm font-semibold tracking-wider mb-3 shadow-lg">
+              {title || "FEATURED"}
             </span>
-            <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-3 drop-shadow-lg">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-3 drop-shadow-2xl leading-tight">
               {subtitle || "Special Deal"}
             </h1>
-            <p className="text-sm sm:text-base text-white/90 drop-shadow">
-              {description || "Limited time offer"}
+            <p className="text-base sm:text-lg md:text-xl text-white/95 drop-shadow-lg leading-relaxed">
+              {description || "Limited time offer. Don't miss out!"}
             </p>
           </div>
         </div>
@@ -213,41 +201,44 @@ const HeroSlider = () => {
     // ========== CAROUSEL LAYOUT ==========
     if (layout === "carousel") {
       return (
-        <div className="relative z-10 p-4 sm:p-6 md:p-8 h-full flex flex-col justify-between">
+        <div className="relative z-10 p-6 sm:p-8 md:p-10 lg:p-12 h-full flex flex-col justify-between">
           {/* Text Section - TOP */}
-          <div className="text-white text-center md:text-left">
-            <span className="inline-block bg-white/20 backdrop-blur-sm px-4 py-1.5 rounded-full text-xs font-semibold tracking-wide mb-4">
-              {title || "Collection"}
+          <div className="text-white text-center">
+            <span className="inline-block bg-white/20 backdrop-blur-md px-5 py-2 rounded-full text-xs sm:text-sm font-semibold tracking-wider mb-4 shadow-lg">
+              {title || "NEW COLLECTION"}
             </span>
-            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-4 drop-shadow-lg">
+            <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold mb-4 drop-shadow-2xl leading-tight">
               {subtitle || "Shop Now"}
             </h1>
-            <p className="text-sm sm:text-base opacity-95 drop-shadow max-w-2xl">
-              {description || "Browse our latest collection"}
+            <p className="text-base sm:text-lg md:text-xl opacity-95 drop-shadow-lg max-w-2xl mx-auto leading-relaxed">
+              {description || "Browse our latest collection of premium products"}
             </p>
           </div>
 
-          {/* Products Carousel - BOTTOM */}
+          {/* Products Carousel - BOTTOM - Square Images */}
           {products.length > 0 && (
-            <div className="mt-auto">
-              <div className="flex gap-3 sm:gap-4 overflow-x-auto pb-4 scrollbar-hide">
+            <div className="mt-auto pt-8">
+              <div className="flex gap-4 sm:gap-5 overflow-x-auto pb-4 scrollbar-hide snap-x snap-mandatory">
                 {products.map((product) => (
                   <div
                     key={product.id}
                     onClick={() => navigate(getProductPath(product))}
-                    className="min-w-[130px] sm:min-w-[150px] md:min-w-[170px] lg:min-w-[190px] flex-shrink-0 cursor-pointer rounded-lg overflow-hidden bg-white shadow-xl hover:shadow-2xl transition hover:scale-[1.02]"
+                    className="min-w-[160px] sm:min-w-[180px] md:min-w-[200px] lg:min-w-[220px] flex-shrink-0 cursor-pointer rounded-xl overflow-hidden bg-white shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105 hover:-translate-y-2 snap-start"
                   >
-                    <img
-                      src={getProductImageUrl(product)}
-                      className="h-24 sm:h-28 md:h-32 w-full object-cover"
-                      alt={product.name}
-                      onError={(e) => (e.target.src = "/placeholder.jpg")}
-                    />
-                    <div className="p-2 sm:p-3">
-                      <p className="text-xs sm:text-sm font-semibold text-gray-800 line-clamp-2">
+                    {/* SQUARE IMAGE - 1:1 Aspect Ratio */}
+                    <div className="relative w-full pt-[100%]">
+                      <img
+                        src={getProductImageUrl(product)}
+                        className="absolute inset-0 w-full h-full object-cover"
+                        alt={product.name}
+                        onError={(e) => (e.target.src = "/placeholder.jpg")}
+                      />
+                    </div>
+                    <div className="p-3 sm:p-4">
+                      <p className="text-sm sm:text-base font-bold text-gray-800 line-clamp-2 mb-1.5">
                         {product.name}
                       </p>
-                      <p className="text-sm sm:text-base font-bold text-green-600 mt-1 sm:mt-2">
+                      <p className="text-base sm:text-lg font-extrabold text-green-600">
                         ₹{Number(product.price || 0).toLocaleString()}
                       </p>
                     </div>
@@ -262,19 +253,22 @@ const HeroSlider = () => {
 
     // Default fallback
     return (
-      <div className="relative z-10 p-4 sm:p-6 md:p-8 h-full flex items-center">
-        <div className="max-w-2xl">
-          <span className="inline-block bg-white/20 backdrop-blur-sm px-4 py-1.5 rounded-full text-xs font-semibold tracking-wide mb-4">
-            {title || "Welcome"}
+      <div className="relative z-10 p-6 sm:p-8 md:p-10 lg:p-12 h-full flex items-center">
+        <div className="max-w-2xl text-center lg:text-left">
+          <span className="inline-block bg-white/20 backdrop-blur-md px-5 py-2 rounded-full text-xs sm:text-sm font-semibold tracking-wider mb-4 shadow-lg">
+            {title || "WELCOME"}
           </span>
-          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-4 drop-shadow-lg">
+          <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-white mb-4 drop-shadow-2xl leading-tight">
             {subtitle || "Premium Collection"}
           </h1>
-          <p className="text-sm sm:text-base text-white/90 drop-shadow mb-6">
-            {description || "Discover amazing products"}
+          <p className="text-base sm:text-lg md:text-xl text-white/95 drop-shadow-lg mb-6 leading-relaxed">
+            {description || "Discover amazing products at unbeatable prices"}
           </p>
-          <button className="bg-white text-black px-6 py-3 rounded-md text-sm font-medium hover:bg-gray-100 transition shadow-lg">
-            Shop Now →
+          <button className="bg-white text-gray-900 px-8 py-3.5 rounded-lg text-base sm:text-lg font-semibold hover:bg-gray-50 transition-all duration-300 shadow-xl hover:shadow-2xl hover:scale-105 transform inline-flex items-center gap-2">
+            Shop Now
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+            </svg>
           </button>
         </div>
       </div>
@@ -289,7 +283,7 @@ const HeroSlider = () => {
 
   return (
     <div
-      className="relative w-full min-h-[400px] sm:h-[500px] md:h-[600px] lg:h-[700px] bg-[#f6f1f4] overflow-hidden"
+      className="relative w-full min-h-[450px] sm:h-[550px] md:h-[650px] lg:h-[750px] bg-gradient-to-br from-gray-900 to-gray-800 overflow-hidden"
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
@@ -301,23 +295,26 @@ const HeroSlider = () => {
         {processedBanners.map((banner, i) => (
           <div
             key={i}
-            className={`absolute inset-0 transition-opacity duration-1000 ${
+            className={`absolute inset-0 transition-opacity duration-700 ${
               i === current ? "opacity-100 z-10" : "opacity-0 z-0"
             }`}
           >
-            {/* Background Image */}
+            {/* Background Image with Parallax Effect */}
             <div
-              className="absolute inset-0 bg-cover bg-center"
-              style={{ backgroundImage: `url(${banner.fullUrl})` }}
+              className="absolute inset-0 bg-cover bg-center transform scale-105 transition-transform duration-10000"
+              style={{ 
+                backgroundImage: `url(${banner.fullUrl})`,
+                transform: i === current ? 'scale(1.05)' : 'scale(1)'
+              }}
             >
-              {/* Gradient Overlay based on layout */}
+              {/* Dynamic Gradient Overlay based on layout */}
               <div
                 className={`absolute inset-0 ${
                   banner.layout === "grid"
-                    ? "bg-gradient-to-r from-black/70 to-black/30"
+                    ? "bg-gradient-to-r from-black/80 via-black/50 to-black/30"
                     : banner.layout === "highlight"
-                      ? "bg-gradient-to-br from-black/60 via-black/40 to-transparent"
-                      : "bg-gradient-to-t from-black/80 via-black/40 to-black/20"
+                    ? "bg-gradient-to-br from-black/70 via-black/50 to-transparent"
+                    : "bg-gradient-to-t from-black/90 via-black/60 to-black/30"
                 }`}
               ></div>
             </div>
@@ -333,41 +330,34 @@ const HeroSlider = () => {
         <>
           <button
             onClick={handlePrev}
-            className="hidden sm:flex absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white shadow-md p-1.5 sm:p-2 rounded-full z-20 transition"
+            className="hidden sm:flex absolute left-4 md:left-6 top-1/2 -translate-y-1/2 bg-white/95 hover:bg-white shadow-lg p-2 md:p-3 rounded-full z-20 transition-all duration-300 hover:scale-110 hover:shadow-xl"
           >
-            <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5" />
+            <ChevronLeft className="w-5 h-5 md:w-6 md:h-6 text-gray-800" />
           </button>
 
           <button
             onClick={handleNext}
-            className="hidden sm:flex absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white shadow-md p-1.5 sm:p-2 rounded-full z-20 transition"
+            className="hidden sm:flex absolute right-4 md:right-6 top-1/2 -translate-y-1/2 bg-white/95 hover:bg-white shadow-lg p-2 md:p-3 rounded-full z-20 transition-all duration-300 hover:scale-110 hover:shadow-xl"
           >
-            <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5" />
+            <ChevronRight className="w-5 h-5 md:w-6 md:h-6 text-gray-800" />
           </button>
         </>
       )}
 
       {/* Dots */}
       {processedBanners.length > 1 && (
-        <div className="absolute bottom-3 sm:bottom-5 left-1/2 -translate-x-1/2 flex gap-1.5 sm:gap-2 z-20">
+        <div className="absolute bottom-4 sm:bottom-6 left-1/2 -translate-x-1/2 flex gap-2 sm:gap-3 z-20">
           {processedBanners.map((_, i) => (
             <button
               key={i}
               onClick={() => setCurrent(i)}
               className={`transition-all duration-300 ${
                 current === i
-                  ? "w-6 sm:w-8 h-1.5 sm:h-2 bg-white"
-                  : "w-1.5 sm:w-2 h-1.5 sm:h-2 bg-white/50 hover:bg-white/80"
+                  ? "w-8 sm:w-10 h-2 bg-white shadow-lg"
+                  : "w-2 h-2 bg-white/40 hover:bg-white/70 hover:w-4"
               } rounded-full`}
             />
           ))}
-        </div>
-      )}
-
-      {/* Swipe hint for mobile */}
-      {processedBanners.length > 1 && (
-        <div className="absolute bottom-10 left-1/2 -translate-x-1/2 sm:hidden text-white/50 text-xs z-20">
-          ← Swipe →
         </div>
       )}
     </div>
