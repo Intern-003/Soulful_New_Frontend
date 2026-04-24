@@ -23,11 +23,12 @@ export const loginUser = createAsyncThunk(
   }
 );
 
+// GOOGLE LOGIN
 export const googleLogin = createAsyncThunk(
   "auth/googleLogin",
   async (token, { rejectWithValue }) => {
     try {
-      const res = await axiosInstance.post("/auth/google", {
+      const res = await axiosInstance.post(AUTH.GOOGLE, {
         token, // Google credential
       });
 
@@ -45,18 +46,20 @@ export const googleLogin = createAsyncThunk(
   }
 );
 
-// REGISTER
+// REGISTER (Original - kept for compatibility if needed elsewhere)
 export const registerUser = createAsyncThunk(
   "auth/register",
   async (data, { rejectWithValue }) => {
     try {
       const res = await axiosInstance.post(AUTH.REGISTER, data);
-      return res.data; // We don’t store anything for register, correct
+      return res.data;
     } catch (err) {
       return rejectWithValue(err.response?.data || { message: "Server Error" });
     }
   }
 );
+
+// SEND OTP
 export const sendOtp = createAsyncThunk(
   "auth/sendOtp",
   async (data, { rejectWithValue }) => {
@@ -69,6 +72,7 @@ export const sendOtp = createAsyncThunk(
   }
 );
 
+// VERIFY OTP (Original - kept for compatibility)
 export const verifyOtp = createAsyncThunk(
   "auth/verifyOtp",
   async (data, { rejectWithValue }) => {
@@ -80,6 +84,21 @@ export const verifyOtp = createAsyncThunk(
     }
   }
 );
+
+// COMPLETE REGISTRATION (NEW - combines OTP verify + register)
+export const completeRegistration = createAsyncThunk(
+  "auth/completeRegistration",
+  async (data, { rejectWithValue }) => {
+    try {
+      // This calls the verifyRegister endpoint which handles both OTP verification and user creation
+      const res = await axiosInstance.post(AUTH.VERIFY_REGISTER, data);
+      return res.data;
+    } catch (err) {
+      return rejectWithValue(err.response?.data || { message: "Registration failed" });
+    }
+  }
+);
+
 const authSlice = createSlice({
   name: "auth",
   initialState: {
@@ -89,14 +108,12 @@ const authSlice = createSlice({
     permissions: JSON.parse(localStorage.getItem("permissions")) || [],
 
     otpSent: false,
-    otpVerified: false,
+    otpVerified: false,  // Keeping original field
 
     loading: false,
     error: null,
   },
   reducers: {
-
-
     logout: (state) => {
       localStorage.removeItem("token");
       localStorage.removeItem("user");
@@ -107,7 +124,16 @@ const authSlice = createSlice({
       state.token = null;
       state.role = null;
       state.permissions = [];
+      state.otpSent = false;
+      state.otpVerified = false;
     },
+    clearError: (state) => {
+      state.error = null;
+    },
+    resetOtpState: (state) => {
+      state.otpSent = false;
+      state.otpVerified = false;
+    }
   },
   extraReducers: (builder) => {
     builder
@@ -127,6 +153,8 @@ const authSlice = createSlice({
         state.loading = false;
         state.error = action.payload;
       })
+      
+      // GOOGLE LOGIN
       .addCase(googleLogin.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -142,9 +170,12 @@ const authSlice = createSlice({
         state.loading = false;
         state.error = action.payload;
       })
+      
+      // SEND OTP
       .addCase(sendOtp.pending, (state) => {
         state.loading = true;
         state.error = null;
+        state.otpSent = false;
       })
       .addCase(sendOtp.fulfilled, (state) => {
         state.loading = false;
@@ -155,8 +186,10 @@ const authSlice = createSlice({
         state.error = action.payload;
       })
 
+      // VERIFY OTP (Original)
       .addCase(verifyOtp.pending, (state) => {
         state.loading = true;
+        state.error = null;
       })
       .addCase(verifyOtp.fulfilled, (state) => {
         state.loading = false;
@@ -166,7 +199,8 @@ const authSlice = createSlice({
         state.loading = false;
         state.error = action.payload;
       })
-      // REGISTER
+      
+      // REGISTER (Original)
       .addCase(registerUser.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -177,9 +211,24 @@ const authSlice = createSlice({
       .addCase(registerUser.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
+      })
+      
+      // COMPLETE REGISTRATION (NEW)
+      .addCase(completeRegistration.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(completeRegistration.fulfilled, (state) => {
+        state.loading = false;
+        state.otpSent = false;
+        state.otpVerified = true;
+      })
+      .addCase(completeRegistration.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
       });
   },
 });
 
-export const { logout } = authSlice.actions;
+export const { logout, clearError, resetOtpState } = authSlice.actions;
 export default authSlice.reducer;
