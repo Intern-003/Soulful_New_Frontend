@@ -14,7 +14,7 @@ import Register from "../pages/auth/Register";
 import Dashboard from "../pages/dashboard/Dashboard";
 import Products from "../pages/dashboard/Products";
 import Users from "../pages/dashboard/Users";
-import Categories from "../pages/dashboard/Categories";
+import Categories from "../pages/dashboard/categories/Categories";
 import Cart from "../pages/user/Cart";
 import Checkout from "../pages/user/Checkout";
 import AccountPage from "../pages/account/AccountPage";

@@ -1,68 +1,212 @@
-// ✅ FINAL IMPROVED RBAC SYSTEM (FRONTEND)
-// Includes:
-// - Fixed API consistency (permission_ids)
-// - Better Permission UI (checkbox matrix + select all)
-// - Clean Role Form + Table improvements
+import RoleRow from "./RoleRow";
+import {
+  ShieldCheck,
+  Loader2,
+} from "lucide-react";
 
-import React from "react";
-const RoleTable = ({ roles, onEdit, onDelete }) => {
+/* ==========================================================
+   FILE NAME: RoleTable.jsx
+
+   ROLE TABLE
+   Elite Production Grade
+
+   Props:
+   roles = []
+   loading = false
+   onEdit(role)
+   onDelete(role)
+========================================================== */
+
+const RoleTable = ({
+  roles = [],
+  loading = false,
+  onEdit = () => {},
+  onDelete = () => {},
+}) => {
   return (
-    <table className="w-full text-sm">
-      <thead className="bg-gray-50">
-        <tr>
-          <th className="p-3 text-left">Role</th>
-          <th className="p-3">Permissions</th>
-          <th className="p-3">Actions</th>
-        </tr>
-      </thead>
+    <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+      {/* TOP HEADER */}
+      <div className="border-b border-slate-100 px-6 py-5">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h3 className="text-lg font-semibold text-slate-900">
+              Roles List
+            </h3>
 
-      <tbody>
-        {roles.map((role) => {
-          const grouped = {};
+            <p className="text-sm text-slate-500">
+              Manage role access and permission groups.
+            </p>
+          </div>
 
-          role.permissions?.forEach((p) => {
-            if (!grouped[p.module]) grouped[p.module] = 0;
-            grouped[p.module]++;
-          });
+          <div className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-4 py-2 text-sm font-medium text-slate-700">
+            <ShieldCheck
+              size={16}
+            />
+            {roles.length}{" "}
+            Roles
+          </div>
+        </div>
+      </div>
 
-          return (
-            <tr key={role.id} className="border-t">
-              <td className="p-3 font-semibold">{role.name}</td>
+      {/* TABLE */}
+      <div className="overflow-x-auto">
+        <table className="min-w-[1100px] w-full">
+          <TableHeader />
 
-              <td className="p-3">
-                <div className="flex flex-wrap gap-1">
-                  {Object.keys(grouped).map((m) => (
-                    <span
-                      key={m}
-                      className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded"
-                    >
-                      {m} ({grouped[m]})
-                    </span>
-                  ))}
-                </div>
-              </td>
+          <tbody className="divide-y divide-slate-100">
+            {/* LOADING */}
+            {loading &&
+              Array.from({
+                length: 6,
+              }).map(
+                (
+                  _,
+                  index
+                ) => (
+                  <tr
+                    key={
+                      index
+                    }
+                    className="animate-pulse"
+                  >
+                    {Array.from(
+                      {
+                        length: 5,
+                      }
+                    ).map(
+                      (
+                        __,
+                        i
+                      ) => (
+                        <td
+                          key={
+                            i
+                          }
+                          className="px-6 py-4"
+                        >
+                          <div className="h-11 rounded-2xl bg-slate-200" />
+                        </td>
+                      )
+                    )}
+                  </tr>
+                )
+              )}
 
-              <td className="p-3 space-x-2">
-                <button
-                  onClick={() => onEdit(role)}
-                  className="bg-blue-500 text-white px-2 py-1 rounded text-xs"
-                >
-                  Edit
-                </button>
+            {/* DATA */}
+            {!loading &&
+              roles.length >
+                0 &&
+              roles.map(
+                (
+                  role
+                ) => (
+                  <RoleRow
+                    key={
+                      role.id
+                    }
+                    role={
+                      role
+                    }
+                    onEdit={
+                      onEdit
+                    }
+                    onDelete={
+                      onDelete
+                    }
+                  />
+                )
+              )}
 
-                <button
-                  onClick={() => onDelete(role.id)}
-                  className="bg-red-500 text-white px-2 py-1 rounded text-xs"
-                >
-                  Delete
-                </button>
-              </td>
-            </tr>
-          );
-        })}
-      </tbody>
-    </table>
+            {/* EMPTY */}
+            {!loading &&
+              roles.length ===
+                0 && (
+                <tr>
+                  <td
+                    colSpan={
+                      5
+                    }
+                    className="px-6 py-16 text-center"
+                  >
+                    <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-3xl bg-[#7b183f]/10 text-[#7b183f]">
+                      <ShieldCheck
+                        size={
+                          30
+                        }
+                      />
+                    </div>
+
+                    <h3 className="mt-5 text-xl font-semibold text-slate-900">
+                      No Roles
+                      Found
+                    </h3>
+
+                    <p className="mt-2 text-sm text-slate-500">
+                      Create a
+                      new role
+                      to manage
+                      permissions.
+                    </p>
+                  </td>
+                </tr>
+              )}
+          </tbody>
+        </table>
+      </div>
+    </div>
   );
 };
 
 export default RoleTable;
+
+/* ==========================================================
+   TABLE HEADER
+========================================================== */
+
+const TableHeader =
+  () => {
+    return (
+      <thead className="sticky top-0 z-10 bg-slate-50">
+        <tr className="border-b border-slate-200">
+          <Th>
+            Role
+          </Th>
+
+          <Th>
+            Modules
+          </Th>
+
+          <Th>
+            Access
+          </Th>
+
+          <Th>
+            Created
+          </Th>
+
+          <Th align="right">
+            Actions
+          </Th>
+        </tr>
+      </thead>
+    );
+  };
+
+const Th = ({
+  children,
+  align = "left",
+}) => {
+  const alignClass =
+    align ===
+    "right"
+      ? "text-right"
+      : "text-left";
+
+  return (
+    <th
+      className={`whitespace-nowrap px-6 py-4 text-xs font-semibold uppercase tracking-wider text-slate-500 ${alignClass}`}
+    >
+      {children}
+    </th>
+  );
+};

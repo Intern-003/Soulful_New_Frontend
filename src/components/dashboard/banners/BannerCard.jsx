@@ -1,63 +1,230 @@
-import BannerLayoutPreview from "./BannerLayoutPreview";
+// FILE: src/components/dashboard/banners/BannerCard.jsx
+
+import React, {
+  memo,
+  useMemo,
+} from "react";
+import {
+  Pencil,
+  Trash2,
+  CheckCircle2,
+  XCircle,
+  LayoutTemplate,
+  MoveVertical,
+  Package,
+} from "lucide-react";
+
 import { getImageUrl } from "../../../utils/getImageUrl";
+import BannerLayoutPreview from "./BannerLayoutPreview";
 
-const BannerCard = ({ banner, onEdit, onDelete }) => {
-  const bannerImage = getImageUrl(banner?.image);
-  const products = banner?.products || [];
+/* ==========================================================
+   BANNER CARD
+   Elite Production Grade
 
-  const handleDelete = () => {
-    if (window.confirm("Are you sure you want to delete this banner?")) {
-      onDelete(banner.id);
-    }
-  };
+   Props:
+   banner
+   onEdit(banner)
+   onDelete(id)
+========================================================== */
+
+const BannerCard = ({
+  banner,
+  onEdit,
+  onDelete,
+}) => {
+  const image =
+    useMemo(() => {
+      return getImageUrl(
+        banner?.image
+      );
+    }, [
+      banner?.image,
+    ]);
+
+  const isActive =
+    Boolean(
+      banner?.status
+    );
+
+  const products =
+    banner?.products ||
+    [];
 
   return (
-    <div className="border rounded-2xl p-4 shadow-sm hover:shadow-lg transition bg-white">
+    <div className="group overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm transition-all hover:-translate-y-1 hover:shadow-xl">
       {/* IMAGE */}
-      <div className="relative overflow-hidden rounded-xl">
-        <div className="aspect-[16/6]">
+      <div className="relative">
+        <div className="aspect-[16/6] overflow-hidden bg-slate-100">
           <img
-            src={bannerImage}
-            className="w-full h-full object-cover"
+            src={image}
+            alt={
+              banner?.title ||
+              "Banner"
+            }
+            className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+            onError={(
+              e
+            ) => {
+              e.currentTarget.src =
+                "/placeholder.jpg";
+            }}
           />
         </div>
 
-        <span className={`absolute top-2 right-2 text-xs px-2 py-1 rounded-full ${banner?.status ? "bg-green-500" : "bg-gray-400"
-          } text-white`}>
-          {banner?.status ? "Active" : "Inactive"}
-        </span>
+        {/* STATUS */}
+        <div className="absolute right-3 top-3">
+          <span
+            className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold text-white ${
+              isActive
+                ? "bg-emerald-500"
+                : "bg-slate-500"
+            }`}
+          >
+            {isActive ? (
+              <CheckCircle2
+                size={
+                  14
+                }
+              />
+            ) : (
+              <XCircle
+                size={
+                  14
+                }
+              />
+            )}
+
+            {isActive
+              ? "Active"
+              : "Inactive"}
+          </span>
+        </div>
       </div>
 
-      {/* INFO */}
-      <div className="mt-4">
-        <h2 className="font-semibold text-lg">{banner?.title}</h2>
+      {/* CONTENT */}
+      <div className="p-5">
+        {/* TITLE */}
+        <div>
+          <h3 className="line-clamp-1 text-lg font-semibold text-slate-900">
+            {banner?.title ||
+              "Untitled Banner"}
+          </h3>
 
-        {banner?.subtitle && (
-          <p className="text-sm text-gray-500">{banner.subtitle}</p>
-        )}
+          {banner?.subtitle && (
+            <p className="mt-1 line-clamp-2 text-sm text-slate-500">
+              {
+                banner.subtitle
+              }
+            </p>
+          )}
+        </div>
 
-        <p className="text-xs text-gray-400 mt-1 capitalize">
-          {banner?.layout} • Position {banner?.position}
-        </p>
+        {/* META */}
+        <div className="mt-4 grid grid-cols-2 gap-3">
+          <div className="rounded-2xl bg-slate-50 p-3">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">
+              Layout
+            </p>
+
+            <p className="mt-1 flex items-center gap-2 text-sm font-medium text-slate-800">
+              <LayoutTemplate
+                size={
+                  15
+                }
+              />
+              {banner?.layout ||
+                "-"}
+            </p>
+          </div>
+
+          <div className="rounded-2xl bg-slate-50 p-3">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">
+              Position
+            </p>
+
+            <p className="mt-1 flex items-center gap-2 text-sm font-medium text-slate-800">
+              <MoveVertical
+                size={
+                  15
+                }
+              />
+              {banner?.position ??
+                "-"}
+            </p>
+          </div>
+
+          <div className="rounded-2xl bg-slate-50 p-3 col-span-2">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">
+              Products
+            </p>
+
+            <p className="mt-1 flex items-center gap-2 text-sm font-medium text-slate-800">
+              <Package
+                size={
+                  15
+                }
+              />
+              {
+                products.length
+              }{" "}
+              linked
+            </p>
+          </div>
+        </div>
+
+        {/* LIVE PREVIEW */}
+        <div className="mt-5">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">
+            Layout Preview
+          </p>
+
+          <div className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 p-3">
+            <BannerLayoutPreview
+              {...banner}
+              products={
+                products
+              }
+            />
+          </div>
+        </div>
+
+        {/* ACTIONS */}
+        <div className="mt-5 flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() =>
+              onEdit?.(
+                banner
+              )
+            }
+            className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-2xl border border-slate-200 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+          >
+            <Pencil
+              size={16}
+            />
+            Edit
+          </button>
+
+          <button
+            type="button"
+            onClick={() =>
+              onDelete?.(
+                banner.id
+              )
+            }
+            className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-2xl bg-rose-600 text-sm font-semibold text-white transition hover:bg-rose-700"
+          >
+            <Trash2
+              size={16}
+            />
+            Delete
+          </button>
+        </div>
       </div>
-
-      {/* PREVIEW */}
-      <div className="mt-4">
-        <BannerLayoutPreview {...banner} products={products} />
-      </div>
-
-      {/* ACTIONS */}
-      <div className="flex justify-end gap-2 mt-4">
-        <button className="px-3 py-1.5 border rounded-lg hover:bg-gray-100 text-sm">
-          Edit
-        </button>
-        <button className="px-3 py-1.5 bg-red-500 text-white rounded-lg hover:bg-red-600 text-sm">
-          Delete
-        </button>
-      </div>
-
     </div>
   );
 };
 
-export default BannerCard;
+export default memo(
+  BannerCard
+);
