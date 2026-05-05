@@ -1,294 +1,538 @@
-// src/pages/dashboard/Attributes.jsx
+import { useMemo, useState } from "react";
+import toast from "react-hot-toast";
+import { Layers3, Plus } from "lucide-react";
 
-import React, { useState , useEffect } from "react";
 import useGet from "../../api/hooks/useGet";
 import usePost from "../../api/hooks/usePost";
 import usePut from "../../api/hooks/usePut";
 import useDelete from "../../api/hooks/useDelete";
 
+import AttributeStats from "../../components/dashboard/attributes/AttributeStats";
+import AttributeFilters from "../../components/dashboard/attributes/AttributeFilters";
+import AttributeTable from "../../components/dashboard/attributes/AttributeTable";
+import AttributeFormModal from "../../components/dashboard/attributes/AttributeFormModal";
+/* ==========================================================
+   FILE NAME: Attributes.jsx
+
+   FINAL ELITE PRODUCTION GRADE
+
+   APIs:
+   GET    /admin/attributes-with-values
+   POST   /admin/attributes
+   PUT    /admin/attributes/:id
+   DELETE /admin/attributes/:id
+
+   POST   /admin/attributes/:id/values
+   PUT    /admin/attribute-values/:id
+   DELETE /admin/attribute-values/:id
+========================================================== */
+
 const Attributes = () => {
-  const { data, refetch } = useGet("/admin/attributes-with-values");
-
-  const { postData } = usePost();
-  const { putData } = usePut();
-  const { deleteData } = useDelete();
-
-const [attributes, setAttributes] = useState([]);
-
-useEffect(() => {
-  if (data?.data) {
-    setAttributes(data.data);
-  }
-}, [data]);
-
-  const [newAttr, setNewAttr] = useState("");
-  const [valueInputs, setValueInputs] = useState({});
-  const [search, setSearch] = useState("");
-  const [editingAttr, setEditingAttr] = useState(null);
-  const [editingValue, setEditingValue] = useState(null);
-
-  // ✅ SIMPLE TOAST
-  const showToast = (msg) => {
-    alert(msg);
-  };
-
-  // ✅ CREATE ATTRIBUTE
-const createAttribute = async () => {
-  if (!newAttr.trim()) return;
-
-  const res = await postData({
-    url: "/admin/attributes",
-    data: { name: newAttr },
-  });
-
-  const newAttribute = res?.data;
-
-  // 🔥 ADD INSTANTLY
-  setAttributes((prev) => [
-    ...prev,
-    { ...newAttribute, values: [] },
-  ]);
-
-  setNewAttr("");
-  showToast("Attribute Created ✅");
-};
-
-  // ✅ UPDATE ATTRIBUTE
-  const updateAttribute = async (id, name) => {
-    await putData({
-      url: `/admin/attributes/${id}`,
-      data: { name },
-    });
-
-    setEditingAttr(null);
-    showToast("Attribute Updated ✏️");
-    refetch();
-  };
-
-  // ✅ CREATE VALUE
-  const createValue = async (attrId) => {
-    const value = valueInputs[attrId];
-    if (!value) return;
-
-    await postData({
-      url: `/admin/attributes/${attrId}/values`,
-      data: { value },
-    });
-
-    setValueInputs((prev) => ({ ...prev, [attrId]: "" }));
-    showToast("Value Added ✅");
-    refetch();
-  };
-
-  // ✅ UPDATE VALUE
-const updateValue = async (id, value) => {
-  const res = await putData({
-    url: `/admin/attribute-values/${id}`,
-    data: { value },
-  });
-
-  const updated = res?.data;
-
-  // 🔥 UPDATE UI
-  setAttributes((prev) =>
-    prev.map((attr) => ({
-      ...attr,
-      values: attr.values.map((v) =>
-        v.id === id ? { ...v, ...updated } : v
-      ),
-    }))
+  const {
+    data,
+    loading,
+    refetch,
+  } = useGet(
+    "/admin/attributes-with-values"
   );
 
-  setEditingValue(null);
-  showToast("Value Updated ✏️");
-};
-  // ✅ DELETE ATTRIBUTE
-  const deleteAttribute = async (id) => {
-    if (!window.confirm("Delete attribute?")) return;
+  const {
+    postData,
+    loading: postLoading,
+  } = usePost();
 
-    await deleteData({
-      url: `/admin/attributes/${id}`,
-    });
+  const {
+    putData,
+    loading: putLoading,
+  } = usePut();
 
-      setAttributes((prev) => prev.filter((a) => a.id !== id));
+  const {
+    deleteData,
+    loading: deleteLoading,
+  } = useDelete();
 
-    showToast("Attribute Deleted ❌");
-    refetch();
-  };
+  /* ==========================================
+     STATE
+  ========================================== */
+  const [
+    search,
+    setSearch,
+  ] = useState("");
 
-  // ✅ DELETE VALUE
-const deleteValue = async (id, attrId) => {
-  if (!window.confirm("Delete value?")) return;
+  const [
+    quickCreate,
+    setQuickCreate,
+  ] = useState("");
 
-  await deleteData({
-    url: `/admin/attribute-values/${id}`,
-  });
+  const [
+    modalOpen,
+    setModalOpen,
+  ] = useState(
+    false
+  );
 
-  // 🔥 UPDATE UI
-  setAttributes((prev) =>
-    prev.map((attr) =>
-      attr.id === attrId
-        ? {
-            ...attr,
-            values: attr.values.filter((v) => v.id !== id),
+  const [
+    modalMode,
+    setModalMode,
+  ] = useState(
+    "create"
+  );
+
+  const [
+    selected,
+    setSelected,
+  ] = useState(
+    null
+  );
+
+  const [
+    valueInputs,
+    setValueInputs,
+  ] = useState(
+    {}
+  );
+
+  const attributes =
+    data?.data ||
+    data ||
+    [];
+
+  /* ==========================================
+     FILTERED
+  ========================================== */
+  const filtered =
+    useMemo(() => {
+      if (
+        !search.trim()
+      )
+        return attributes;
+
+      return attributes.filter(
+        (
+          item
+        ) =>
+          item.name
+            ?.toLowerCase()
+            .includes(
+              search.toLowerCase()
+            )
+      );
+    }, [
+      attributes,
+      search,
+    ]);
+
+  /* ==========================================
+     QUICK CREATE
+  ========================================== */
+  const createQuick =
+    async () => {
+      try {
+        await postData(
+          {
+            url: "/admin/attributes",
+            data: {
+              name: quickCreate.trim(),
+            },
           }
-        : attr
-    )
-  );
+        );
 
-  showToast("Value Deleted ❌");
-};
+        toast.success(
+          "Attribute created"
+        );
 
-  // ✅ FILTER
-  const filtered = attributes.filter((a) =>
-    a.name.toLowerCase().includes(search.toLowerCase())
-  );
+        setQuickCreate(
+          ""
+        );
 
+        refetch();
+      } catch (
+        error
+      ) {
+        toast.error(
+          "Failed to create attribute"
+        );
+      }
+    };
+
+  /* ==========================================
+     MODAL CREATE / EDIT
+  ========================================== */
+  const openCreate =
+    () => {
+      setModalMode(
+        "create"
+      );
+      setSelected(
+        null
+      );
+      setModalOpen(
+        true
+      );
+    };
+
+  const openEdit =
+    (
+      id,
+      name
+    ) => {
+      setModalMode(
+        "edit"
+      );
+      setSelected(
+        {
+          id,
+          name,
+        }
+      );
+      setModalOpen(
+        true
+      );
+    };
+
+  const submitModal =
+    async (
+      payload
+    ) => {
+      try {
+        if (
+          modalMode ===
+          "create"
+        ) {
+          await postData(
+            {
+              url: "/admin/attributes",
+              data: {
+                name: payload.name,
+              },
+            }
+          );
+
+          toast.success(
+            "Attribute created"
+          );
+        } else {
+          await putData(
+            {
+              url: `/admin/attributes/${payload.id}`,
+              data: {
+                name: payload.name,
+              },
+            }
+          );
+
+          toast.success(
+            "Attribute updated"
+          );
+        }
+
+        setModalOpen(
+          false
+        );
+        refetch();
+      } catch (
+        error
+      ) {
+        toast.error(
+          "Operation failed"
+        );
+      }
+    };
+
+  /* ==========================================
+     DELETE ATTRIBUTE
+  ========================================== */
+  const deleteAttribute =
+    async (
+      id
+    ) => {
+      const ok =
+        window.confirm(
+          "Delete this attribute?"
+        );
+
+      if (!ok)
+        return;
+
+      try {
+        await deleteData(
+          {
+            url: `/admin/attributes/${id}`,
+          }
+        );
+
+        toast.success(
+          "Attribute deleted"
+        );
+
+        refetch();
+      } catch (
+        error
+      ) {
+        toast.error(
+          "Delete failed"
+        );
+      }
+    };
+
+  /* ==========================================
+     VALUE INPUT
+  ========================================== */
+  const handleValueInput =
+    (
+      attrId,
+      value
+    ) => {
+      setValueInputs(
+        (
+          prev
+        ) => ({
+          ...prev,
+          [attrId]:
+            value,
+        })
+      );
+    };
+
+  /* ==========================================
+     CREATE VALUE
+  ========================================== */
+  const createValue =
+    async (
+      attrId
+    ) => {
+      const value =
+        valueInputs[
+          attrId
+        ]?.trim();
+
+      if (!value)
+        return;
+
+      try {
+        await postData(
+          {
+            url: `/admin/attributes/${attrId}/values`,
+            data: {
+              value,
+            },
+          }
+        );
+
+        toast.success(
+          "Value added"
+        );
+
+        setValueInputs(
+          (
+            prev
+          ) => ({
+            ...prev,
+            [attrId]:
+              "",
+          })
+        );
+
+        refetch();
+      } catch (
+        error
+      ) {
+        toast.error(
+          "Failed to add value"
+        );
+      }
+    };
+
+  /* ==========================================
+     UPDATE VALUE
+  ========================================== */
+  const updateValue =
+    async (
+      valueId,
+      value
+    ) => {
+      try {
+        await putData(
+          {
+            url: `/admin/attribute-values/${valueId}`,
+            data: {
+              value,
+            },
+          }
+        );
+
+        toast.success(
+          "Value updated"
+        );
+
+        refetch();
+      } catch (
+        error
+      ) {
+        toast.error(
+          "Update failed"
+        );
+      }
+    };
+
+  /* ==========================================
+     DELETE VALUE
+  ========================================== */
+  const deleteValue =
+    async (
+      valueId
+    ) => {
+      try {
+        await deleteData(
+          {
+            url: `/admin/attribute-values/${valueId}`,
+          }
+        );
+
+        toast.success(
+          "Value deleted"
+        );
+
+        refetch();
+      } catch (
+        error
+      ) {
+        toast.error(
+          "Delete failed"
+        );
+      }
+    };
+
+  /* ==========================================
+     UI
+  ========================================== */
   return (
-    <div className="p-6">
+    <div className="space-y-6">
+      {/* PAGE HEADER */}
+      <div className="rounded-3xl border border-slate-200 bg-white px-6 py-5 shadow-sm">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <h1 className="flex items-center gap-2 text-2xl font-bold text-slate-900">
+              <Layers3
+                size={24}
+                className="text-[#7a1c3d]"
+              />
+              Attributes
+            </h1>
 
-      <h1 className="text-2xl font-bold mb-6">
-        Attributes Management
-      </h1>
+            <p className="mt-1 text-sm text-slate-500">
+              Manage product attributes and selectable values.
+            </p>
+          </div>
 
-      {/* SEARCH */}
-      <input
-        placeholder="Search attribute..."
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        className="border p-2 rounded w-full mb-5"
+          <button
+            onClick={
+              openCreate
+            }
+            className="inline-flex items-center gap-2 rounded-2xl bg-[#7a1c3d] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#651732]"
+          >
+            <Plus
+              size={18}
+            />
+            New Attribute
+          </button>
+        </div>
+      </div>
+
+      {/* STATS */}
+      <AttributeStats
+        attributes={
+          attributes
+        }
+        filteredCount={
+          filtered.length
+        }
+        search={
+          search
+        }
       />
 
-      {/* CREATE ATTRIBUTE */}
-      <div className="flex gap-3 mb-6">
-        <input
-          value={newAttr}
-          onChange={(e) => setNewAttr(e.target.value)}
-          placeholder="New Attribute"
-          className="border p-2 rounded w-64"
-        />
+      {/* FILTERS */}
+      <AttributeFilters
+        search={
+          search
+        }
+        onSearchChange={
+          setSearch
+        }
+        newAttribute={
+          quickCreate
+        }
+        onNewAttributeChange={
+          setQuickCreate
+        }
+        onCreate={
+          createQuick
+        }
+        creating={
+          postLoading
+        }
+        total={
+          attributes.length
+        }
+      />
 
-        <button
-          onClick={createAttribute}
-          className="bg-[#7a1c3d] text-white px-4 py-2 rounded"
-        >
-          Add Attribute
-        </button>
-      </div>
+      {/* TABLE */}
+      <AttributeTable
+        attributes={
+          filtered
+        }
+        valueInputs={
+          valueInputs
+        }
+        loading={
+          loading
+        }
+        onValueInputChange={
+          handleValueInput
+        }
+        onCreateValue={
+          createValue
+        }
+        onUpdateAttribute={
+          openEdit
+        }
+        onDeleteAttribute={
+          deleteAttribute
+        }
+        onUpdateValue={
+          updateValue
+        }
+        onDeleteValue={
+          deleteValue
+        }
+      />
 
-      {/* LIST */}
-      <div className="space-y-5">
-        {filtered.map((attr) => (
-          <div key={attr.id} className="border p-4 rounded-xl">
-
-            {/* HEADER */}
-            <div className="flex justify-between items-center mb-3">
-
-              {editingAttr === attr.id ? (
-                <input
-                  defaultValue={attr.name}
-                  onBlur={(e) =>
-                    updateAttribute(attr.id, e.target.value)
-                  }
-                  className="border p-1 rounded"
-                  autoFocus
-                />
-              ) : (
-                <h2
-                  onDoubleClick={() => setEditingAttr(attr.id)}
-                  className="font-semibold text-lg cursor-pointer"
-                >
-                  {attr.name}
-                </h2>
-              )}
-
-              <button
-                onClick={() => deleteAttribute(attr.id)}
-                className="bg-red-500 text-white px-3 py-1 rounded"
-              >
-                Delete
-              </button>
-            </div>
-
-            {/* VALUES */}
-            <div className="flex flex-wrap gap-2 mb-3">
-
-              {attr.values.map((val) => {
-                const isColor =
-                  attr.name.toLowerCase() === "color";
-
-                return (
-                  <div
-                    key={val.id}
-                    className="flex items-center gap-2 px-3 py-1 rounded bg-gray-100"
-                  >
-
-                    {/* 🎨 COLOR PREVIEW */}
-                    {isColor && (
-                      <span
-                        className="w-4 h-4 rounded-full border"
-                        style={{ background: val.value }}
-                      />
-                    )}
-
-                    {editingValue === val.id ? (
-                      <input
-                        defaultValue={val.value}
-                        onBlur={(e) =>
-                          updateValue(val.id, e.target.value)
-                        }
-                        className="border p-1 rounded"
-                        autoFocus
-                      />
-                    ) : (
-                      <span
-                        onDoubleClick={() =>
-                          setEditingValue(val.id)
-                        }
-                        className="cursor-pointer"
-                      >
-                        {val.value}
-                      </span>
-                    )}
-
-                    <button
-                      onClick={() => deleteValue(val.id)}
-                      className="text-red-500 text-xs"
-                    >
-                      ✕
-                    </button>
-                  </div>
-                );
-              })}
-
-            </div>
-
-            {/* ADD VALUE */}
-            <div className="flex gap-2">
-              <input
-                value={valueInputs[attr.id] || ""}
-                onChange={(e) =>
-                  setValueInputs((prev) => ({
-                    ...prev,
-                    [attr.id]: e.target.value,
-                  }))
-                }
-                placeholder="Add value"
-                className="border p-2 rounded"
-              />
-
-              <button
-                onClick={() => createValue(attr.id)}
-                className="bg-green-600 text-white px-3 py-1 rounded"
-              >
-                Add
-              </button>
-            </div>
-
-          </div>
-        ))}
-      </div>
-
+      {/* MODAL */}
+      <AttributeFormModal
+        open={
+          modalOpen
+        }
+        mode={
+          modalMode
+        }
+        data={
+          selected
+        }
+        loading={
+          postLoading ||
+          putLoading ||
+          deleteLoading
+        }
+        onClose={() =>
+          setModalOpen(
+            false
+          )
+        }
+        onSubmit={
+          submitModal
+        }
+      />
     </div>
   );
 };
