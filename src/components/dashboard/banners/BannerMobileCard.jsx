@@ -64,11 +64,10 @@ const BannerMobileCard = ({
 
         {/* STATUS */}
         <span
-          className={`absolute top-3 right-3 inline-flex items-center gap-1 rounded-full px-3 py-1 text-[11px] font-semibold text-white ${
-            isActive
+          className={`absolute top-3 right-3 inline-flex items-center gap-1 rounded-full px-3 py-1 text-[11px] font-semibold text-white ${isActive
               ? "bg-emerald-500"
               : "bg-slate-500"
-          }`}
+            }`}
         >
           {isActive ? (
             <CheckCircle2
@@ -167,16 +166,10 @@ const BannerMobileCard = ({
 
           <button
             type="button"
-            onClick={() =>
-              onDelete?.(
-                banner.id
-              )
-            }
+            onClick={() => onDelete?.(banner)}  // ✅ Passes full banner object
             className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl bg-rose-600 text-sm font-semibold text-white transition hover:bg-rose-700"
           >
-            <Trash2
-              size={16}
-            />
+            <Trash2 size={16} />
             Delete
           </button>
         </div>

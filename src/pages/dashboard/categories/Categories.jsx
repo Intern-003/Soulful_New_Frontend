@@ -265,7 +265,7 @@ const Categories = () => {
           }
         );
 
-        refetch();
+        refetch({ force: true });;
       } catch (
         error
       ) {

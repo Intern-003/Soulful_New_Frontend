@@ -1,91 +1,109 @@
 import { useDispatch, useSelector } from "react-redux";
-import { sendOtp, completeRegistration } from "../../app/slices/authSlice";
+import {
+  startRegistration,
+  completeRegistration,
+  resendOtp,
+  setResendCooldown,
+} from "../../app/slices/authSlice";
 import RegisterForm from "../../components/forms/RegisterForm";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
 export default function Register() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const { loading, error, otpSent } = useSelector((s) => s.auth);
+  const { loading, error, resendCooldown } = useSelector((s) => s.auth);
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState({});
   const [otp, setOtp] = useState("");
   const [selectedType, setSelectedType] = useState(null);
   const [verificationError, setVerificationError] = useState("");
+  const [cooldown, setCooldown] = useState(0);
+
+  // Handle resend cooldown timer
+  useEffect(() => {
+    let timer;
+    if (cooldown > 0) {
+      timer = setTimeout(() => {
+        setCooldown(cooldown - 1);
+      }, 1000);
+    }
+    return () => clearTimeout(timer);
+  }, [cooldown]);
 
   const handleSendOtp = async (data, type) => {
-    // Validate
-    if (!data.firstName || !data.firstName.trim()) {
-      alert("Please enter first name");
-      return;
-    }
-    if (!data.lastName || !data.lastName.trim()) {
-      alert("Please enter last name");
-      return;
-    }
-    if (!data.password || data.password.length < 6) {
-      alert("Password must be at least 6 characters");
-      return;
-    }
-    if (data.password !== data.confirmPassword) {
-      alert("Passwords do not match");
-      return;
-    }
-    if (!data.agreeTerms) {
-      alert("Please agree to Terms of Service");
-      return;
-    }
-
-    const identifier = type === "email" ? data.email : data.phone;
-    if (!identifier) {
-      alert(`Please enter ${type === "email" ? "email" : "phone number"}`);
-      return;
-    }
-
-    if (type === "email" && !identifier.includes("@")) {
-      alert("Please enter valid email");
-      return;
-    }
+    const payload = {
+      name: `${data.firstName} ${data.lastName}`.trim(),
+      email: data.email,
+      phone: data.phone,
+      password: data.password,
+      password_confirmation: data.confirmPassword,
+      type: type,
+    };
 
     setFormData(data);
     setSelectedType(type);
     setVerificationError("");
 
-    const res = await dispatch(sendOtp({ identifier, type }));
+    const res = await dispatch(startRegistration(payload));
 
     if (res.meta.requestStatus === "fulfilled") {
       setStep(2);
+      // Set 30 seconds cooldown
+      setCooldown(30);
+      dispatch(setResendCooldown(30));
     } else {
-      alert(res.payload?.message || "Failed to send OTP");
+      const errorMsg = res.payload?.message || "Failed to send OTP";
+      setVerificationError(errorMsg);
+      alert(errorMsg);
     }
   };
 
-  const handleCompleteRegistration = async () => {
-    if (!otp || otp.length !== 6) {
-      alert("Please enter valid 6-digit OTP");
+  const handleResendOtp = async () => {
+    if (cooldown > 0) {
+      alert(`Please wait ${cooldown} seconds before requesting another OTP`);
       return;
     }
 
     const identifier = selectedType === "email" ? formData.email : formData.phone;
     
-    // Combine all registration data with OTP verification
-    const registrationData = {
+    const res = await dispatch(resendOtp({
+      identifier: identifier,
+      type: selectedType,
+    }));
+
+    if (res.meta.requestStatus === "fulfilled") {
+      setCooldown(30);
+      dispatch(setResendCooldown(30));
+      alert("OTP resent successfully!");
+    } else {
+      alert(res.payload?.message || "Failed to resend OTP");
+    }
+  };
+
+  const handleCompleteRegistration = async () => {
+    if (!otp || otp.length !== 6) {
+      alert("Enter valid 6-digit OTP");
+      return;
+    }
+
+    const identifier = selectedType === "email" ? formData.email : formData.phone;
+
+    const payload = {
       identifier: identifier,
       type: selectedType,
       otp: otp,
-      name: `${formData.firstName} ${formData.lastName}`.trim(),
-      password: formData.password,
-      password_confirmation: formData.confirmPassword,
     };
 
-    const res = await dispatch(completeRegistration(registrationData));
+    const res = await dispatch(completeRegistration(payload));
 
     if (res.meta.requestStatus === "fulfilled") {
-      alert("Registration successful! Please login.");
+      alert("Registration successful! Please login to continue.");
+      // Navigate to login page after successful registration
       navigate("/login");
     } else {
-      setVerificationError(res.payload?.message || "Registration failed");
+      const errorMsg = res.payload?.message || "Verification failed";
+      setVerificationError(errorMsg);
     }
   };
 
@@ -112,8 +130,14 @@ export default function Register() {
             </div>
 
             {verificationError && (
-              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
                 {verificationError}
+              </div>
+            )}
+
+            {error && !verificationError && (
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+                {error.message || "An error occurred"}
               </div>
             )}
 
@@ -128,6 +152,7 @@ export default function Register() {
                 onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
                 className="w-full h-12 px-4 border border-gray-300 rounded-lg text-center text-lg font-semibold tracking-wider focus:outline-none focus:ring-2 focus:ring-[#8b0d3a] focus:border-transparent"
                 placeholder="XXXXXX"
+                autoFocus
               />
             </div>
 
@@ -139,8 +164,22 @@ export default function Register() {
               {loading ? "Verifying..." : "Verify & Register"}
             </button>
 
+            <div className="text-center">
+              <button
+                onClick={handleResendOtp}
+                disabled={loading || cooldown > 0}
+                className="text-sm text-[#8b0d3a] hover:text-[#6b0a2d] font-medium transition disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {cooldown > 0 ? `Resend OTP in ${cooldown}s` : "Resend OTP"}
+              </button>
+            </div>
+
             <button
-              onClick={() => setStep(1)}
+              onClick={() => {
+                setStep(1);
+                setVerificationError("");
+                setOtp("");
+              }}
               className="w-full text-gray-600 hover:text-[#8b0d3a] text-sm font-medium transition"
             >
               ← Back to registration

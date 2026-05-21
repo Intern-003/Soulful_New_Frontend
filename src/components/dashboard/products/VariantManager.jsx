@@ -45,7 +45,7 @@ const VariantManager = ({ productId }) => {
 
   // 🔥 SUCCESS
   const handleSuccess = () => {
-    refetch();
+    refetch({ force: true });
   };
 
   return (

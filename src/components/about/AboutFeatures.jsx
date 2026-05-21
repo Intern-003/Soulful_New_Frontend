@@ -1,66 +1,153 @@
+// const features = [
+//   {
+//     title: "Ut enim ad minima veniam",
+//     desc: "Quis autem vel eum iure reprehenderit qui in ea voluptate velit esse quam nihil molestiae consequatur.",
+//     img: "/images/about-1.jpg",
+//     btn: "Explore More",
+//   },
+//   {
+//     title: "Quis autem vel eum iure",
+//     desc: "At vero eos et accusamus et iusto odio dignissimos ducimus qui blanditiis praesentium.",
+//     img: "/images/about-2.jpg",
+//     btn: "Learn More",
+//   },
+//   {
+//     title: "Nam libero tempore",
+//     desc: "Temporibus autem quibusdam et aut officiis debitis aut rerum necessitatibus saepe eveniet.",
+//     img: "/images/about-3.jpg",
+//     btn: "Discover More",
+//   },
+// ];
+
+// const AboutFeatures = () => {
+//   return (
+//     <section className="bg-white py-16 md:py-20">
+//       <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8">
+
+//         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+
+//           {features.map((item, index) => (
+//             <div
+//               key={index}
+//               className="group bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-500 hover:-translate-y-2"
+//             >
+              
+//               {/* Image */}
+//               <div className="overflow-hidden">
+//                 <img
+//                   src={item.img}
+//                   alt={item.title}
+//                   className="w-full h-60 object-cover transform group-hover:scale-110 transition duration-500"
+//                 />
+//               </div>
+
+//               {/* Content */}
+//               <div className="p-6">
+//                 <h3 className="text-xl font-semibold text-gray-800 mb-3 group-hover:text-pink-600 transition">
+//                   {item.title}
+//                 </h3>
+
+//                 <p className="text-gray-600 text-sm leading-6 mb-5">
+//                   {item.desc}
+//                 </p>
+
+//                 {/* Button */}
+//                 <button className="text-pink-600 font-medium flex items-center gap-2 group-hover:gap-3 transition-all duration-300">
+//                   {item.btn}
+//                   <span className="text-lg">→</span>
+//                 </button>
+//               </div>
+
+//             </div>
+//           ))}
+
+//         </div>
+
+//       </div>
+//     </section>
+//   );
+// };
+
+// export default AboutFeatures;
+
+// components/about/AboutFeatures.tsx
+import { GlobeAltIcon, UserGroupIcon, SparklesIcon, ShieldCheckIcon, TruckIcon, HeartIcon } from '@heroicons/react/24/outline';
+
 const features = [
   {
-    title: "Ut enim ad minima veniam",
-    desc: "Quis autem vel eum iure reprehenderit qui in ea voluptate velit esse quam nihil molestiae consequatur.",
-    img: "/images/about-1.jpg",
-    btn: "Explore More",
+    icon: UserGroupIcon,
+    title: "Curated Multi-Vendor Network",
+    description: "Handpicked sellers from India and beyond, each vetted for quality and authenticity."
   },
   {
-    title: "Quis autem vel eum iure",
-    desc: "At vero eos et accusamus et iusto odio dignissimos ducimus qui blanditiis praesentium.",
-    img: "/images/about-2.jpg",
-    btn: "Learn More",
+    icon: ShieldCheckIcon,
+    title: "Secure Marketplace",
+    description: "Safe payments, buyer protection, and transparent dispute resolution for peace of mind."
   },
   {
-    title: "Nam libero tempore",
-    desc: "Temporibus autem quibusdam et aut officiis debitis aut rerum necessitatibus saepe eveniet.",
-    img: "/images/about-3.jpg",
-    btn: "Discover More",
+    icon: GlobeAltIcon,
+    title: "Global Reach",
+    description: "Sell to customers worldwide or discover unique products from different cultures."
+  },
+  {
+    icon: SparklesIcon,
+    title: "Artisan First",
+    description: "Fair commission structure and seller tools designed to help small businesses thrive."
+  },
+  {
+    icon: TruckIcon,
+    title: "Reliable Logistics",
+    description: "Integrated shipping solutions with tracking and dedicated support for deliveries."
+  },
+  {
+    icon: HeartIcon,
+    title: "Sustainable Choices",
+    description: "Promoting eco-friendly, handmade, and upcycled products for conscious living."
   },
 ];
 
 const AboutFeatures = () => {
   return (
-    <section className="bg-white py-16 md:py-20">
+    <section className="bg-gray-50 py-20 md:py-28">
       <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8">
+        
+        {/* Section Header */}
+        <div className="text-center max-w-2xl mx-auto mb-16">
+          <p className="text-sm font-semibold text-pink-600 uppercase tracking-wide mb-3">
+            Why SoulfulOverseas
+          </p>
+          <h2 className="text-3xl md:text-4xl font-bold text-gray-900">
+            Built for Sellers, Loved by Buyers
+          </h2>
+          <div className="mt-4 h-1 w-20 bg-gradient-to-r from-amber-400 to-pink-500 rounded-full mx-auto"></div>
+        </div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-
-          {features.map((item, index) => (
+        {/* Features Grid */}
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
+          {features.map((feature, index) => (
             <div
               key={index}
-              className="group bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-500 hover:-translate-y-2"
+              className="group bg-white rounded-2xl p-6 shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-2 border border-gray-100"
             >
-              
-              {/* Image */}
-              <div className="overflow-hidden">
-                <img
-                  src={item.img}
-                  alt={item.title}
-                  className="w-full h-60 object-cover transform group-hover:scale-110 transition duration-500"
-                />
+              <div className="w-12 h-12 bg-amber-50 rounded-xl flex items-center justify-center mb-5 group-hover:bg-amber-100 transition-colors">
+                <feature.icon className="w-6 h-6 text-amber-600 group-hover:text-amber-700" />
               </div>
-
-              {/* Content */}
-              <div className="p-6">
-                <h3 className="text-xl font-semibold text-gray-800 mb-3 group-hover:text-pink-600 transition">
-                  {item.title}
-                </h3>
-
-                <p className="text-gray-600 text-sm leading-6 mb-5">
-                  {item.desc}
-                </p>
-
-                {/* Button */}
-                <button className="text-pink-600 font-medium flex items-center gap-2 group-hover:gap-3 transition-all duration-300">
-                  {item.btn}
-                  <span className="text-lg">→</span>
-                </button>
-              </div>
-
+              <h3 className="text-xl font-bold text-gray-800 mb-2">
+                {feature.title}
+              </h3>
+              <p className="text-gray-500 leading-relaxed">
+                {feature.description}
+              </p>
             </div>
           ))}
+        </div>
 
+        {/* Trust Badge */}
+        <div className="mt-16 text-center">
+          <div className="inline-flex items-center gap-2 bg-white px-6 py-3 rounded-full shadow-sm">
+            <ShieldCheckIcon className="w-5 h-5 text-green-600" />
+            <span className="text-sm text-gray-700">Trusted by 10,000+ happy customers & 1,500+ active sellers</span>
+          </div>
         </div>
 
       </div>

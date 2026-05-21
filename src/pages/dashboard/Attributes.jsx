@@ -145,7 +145,7 @@ const Attributes = () => {
           ""
         );
 
-        refetch();
+        refetch({ force: true });
       } catch (
         error
       ) {
@@ -229,7 +229,7 @@ const Attributes = () => {
         setModalOpen(
           false
         );
-        refetch();
+        refetch({ force: true });
       } catch (
         error
       ) {
@@ -265,7 +265,7 @@ const Attributes = () => {
           "Attribute deleted"
         );
 
-        refetch();
+        refetch({ force: true });
       } catch (
         error
       ) {
@@ -333,7 +333,7 @@ const Attributes = () => {
           })
         );
 
-        refetch();
+        refetch({ force: true });
       } catch (
         error
       ) {
@@ -365,7 +365,7 @@ const Attributes = () => {
           "Value updated"
         );
 
-        refetch();
+        refetch({ force: true });
       } catch (
         error
       ) {
@@ -393,7 +393,7 @@ const Attributes = () => {
           "Value deleted"
         );
 
-        refetch();
+        refetch({ force: true });
       } catch (
         error
       ) {

@@ -36,8 +36,6 @@ const ShopPage = () => {
       ? brandResponse.data
       : [];
 
-  console.log("BRANDS:", brands);
-
   // FILTER STATE
   const initialFilters = {
     category: null,

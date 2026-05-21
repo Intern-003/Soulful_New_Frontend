@@ -2,16 +2,6 @@
 
 import React from "react";
 
-/* ==========================================================
-   FILE: BannerSkeleton.jsx
-   Strict Elite Mode
-   Production Grade
-
-   Props:
-   count = 4
-   type = "card" | "table"
-========================================================== */
-
 const CardSkeleton = () => {
   return (
     <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">

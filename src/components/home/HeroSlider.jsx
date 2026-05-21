@@ -1,366 +1,558 @@
-import React, { useEffect, useState, useRef, useMemo } from "react";
+// FILE: src/components/home/HeroSlider.jsx
+
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+
+import {
+  ArrowRight,
+  ChevronLeft,
+  ChevronRight,
+  ShoppingBag,
+  Sparkles,
+  TrendingUp,
+  Zap,
+} from "lucide-react";
+
+import { useNavigate } from "react-router-dom";
+
 import useGet from "../../api/hooks/useGet";
 import { getImageUrl } from "../../utils/getImageUrl";
-import { useNavigate } from "react-router-dom";
-import { getProductImageUrl, getProductPath } from "../../utils/productHelpers";
+
+import {
+  getProductImageUrl,
+  getProductPath,
+} from "../../utils/productHelpers";
+
 import HeroSliderSkeleton from "../common/HeroSliderSkeleton";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+
+// ======================================================
+// CONFIG
+// ======================================================
+
+const AUTO_SLIDE_DELAY = 5000;
+const SWIPE_THRESHOLD = 50;
+
+// ======================================================
+// BUTTON STYLES
+// ======================================================
+
+const BUTTON_STYLES =
+  "group inline-flex items-center justify-center gap-2 rounded-full bg-white text-gray-900 px-4 sm:px-5 md:px-6 py-1.5 sm:py-2 text-xs sm:text-sm md:text-base font-semibold shadow-md transition-all duration-300 hover:shadow-xl hover:scale-[1.02] active:scale-[0.98]";
+
+// ======================================================
+// BADGE
+// ======================================================
+
+const Badge = ({ children, icon: Icon = Sparkles }) => {
+  return (
+    <div className="inline-flex items-center gap-1.5 rounded-full bg-white/95 backdrop-blur-sm px-2.5 sm:px-3 py-0.5 sm:py-1 shadow-sm">
+      <Icon size={10} className="text-[#7a1c3d] flex-shrink-0" />
+      <span className="text-[9px] sm:text-[10px] font-semibold uppercase tracking-wider text-gray-800 whitespace-nowrap">
+        {children}
+      </span>
+    </div>
+  );
+};
+
+// ======================================================
+// PRODUCT CARD FOR GRID - Consistent sizing across devices
+// ======================================================
+
+const GridProductCard = ({ product, onClick }) => {
+  const image = getProductImageUrl(product);
+  
+  return (
+    <div
+      onClick={onClick}
+      className="cursor-pointer rounded-xl overflow-hidden bg-white shadow-md hover:shadow-lg transition-all duration-300 group"
+    >
+      <div className="relative w-full pt-[100%] overflow-hidden bg-gray-100">
+        <img
+          src={image}
+          alt={product?.name}
+          loading="lazy"
+          onError={(e) => {
+            e.target.src = "/placeholder.jpg";
+          }}
+          className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+        />
+      </div>
+      <div className="p-2 sm:p-2.5 text-center">
+        <p className="text-xs sm:text-sm font-medium text-gray-700 truncate">
+          {product?.name?.length > 15 ? product.name.substring(0, 12) + '..' : product?.name}
+        </p>
+        <p className="text-sm sm:text-base font-bold text-[#7a1c3d] mt-0.5">
+          ₹{Number(product?.price || 0).toLocaleString()}
+        </p>
+      </div>
+    </div>
+  );
+};
+
+// ======================================================
+// REGULAR PRODUCT CARD - Consistent sizing across devices
+// ======================================================
+
+const ProductCard = ({ product, onClick }) => {
+  const image = getProductImageUrl(product);
+  const [isHovered, setIsHovered] = useState(false);
+
+  return (
+    <div
+      onClick={onClick}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      className="group cursor-pointer overflow-hidden rounded-xl bg-white shadow-md hover:shadow-lg transition-all duration-300 hover:-translate-y-1"
+    >
+      <div className="relative aspect-square overflow-hidden bg-gray-100">
+        <img
+          src={image}
+          alt={product?.name}
+          loading="lazy"
+          onError={(e) => {
+            e.target.src = "/placeholder.jpg";
+          }}
+          className={`h-full w-full object-cover transition-transform duration-700 ${
+            isHovered ? "scale-110" : "scale-100"
+          }`}
+        />
+      </div>
+      <div className="p-2 sm:p-3">
+        <h3 className="text-xs sm:text-sm font-medium text-gray-800 line-clamp-2 min-h-[32px] sm:min-h-[40px]">
+          {product?.name}
+        </h3>
+        <div className="mt-2 flex items-center justify-between">
+          <p className="text-sm sm:text-base font-bold text-[#7a1c3d]">
+            ₹{Number(product?.price || 0).toLocaleString()}
+          </p>
+          <div className="rounded-full bg-[#7a1c3d]/10 p-1.5 text-[#7a1c3d] transition-all duration-300 group-hover:bg-[#7a1c3d] group-hover:text-white">
+            <ShoppingBag size={14} className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ======================================================
+// PRODUCT MARQUEE - Consistent sizing
+// ======================================================
+
+const ProductMarquee = ({ products, navigate }) => {
+  if (!products?.length) return null;
+
+  const duplicated = [...products, ...products, ...products];
+
+  return (
+    <div className="relative overflow-hidden py-3">
+      <div className="marquee-track flex w-max gap-3 sm:gap-4">
+        {duplicated.map((product, index) => (
+          <div
+            key={`${product.id}-${index}`}
+            className="w-[130px] xs:w-[140px] sm:w-[160px] md:w-[180px] flex-shrink-0"
+          >
+            <ProductCard
+              product={product}
+              onClick={() => navigate(getProductPath(product))}
+            />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+// ======================================================
+// MAIN COMPONENT
+// ======================================================
 
 const HeroSlider = () => {
-  const { data, loading } = useGet("/admin/banners");
-  const banners = data?.data || [];
   const navigate = useNavigate();
-  const autoSlideRef = useRef(null);
 
-  const [current, setCurrent] = useState(0);
-  const [touchStart, setTouchStart] = useState(0);
-  const [touchEnd, setTouchEnd] = useState(0);
+  const { data, loading } = useGet("/banners");
 
-  // Process banners with full data
+  const banners = data?.data || [];
+
   const processedBanners = useMemo(() => {
     return banners.map((banner) => ({
       ...banner,
       fullUrl: getImageUrl(banner.image),
       products: banner.products || [],
+      button_text: banner.button_text || "Shop Now",
+      button_link: banner.button_link || "",
+      layout: banner.layout || "hero",
     }));
   }, [banners]);
 
-  // Preload images
+  const [current, setCurrent] = useState(0);
+  const intervalRef = useRef(null);
+
+  const startAutoSlide = useCallback(() => {
+    if (intervalRef.current) clearInterval(intervalRef.current);
+    intervalRef.current = setInterval(() => {
+      setCurrent((prev) => (prev + 1) % processedBanners.length);
+    }, AUTO_SLIDE_DELAY);
+  }, [processedBanners.length]);
+
+  const stopAutoSlide = () => {
+    if (intervalRef.current) clearInterval(intervalRef.current);
+  };
+
   useEffect(() => {
     if (!processedBanners.length) return;
-    processedBanners.forEach((b) => {
+    startAutoSlide();
+    return () => stopAutoSlide();
+  }, [processedBanners.length, startAutoSlide]);
+
+  useEffect(() => {
+    processedBanners.forEach((banner) => {
       const img = new Image();
-      img.src = b.fullUrl;
+      img.src = banner.fullUrl;
     });
   }, [processedBanners]);
 
-  // Auto slide
-  useEffect(() => {
-    if (!processedBanners.length) return;
-    const interval = setInterval(() => {
-      setCurrent((prev) => (prev + 1) % processedBanners.length);
-    }, 5000);
-    return () => clearInterval(interval);
-  }, [processedBanners.length]);
-
-  const handleNext = () => {
+  const handleNext = useCallback(() => {
     setCurrent((prev) => (prev + 1) % processedBanners.length);
-  };
+    startAutoSlide();
+  }, [processedBanners.length, startAutoSlide]);
 
-  const handlePrev = () => {
+  const handlePrev = useCallback(() => {
     setCurrent((prev) => (prev === 0 ? processedBanners.length - 1 : prev - 1));
-  };
+    startAutoSlide();
+  }, [processedBanners.length, startAutoSlide]);
+
+  const touchStartX = useRef(0);
 
   const handleTouchStart = (e) => {
-    setTouchStart(e.targetTouches[0].clientX);
-    if (autoSlideRef.current) clearInterval(autoSlideRef.current);
+    touchStartX.current = e.targetTouches[0].clientX;
+    stopAutoSlide();
   };
 
-  const handleTouchMove = (e) => {
-    setTouchEnd(e.targetTouches[0].clientX);
+  const handleTouchEnd = (e) => {
+    const touchEnd = e.changedTouches[0].clientX;
+    const diff = touchStartX.current - touchEnd;
+
+    if (diff > SWIPE_THRESHOLD) handleNext();
+    if (diff < -SWIPE_THRESHOLD) handlePrev();
+    startAutoSlide();
   };
 
-  const handleMouseDown = (e) => {
-    setTouchStart(e.clientX);
+  const handleCTA = (banner) => {
+    if (!banner?.button_link) return;
+    const isExternal = banner.button_link.startsWith("http");
+    if (isExternal) {
+      window.open(banner.button_link, "_blank", "noopener,noreferrer");
+    } else {
+      navigate(banner.button_link);
+    }
   };
 
-  const handleMouseUp = (e) => {
-    setTouchEnd(e.clientX);
-    if (touchStart - e.clientX > 50) handleNext();
-    if (touchStart - e.clientX < -50) handlePrev();
-  };
+  if (loading) return <HeroSliderSkeleton />;
+  if (!processedBanners.length) return null;
 
-  const handleTouchEnd = () => {
-    if (touchStart - touchEnd > 50) handleNext();
-    if (touchStart - touchEnd < -50) handlePrev();
-  };
+  const renderLayout = (banner) => {
+    const { layout, title, subtitle, description, products } = banner;
 
-  // Render layout based on banner layout type
-  const renderBannerContent = (banner) => {
-    const { layout = "grid", products = [], title, subtitle, description } = banner;
-
-    // ========== GRID LAYOUT ==========
-    if (layout === "grid") {
+    // HERO LAYOUT
+    if (layout === "hero") {
       return (
-        <div className="relative z-10 p-6 sm:p-8 md:p-10 lg:p-12 h-full flex flex-col lg:flex-row items-center justify-between gap-6 lg:gap-10">
-          {/* LEFT SIDE - Text Section */}
-          <div className="text-white flex-1 text-center lg:text-left max-w-xl">
-            <span className="inline-block bg-white/20 backdrop-blur-md px-5 py-2 rounded-full text-xs sm:text-sm font-semibold tracking-wider mb-4 sm:mb-5 shadow-lg">
-              {title || "EXCLUSIVE OFFER"}
-            </span>
-            <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold mb-4 sm:mb-5 drop-shadow-2xl leading-tight">
-              {subtitle || "Premium Collection"}
-            </h1>
-            <p className="text-base sm:text-lg md:text-xl opacity-95 drop-shadow-lg mb-6 sm:mb-8 leading-relaxed">
-              {description || "Discover premium quality products from our curated marketplace."}
-            </p>
-            <button
-              onClick={() => products[0] && navigate(getProductPath(products[0]))}
-              className="bg-white text-gray-900 px-8 py-3.5 rounded-lg text-base sm:text-lg font-semibold hover:bg-gray-50 transition-all duration-300 shadow-xl hover:shadow-2xl hover:scale-105 transform inline-flex items-center gap-2"
-            >
-              Shop Now
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-              </svg>
-            </button>
-          </div>
-
-          {/* RIGHT SIDE - Products Grid - Square Images */}
-          {products.length > 0 && (
-            <div className="w-full lg:w-1/2 xl:w-2/5">
-              <div className="grid grid-cols-2 gap-4 sm:gap-5">
-                {products.slice(0, 4).map((product) => (
-                  <div
-                    key={product.id}
-                    onClick={() => navigate(getProductPath(product))}
-                    className="group cursor-pointer rounded-xl overflow-hidden transition-all duration-300 hover:shadow-2xl bg-white/95 backdrop-blur-sm hover:bg-white hover:scale-105"
-                  >
-                    {/* SQUARE IMAGE - 1:1 Aspect Ratio */}
-                    <div className="relative w-full pt-[100%]">
-                      <img
-                        src={getProductImageUrl(product)}
-                        className="absolute inset-0 w-full h-full object-cover"
-                        alt={product.name}
-                        onError={(e) => (e.target.src = "/placeholder.jpg")}
-                      />
-                    </div>
-                    <div className="p-3 sm:p-4">
-                      <p className="text-sm sm:text-base font-bold text-gray-800 line-clamp-2 mb-1.5">
-                        {product.name}
-                      </p>
-                      <p className="text-base sm:text-lg font-extrabold text-green-600">
-                        ₹{Number(product.price || 0).toLocaleString()}
-                      </p>
-                    </div>
-                  </div>
-                ))}
+        <div className="flex h-full items-center">
+          <div className="container mx-auto px-4 xs:px-6 sm:px-8 lg:px-12">
+            <div className="max-w-sm xs:max-w-md sm:max-w-lg md:max-w-xl lg:max-w-2xl">
+              <Badge icon={Zap}>{title || "Premium Collection"}</Badge>
+              <h1 className="mt-2 xs:mt-3 text-xl xs:text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold leading-tight text-white drop-shadow-lg">
+                {subtitle || "Luxury Fashion Collection"}
+              </h1>
+              <p className="mt-1 xs:mt-2 max-w-md text-[11px] xs:text-xs sm:text-sm md:text-base text-white/90 drop-shadow">
+                {description || "Discover premium collections curated for style and elegance."}
+              </p>
+              <div className="mt-3 xs:mt-4 sm:mt-5 md:mt-6">
+                <button onClick={() => handleCTA(banner)} className={BUTTON_STYLES}>
+                  {banner.button_text}
+                  <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+                </button>
               </div>
             </div>
-          )}
+          </div>
         </div>
       );
     }
 
-    // ========== HIGHLIGHT LAYOUT - SQUARE IMAGE NOW ==========
-    if (layout === "highlight") {
-      const product = products[0];
+    // GRID LAYOUT - 2x2 on ALL devices
+    if (layout === "grid") {
+      const displayProducts = products?.slice(0, 4) || [];
+      
       return (
-        <div className="relative z-10 p-6 sm:p-8 md:p-10 lg:p-12 h-full">
-          {/* Product Card - TOP RIGHT - With Square Image */}
-          {product && (
-            <div className="flex justify-end">
-              <div className="w-full sm:w-80 md:w-96 lg:w-[420px]">
-                <div
+        <div className="flex h-full items-center">
+          <div className="container mx-auto px-4 xs:px-6 sm:px-8 lg:px-12">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 sm:gap-6 md:gap-8 items-center">
+              <div className="text-center lg:text-left">
+                <Badge icon={TrendingUp}>{title || "Trending Now"}</Badge>
+                <h1 className="mt-2 xs:mt-3 text-xl xs:text-2xl sm:text-3xl md:text-4xl font-bold text-white drop-shadow-lg">
+                  {subtitle}
+                </h1>
+                <p className="mt-1 xs:mt-2 text-[11px] xs:text-xs sm:text-sm md:text-base text-white/90 drop-shadow">
+                  {description}
+                </p>
+                <div className="mt-3 xs:mt-4 sm:mt-5">
+                  <button onClick={() => handleCTA(banner)} className={BUTTON_STYLES}>
+                    {banner.button_text}
+                    <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+                  </button>
+                </div>
+              </div>
+
+              {/* 2x2 Grid - Same structure on ALL devices */}
+              <div className="grid grid-cols-2 gap-3 sm:gap-4 md:gap-5">
+                {displayProducts.map((product) => (
+                  <GridProductCard
+                    key={product.id}
+                    product={product}
+                    onClick={() => navigate(getProductPath(product))}
+                  />
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // PRODUCTS LAYOUT
+    if (layout === "products") {
+      return (
+        <div className="flex min-h-full items-center py-5 xs:py-6 sm:py-8">
+          <div className="w-full px-4 xs:px-6 sm:px-8 lg:px-12">
+            <div className="text-center mb-5 xs:mb-6 sm:mb-8">
+              <Badge icon={TrendingUp}>{title || "Featured Products"}</Badge>
+              <h1 className="mt-2 text-lg xs:text-xl sm:text-2xl md:text-3xl font-bold text-white drop-shadow-lg">
+                {subtitle}
+              </h1>
+              <p className="mt-1 text-[11px] xs:text-xs sm:text-sm text-white/90">{description}</p>
+            </div>
+
+            <div className="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3 xs:gap-4 sm:gap-5">
+              {products?.slice(0, 10).map((product) => (
+                <ProductCard
+                  key={product.id}
+                  product={product}
                   onClick={() => navigate(getProductPath(product))}
-                  className="bg-white rounded-2xl overflow-hidden cursor-pointer transition-all duration-300 hover:scale-105 hover:shadow-2xl shadow-xl"
-                >
-                  {/* SQUARE IMAGE - Same as grid and carousel */}
-                  <div className="relative w-full pt-[100%]">
-                    <img
-                      src={getProductImageUrl(product)}
-                      className="absolute inset-0 w-full h-full object-cover"
-                      alt={product.name}
-                      onError={(e) => (e.target.src = "/placeholder.jpg")}
-                    />
+                />
+              ))}
+            </div>
+
+            <div className="text-center mt-5 xs:mt-6 sm:mt-8">
+              <button onClick={() => handleCTA(banner)} className={BUTTON_STYLES}>
+                {banner.button_text}
+                <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // SPLIT LAYOUT
+    if (layout === "split") {
+      return (
+        <div className="flex h-full items-end pb-6 xs:pb-8 sm:pb-10 lg:pb-12 px-4 xs:px-6 sm:px-8 lg:px-12">
+          <div className="max-w-sm xs:max-w-md sm:max-w-lg md:max-w-xl lg:max-w-2xl">
+            <Badge icon={Zap}>{title || "Exclusive Offer"}</Badge>
+            <h1 className="mt-2 xs:mt-3 text-xl xs:text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold leading-tight text-white drop-shadow-lg">
+              {subtitle}
+            </h1>
+            <p className="mt-1 xs:mt-2 text-[11px] xs:text-xs sm:text-sm md:text-base text-white/90 drop-shadow">
+              {description}
+            </p>
+            <div className="mt-3 xs:mt-4 sm:mt-5">
+              <button onClick={() => handleCTA(banner)} className={BUTTON_STYLES}>
+                {banner.button_text}
+                <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // CAROUSEL LAYOUT
+    if (layout === "slider" || layout === "carousel") {
+      return (
+        <div className="flex min-h-full items-center py-5 xs:py-6 sm:py-8">
+          <div className="w-full px-4 xs:px-6 sm:px-8 lg:px-12">
+            <div className="text-center mb-5 xs:mb-6 sm:mb-8">
+              <Badge icon={ShoppingBag}>{title || "New Arrivals"}</Badge>
+              <h1 className="mt-2 text-lg xs:text-xl sm:text-2xl md:text-3xl font-bold text-white drop-shadow-lg">
+                {subtitle}
+              </h1>
+              <p className="mt-1 text-[11px] xs:text-xs sm:text-sm text-white/90">{description}</p>
+              <div className="mt-3 xs:mt-4">
+                <button onClick={() => handleCTA(banner)} className={BUTTON_STYLES}>
+                  {banner.button_text}
+                  <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+                </button>
+              </div>
+            </div>
+            <ProductMarquee products={products} navigate={navigate} />
+          </div>
+        </div>
+      );
+    }
+
+    // HIGHLIGHT LAYOUT
+    if (layout === "highlight") {
+      const product = products?.[0];
+      
+      return (
+        <div className="flex h-full items-center">
+          <div className="container mx-auto px-4 xs:px-6 sm:px-8 lg:px-12">
+            <div className="flex flex-col md:flex-row gap-5 sm:gap-6 md:gap-8 items-center">
+              <div className="md:w-1/2 flex justify-center">
+                {product && (
+                  <div
+                    onClick={() => navigate(getProductPath(product))}
+                    className="cursor-pointer rounded-2xl overflow-hidden bg-white shadow-lg hover:shadow-xl transition-all duration-300 w-full max-w-[180px] xs:max-w-[200px] sm:max-w-[240px] md:max-w-[260px] lg:max-w-[280px] group"
+                  >
+                    <div className="relative aspect-square overflow-hidden bg-gray-100">
+                      <img
+                        src={getProductImageUrl(product)}
+                        alt={product?.name}
+                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                        onError={(e) => (e.target.src = "/placeholder.jpg")}
+                      />
+                    </div>
+                    <div className="p-3 sm:p-4">
+                      <p className="text-xs sm:text-sm font-medium text-gray-800 line-clamp-2">
+                        {product?.name}
+                      </p>
+                      <p className="text-sm sm:text-base font-bold text-[#7a1c3d] mt-1">
+                        ₹{Number(product?.price || 0).toLocaleString()}
+                      </p>
+                    </div>
                   </div>
-                  <div className="p-4 sm:p-5">
-                    <h3 className="font-bold text-gray-800 line-clamp-2 text-base sm:text-lg md:text-xl mb-2">
-                      {product.name}
-                    </h3>
-                    <p className="text-xl sm:text-2xl md:text-3xl font-extrabold text-green-600 mb-3">
-                      ₹{Number(product.price || 0).toLocaleString()}
-                    </p>
-                    <button className="text-sm bg-gradient-to-r from-gray-900 to-black text-white px-5 py-2.5 rounded-lg hover:from-black hover:to-gray-900 transition-all shadow-md inline-flex items-center gap-2 w-full sm:w-auto justify-center">
-                      Shop Now
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                      </svg>
-                    </button>
-                  </div>
+                )}
+              </div>
+              <div className="md:w-1/2 text-center md:text-left">
+                <Badge>{title || "Featured Product"}</Badge>
+                <h1 className="mt-2 xs:mt-3 text-xl xs:text-2xl sm:text-3xl md:text-4xl font-bold text-white drop-shadow-lg">
+                  {subtitle}
+                </h1>
+                <p className="mt-1 xs:mt-2 text-[11px] xs:text-xs sm:text-sm md:text-base text-white/90 drop-shadow">
+                  {description}
+                </p>
+                <div className="mt-3 xs:mt-4 sm:mt-5">
+                  <button onClick={() => handleCTA(banner)} className={BUTTON_STYLES}>
+                    {banner.button_text}
+                    <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+                  </button>
                 </div>
               </div>
             </div>
-          )}
-
-          {/* Banner Text - BOTTOM LEFT */}
-          <div className="absolute bottom-6 sm:bottom-8 md:bottom-10 left-6 sm:left-8 md:left-10 max-w-lg">
-            <span className="inline-block bg-white/20 backdrop-blur-md px-5 py-2 rounded-full text-xs sm:text-sm font-semibold tracking-wider mb-3 shadow-lg">
-              {title || "FEATURED"}
-            </span>
-            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-3 drop-shadow-2xl leading-tight">
-              {subtitle || "Special Deal"}
-            </h1>
-            <p className="text-base sm:text-lg md:text-xl text-white/95 drop-shadow-lg leading-relaxed">
-              {description || "Limited time offer. Don't miss out!"}
-            </p>
           </div>
         </div>
       );
     }
 
-    // ========== CAROUSEL LAYOUT ==========
-    if (layout === "carousel") {
-      return (
-        <div className="relative z-10 p-6 sm:p-8 md:p-10 lg:p-12 h-full flex flex-col justify-between">
-          {/* Text Section - TOP */}
-          <div className="text-white text-center">
-            <span className="inline-block bg-white/20 backdrop-blur-md px-5 py-2 rounded-full text-xs sm:text-sm font-semibold tracking-wider mb-4 shadow-lg">
-              {title || "NEW COLLECTION"}
-            </span>
-            <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold mb-4 drop-shadow-2xl leading-tight">
-              {subtitle || "Shop Now"}
-            </h1>
-            <p className="text-base sm:text-lg md:text-xl opacity-95 drop-shadow-lg max-w-2xl mx-auto leading-relaxed">
-              {description || "Browse our latest collection of premium products"}
-            </p>
-          </div>
-
-          {/* Products Carousel - BOTTOM - Square Images */}
-          {products.length > 0 && (
-            <div className="mt-auto pt-8">
-              <div className="flex gap-4 sm:gap-5 overflow-x-auto pb-4 scrollbar-hide snap-x snap-mandatory">
-                {products.map((product) => (
-                  <div
-                    key={product.id}
-                    onClick={() => navigate(getProductPath(product))}
-                    className="min-w-[160px] sm:min-w-[180px] md:min-w-[200px] lg:min-w-[220px] flex-shrink-0 cursor-pointer rounded-xl overflow-hidden bg-white shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105 hover:-translate-y-2 snap-start"
-                  >
-                    {/* SQUARE IMAGE - 1:1 Aspect Ratio */}
-                    <div className="relative w-full pt-[100%]">
-                      <img
-                        src={getProductImageUrl(product)}
-                        className="absolute inset-0 w-full h-full object-cover"
-                        alt={product.name}
-                        onError={(e) => (e.target.src = "/placeholder.jpg")}
-                      />
-                    </div>
-                    <div className="p-3 sm:p-4">
-                      <p className="text-sm sm:text-base font-bold text-gray-800 line-clamp-2 mb-1.5">
-                        {product.name}
-                      </p>
-                      <p className="text-base sm:text-lg font-extrabold text-green-600">
-                        ₹{Number(product.price || 0).toLocaleString()}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      );
-    }
-
-    // Default fallback
-    return (
-      <div className="relative z-10 p-6 sm:p-8 md:p-10 lg:p-12 h-full flex items-center">
-        <div className="max-w-2xl text-center lg:text-left">
-          <span className="inline-block bg-white/20 backdrop-blur-md px-5 py-2 rounded-full text-xs sm:text-sm font-semibold tracking-wider mb-4 shadow-lg">
-            {title || "WELCOME"}
-          </span>
-          <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-white mb-4 drop-shadow-2xl leading-tight">
-            {subtitle || "Premium Collection"}
-          </h1>
-          <p className="text-base sm:text-lg md:text-xl text-white/95 drop-shadow-lg mb-6 leading-relaxed">
-            {description || "Discover amazing products at unbeatable prices"}
-          </p>
-          <button className="bg-white text-gray-900 px-8 py-3.5 rounded-lg text-base sm:text-lg font-semibold hover:bg-gray-50 transition-all duration-300 shadow-xl hover:shadow-2xl hover:scale-105 transform inline-flex items-center gap-2">
-            Shop Now
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-            </svg>
-          </button>
-        </div>
-      </div>
-    );
+    return null;
   };
 
-  if (loading) {
-    return <HeroSliderSkeleton />;
-  }
-
-  if (!processedBanners.length) return null;
-
   return (
-    <div
-      className="relative w-full min-h-[450px] sm:h-[550px] md:h-[650px] lg:h-[750px] bg-gradient-to-br from-gray-900 to-gray-800 overflow-hidden"
-      onTouchStart={handleTouchStart}
-      onTouchMove={handleTouchMove}
-      onTouchEnd={handleTouchEnd}
-      onMouseDown={handleMouseDown}
-      onMouseUp={handleMouseUp}
-    >
-      {/* Sliding Track */}
-      <div className="relative w-full h-full">
-        {processedBanners.map((banner, i) => (
-          <div
-            key={i}
-            className={`absolute inset-0 transition-opacity duration-700 ${
-              i === current ? "opacity-100 z-10" : "opacity-0 z-0"
-            }`}
-          >
-            {/* Background Image with Parallax Effect */}
+    <>
+      <style>
+        {`
+          @keyframes marquee {
+            0% { transform: translateX(0%); }
+            100% { transform: translateX(-33.33%); }
+          }
+          .marquee-track {
+            animation: marquee 25s linear infinite;
+          }
+          .marquee-track:hover {
+            animation-play-state: paused;
+          }
+          @media (max-width: 640px) {
+            .marquee-track {
+              animation-duration: 20s;
+            }
+          }
+        `}
+      </style>
+
+      <section
+        className="relative h-[450px] xs:h-[500px] sm:h-[550px] md:h-[600px] lg:h-[650px] xl:h-[700px] overflow-hidden"
+        onMouseEnter={stopAutoSlide}
+        onMouseLeave={startAutoSlide}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+      >
+        {processedBanners.map((banner, index) => {
+          const active = current === index;
+
+          return (
             <div
-              className="absolute inset-0 bg-cover bg-center transform scale-105 transition-transform duration-10000"
-              style={{ 
-                backgroundImage: `url(${banner.fullUrl})`,
-                transform: i === current ? 'scale(1.05)' : 'scale(1)'
-              }}
+              key={banner.id || index}
+              className={`absolute inset-0 transition-all duration-1000 ease-out ${
+                active ? "opacity-100 scale-100 z-10" : "opacity-0 scale-105 z-0"
+              }`}
             >
-              {/* Dynamic Gradient Overlay based on layout */}
+              {/* Background Image */}
               <div
-                className={`absolute inset-0 ${
-                  banner.layout === "grid"
-                    ? "bg-gradient-to-r from-black/80 via-black/50 to-black/30"
-                    : banner.layout === "highlight"
-                    ? "bg-gradient-to-br from-black/70 via-black/50 to-transparent"
-                    : "bg-gradient-to-t from-black/90 via-black/60 to-black/30"
-                }`}
-              ></div>
+                className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+                style={{ backgroundImage: `url(${banner.fullUrl})` }}
+              />
+              
+              {/* Clean gradient - minimal for text readability */}
+              <div className="absolute inset-0 bg-gradient-to-r from-black/10 via-transparent to-transparent" />
+              
+              <div className="relative z-10 h-full">{renderLayout(banner)}</div>
             </div>
+          );
+        })}
 
-            {/* Banner Content with Products */}
-            {renderBannerContent(banner)}
-          </div>
-        ))}
-      </div>
-
-      {/* Navigation Arrows */}
-      {processedBanners.length > 1 && (
-        <>
-          <button
-            onClick={handlePrev}
-            className="hidden sm:flex absolute left-4 md:left-6 top-1/2 -translate-y-1/2 bg-white/95 hover:bg-white shadow-lg p-2 md:p-3 rounded-full z-20 transition-all duration-300 hover:scale-110 hover:shadow-xl"
-          >
-            <ChevronLeft className="w-5 h-5 md:w-6 md:h-6 text-gray-800" />
-          </button>
-
-          <button
-            onClick={handleNext}
-            className="hidden sm:flex absolute right-4 md:right-6 top-1/2 -translate-y-1/2 bg-white/95 hover:bg-white shadow-lg p-2 md:p-3 rounded-full z-20 transition-all duration-300 hover:scale-110 hover:shadow-xl"
-          >
-            <ChevronRight className="w-5 h-5 md:w-6 md:h-6 text-gray-800" />
-          </button>
-        </>
-      )}
-
-      {/* Dots */}
-      {processedBanners.length > 1 && (
-        <div className="absolute bottom-4 sm:bottom-6 left-1/2 -translate-x-1/2 flex gap-2 sm:gap-3 z-20">
-          {processedBanners.map((_, i) => (
+        {/* Navigation Arrows */}
+        {processedBanners.length > 1 && (
+          <>
             <button
-              key={i}
-              onClick={() => setCurrent(i)}
-              className={`transition-all duration-300 ${
-                current === i
-                  ? "w-8 sm:w-10 h-2 bg-white shadow-lg"
-                  : "w-2 h-2 bg-white/40 hover:bg-white/70 hover:w-4"
-              } rounded-full`}
-            />
-          ))}
-        </div>
-      )}
-    </div>
+              onClick={handlePrev}
+              className="absolute left-2 sm:left-4 md:left-6 top-1/2 z-30 -translate-y-1/2 rounded-full bg-white/80 backdrop-blur-sm p-1.5 sm:p-2 md:p-2.5 text-gray-800 shadow-md transition-all duration-300 hover:scale-110 hover:bg-white hover:shadow-lg hidden sm:flex items-center justify-center"
+              aria-label="Previous slide"
+            >
+              <ChevronLeft size={16} className="sm:w-4 sm:h-4 md:w-5 md:h-5" />
+            </button>
+            <button
+              onClick={handleNext}
+              className="absolute right-2 sm:right-4 md:right-6 top-1/2 z-30 -translate-y-1/2 rounded-full bg-white/80 backdrop-blur-sm p-1.5 sm:p-2 md:p-2.5 text-gray-800 shadow-md transition-all duration-300 hover:scale-110 hover:bg-white hover:shadow-lg hidden sm:flex items-center justify-center"
+              aria-label="Next slide"
+            >
+              <ChevronRight size={16} className="sm:w-4 sm:h-4 md:w-5 md:h-5" />
+            </button>
+          </>
+        )}
+
+        {/* Dots Indicator */}
+        {processedBanners.length > 1 && (
+          <div className="absolute bottom-3 sm:bottom-4 md:bottom-6 left-1/2 z-30 flex -translate-x-1/2 gap-1.5 sm:gap-2 md:gap-2.5">
+            {processedBanners.map((_, index) => (
+              <button
+                key={index}
+                onClick={() => setCurrent(index)}
+                className={`rounded-full transition-all duration-300 ${
+                  current === index 
+                    ? "w-6 sm:w-8 md:w-10 h-1 bg-white shadow-md" 
+                    : "w-1.5 h-1 bg-white/50 hover:bg-white/80"
+                }`}
+                aria-label={`Go to slide ${index + 1}`}
+              />
+            ))}
+          </div>
+        )}
+      </section>
+    </>
   );
 };
 

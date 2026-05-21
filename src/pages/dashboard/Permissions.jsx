@@ -202,7 +202,7 @@ const Permissions = () => {
           "Permission created"
         );
 
-        refetch();
+        refetch({ force: true });
 
         return true;
       } catch (
@@ -244,7 +244,7 @@ const Permissions = () => {
           null
         );
 
-        refetch();
+        refetch({ force: true });
       } catch (
         error
       ) {
@@ -280,7 +280,7 @@ const Permissions = () => {
           "Permission deleted"
         );
 
-        refetch();
+        refetch({ force: true });
       } catch (
         error
       ) {

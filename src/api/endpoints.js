@@ -5,6 +5,7 @@ export const AUTH = {
   ME: "/auth/me",
   SEND_OTP: "/send-otp",
   VERIFY_REGISTER: "/auth/verify-register", // Combined OTP verify + register
+  RESEND_OTP: '/auth/resend-otp', // Add this
   GOOGLE: "/auth/google",
 };
 

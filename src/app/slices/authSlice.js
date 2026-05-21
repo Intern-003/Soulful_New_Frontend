@@ -29,7 +29,7 @@ export const googleLogin = createAsyncThunk(
   async (token, { rejectWithValue }) => {
     try {
       const res = await axiosInstance.post(AUTH.GOOGLE, {
-        token, // Google credential
+        token,
       });
 
       const { access_token, user, role, permissions } = res.data;
@@ -46,55 +46,67 @@ export const googleLogin = createAsyncThunk(
   }
 );
 
-// REGISTER (Original - kept for compatibility if needed elsewhere)
-export const registerUser = createAsyncThunk(
-  "auth/register",
+// START REGISTRATION (SEND OTP)
+export const startRegistration = createAsyncThunk(
+  "auth/startRegistration",
   async (data, { rejectWithValue }) => {
     try {
-      const res = await axiosInstance.post(AUTH.REGISTER, data);
+      // FIXED: Match backend expected format correctly
+      const payload = {
+        name: data.name,
+        email: data.email,  // Always send email from form data
+        phone: data.phone,  // Always send phone from form data
+        password: data.password,
+        password_confirmation: data.password_confirmation,
+        type: data.type,     // 'email' or 'phone' - determines where to send OTP
+      };
+      
+      const res = await axiosInstance.post(AUTH.REGISTER, payload);
       return res.data;
     } catch (err) {
-      return rejectWithValue(err.response?.data || { message: "Server Error" });
+      return rejectWithValue(
+        err.response?.data || { message: "Failed to send OTP" }
+      );
     }
   }
 );
 
-// SEND OTP
-export const sendOtp = createAsyncThunk(
-  "auth/sendOtp",
-  async (data, { rejectWithValue }) => {
-    try {
-      const res = await axiosInstance.post(AUTH.SEND_OTP, data);
-      return res.data;
-    } catch (err) {
-      return rejectWithValue(err.response?.data || { message: "OTP send failed" });
-    }
-  }
-);
-
-// VERIFY OTP (Original - kept for compatibility)
-export const verifyOtp = createAsyncThunk(
-  "auth/verifyOtp",
-  async (data, { rejectWithValue }) => {
-    try {
-      const res = await axiosInstance.post(AUTH.VERIFY_OTP, data);
-      return res.data;
-    } catch (err) {
-      return rejectWithValue(err.response?.data || { message: "OTP verify failed" });
-    }
-  }
-);
-
-// COMPLETE REGISTRATION (NEW - combines OTP verify + register)
+// VERIFY OTP + CREATE USER
 export const completeRegistration = createAsyncThunk(
   "auth/completeRegistration",
   async (data, { rejectWithValue }) => {
     try {
-      // This calls the verifyRegister endpoint which handles both OTP verification and user creation
-      const res = await axiosInstance.post(AUTH.VERIFY_REGISTER, data);
+      const res = await axiosInstance.post(
+        AUTH.VERIFY_REGISTER,
+        {
+          identifier: data.identifier,
+          type: data.type,
+          otp: data.otp,
+        }
+      );
       return res.data;
     } catch (err) {
-      return rejectWithValue(err.response?.data || { message: "Registration failed" });
+      return rejectWithValue(
+        err.response?.data || { message: "Registration failed" }
+      );
+    }
+  }
+);
+
+// RESEND OTP
+export const resendOtp = createAsyncThunk(
+  "auth/resendOtp",
+  async (data, { rejectWithValue }) => {
+    try {
+      const res = await axiosInstance.post(AUTH.RESEND_OTP, {
+        identifier: data.identifier,
+        type: data.type,
+      });
+      return res.data;
+    } catch (err) {
+      return rejectWithValue(
+        err.response?.data || { message: "Failed to resend OTP" }
+      );
     }
   }
 );
@@ -106,12 +118,10 @@ const authSlice = createSlice({
     token: localStorage.getItem("token") || null,
     role: localStorage.getItem("role") || null,
     permissions: JSON.parse(localStorage.getItem("permissions")) || [],
-
     otpSent: false,
-    otpVerified: false,  // Keeping original field
-
     loading: false,
     error: null,
+    resendCooldown: 0, // Track cooldown in seconds
   },
   reducers: {
     logout: (state) => {
@@ -125,14 +135,16 @@ const authSlice = createSlice({
       state.role = null;
       state.permissions = [];
       state.otpSent = false;
-      state.otpVerified = false;
+      state.resendCooldown = 0;
     },
     clearError: (state) => {
       state.error = null;
     },
     resetOtpState: (state) => {
       state.otpSent = false;
-      state.otpVerified = false;
+    },
+    setResendCooldown: (state, action) => {
+      state.resendCooldown = action.payload;
     }
   },
   extraReducers: (builder) => {
@@ -153,7 +165,7 @@ const authSlice = createSlice({
         state.loading = false;
         state.error = action.payload;
       })
-      
+
       // GOOGLE LOGIN
       .addCase(googleLogin.pending, (state) => {
         state.loading = true;
@@ -170,65 +182,59 @@ const authSlice = createSlice({
         state.loading = false;
         state.error = action.payload;
       })
-      
-      // SEND OTP
-      .addCase(sendOtp.pending, (state) => {
+
+      // START REGISTRATION
+      .addCase(startRegistration.pending, (state) => {
         state.loading = true;
         state.error = null;
-        state.otpSent = false;
       })
-      .addCase(sendOtp.fulfilled, (state) => {
+      .addCase(startRegistration.fulfilled, (state) => {
         state.loading = false;
         state.otpSent = true;
+        state.error = null;
       })
-      .addCase(sendOtp.rejected, (state, action) => {
+      .addCase(startRegistration.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
+        state.otpSent = false;
       })
 
-      // VERIFY OTP (Original)
-      .addCase(verifyOtp.pending, (state) => {
-        state.loading = true;
-        state.error = null;
-      })
-      .addCase(verifyOtp.fulfilled, (state) => {
-        state.loading = false;
-        state.otpVerified = true;
-      })
-      .addCase(verifyOtp.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload;
-      })
-      
-      // REGISTER (Original)
-      .addCase(registerUser.pending, (state) => {
-        state.loading = true;
-        state.error = null;
-      })
-      .addCase(registerUser.fulfilled, (state) => {
-        state.loading = false;
-      })
-      .addCase(registerUser.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload;
-      })
-      
-      // COMPLETE REGISTRATION (NEW)
+      // COMPLETE REGISTRATION
       .addCase(completeRegistration.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
-      .addCase(completeRegistration.fulfilled, (state) => {
+      .addCase(completeRegistration.fulfilled, (state, action) => {
         state.loading = false;
         state.otpSent = false;
-        state.otpVerified = true;
+        // Store token and user data after registration
+        if (action.payload.access_token) {
+          state.token = action.payload.access_token;
+          state.user = action.payload.user;
+          localStorage.setItem("token", action.payload.access_token);
+          localStorage.setItem("user", JSON.stringify(action.payload.user));
+        }
       })
       .addCase(completeRegistration.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
+      })
+
+      // RESEND OTP
+      .addCase(resendOtp.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(resendOtp.fulfilled, (state) => {
+        state.loading = false;
+        state.error = null;
+      })
+      .addCase(resendOtp.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
       });
-  },
+  }
 });
 
-export const { logout, clearError, resetOtpState } = authSlice.actions;
+export const { logout, clearError, resetOtpState, setResendCooldown } = authSlice.actions;
 export default authSlice.reducer;
