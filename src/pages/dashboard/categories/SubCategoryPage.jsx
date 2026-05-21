@@ -274,7 +274,7 @@ const SubCategoryPage = () => {
           }
         );
 
-        refetch();
+        refetch({ force: true });
       } catch (
         error
       ) {

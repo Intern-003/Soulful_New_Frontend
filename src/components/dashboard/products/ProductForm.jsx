@@ -11,7 +11,6 @@ import toast from "react-hot-toast";
 const ProductForm = ({ data, onClose, onSuccess }) => {
   const isEdit = !!data;
   const { data: categoryData } = useGet("/categories");
-  const { data: brandData } = useGet("/brands");
   const { data: attributeData } = useGet("/admin/attributes-with-values");
   const { data: subcategoryData, refetch: refetchSubcategories } = useGet("", { autoFetch: false });
   const { postData } = usePost();
@@ -28,6 +27,10 @@ const ProductForm = ({ data, onClose, onSuccess }) => {
   const [isProductSaved, setIsProductSaved] = useState(!!data);
   const [specifications, setSpecifications] = useState([]);
   const [generatedVariants, setGeneratedVariants] = useState([]);
+  
+  // State for dynamic brands
+  const [brandsByCategory, setBrandsByCategory] = useState([]);
+  const [loadingBrands, setLoadingBrands] = useState(false);
 
   const [form, setForm] = useState({
     name: "", short_description: "", description: "", price: "", discount_price: "",
@@ -74,10 +77,44 @@ const ProductForm = ({ data, onClose, onSuccess }) => {
     }
   }, [generatedVariants]);
 
+  // Fetch brands based on selected category/subcategory
+  useEffect(() => {
+    const fetchBrandsByCategory = async () => {
+      // Determine which category ID to use (subcategory first, then parent category)
+      const categoryId = form.category_id || parentCategory;
+      
+      if (!categoryId) {
+        setBrandsByCategory([]);
+        return;
+      }
+
+      setLoadingBrands(true);
+      try {
+        const response = await fetch(`/api/admin/brands/category/${categoryId}`);
+        const result = await response.json();
+        setBrandsByCategory(result.data || []);
+        
+        // Reset brand selection if current brand isn't valid for new category
+        if (form.brand_id && !result.data?.some(b => b.id === parseInt(form.brand_id))) {
+          setForm(prev => ({ ...prev, brand_id: "" }));
+          toast.info("Brand reset as it's not available for selected category");
+        }
+      } catch (error) {
+        console.error('Error fetching brands by category:', error);
+        setBrandsByCategory([]);
+        toast.error("Failed to load brands for this category");
+      } finally {
+        setLoadingBrands(false);
+      }
+    };
+
+    fetchBrandsByCategory();
+  }, [form.category_id, parentCategory]);
+
   const handleCategoryChange = async (e) => {
     const id = e.target.value;
     setParentCategory(id);
-    setForm(prev => ({ ...prev, category_id: "" }));
+    setForm(prev => ({ ...prev, category_id: "", brand_id: "" })); // Reset subcategory and brand
     if (id) await refetchSubcategories({ url: `/categories/${id}/children` });
   };
 
@@ -120,7 +157,7 @@ const ProductForm = ({ data, onClose, onSuccess }) => {
       short_description: form.short_description,
       description: form.description,
       price: Number(form.price || 0),
-      discount_price: Number(form.discount_price || 0), // FIXED: Added discount_price
+      discount_price: Number(form.discount_price || 0),
       cost_price: Number(form.cost_price || 0),
       stock: Number(form.stock || 0),
       category_id: form.category_id,
@@ -174,7 +211,7 @@ const ProductForm = ({ data, onClose, onSuccess }) => {
     try {
       const fd = new FormData();
       images.forEach(file => fd.append("images[]", file));
-      fd.append("is_primary", 0); // Let backend handle primary
+      fd.append("is_primary", 0);
 
       await postData({
         url: `/vendor/products/${productId}/images`,
@@ -246,7 +283,6 @@ const ProductForm = ({ data, onClose, onSuccess }) => {
     const mergedVariants = generated.map(newVariant => {
       const existingVariant = existingVariants.find(ev => ev.sku === newVariant.sku);
       if (existingVariant) {
-        // Preserve existing values
         return {
           ...newVariant,
           price: existingVariant.price || newVariant.price,
@@ -283,7 +319,6 @@ const ProductForm = ({ data, onClose, onSuccess }) => {
 
   const categories = categoryData?.data || [];
   const subcategories = subcategoryData?.data || [];
-  const brands = brandData?.data?.data || brandData?.data || [];
   const attributes = attributeData?.data || [];
 
   const steps = [
@@ -338,56 +373,199 @@ const ProductForm = ({ data, onClose, onSuccess }) => {
         <div className="flex-1 overflow-y-auto p-4 sm:p-6">
           {currentStep === 1 && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
-              {/* Form fields - same as before */}
               <div className="sm:col-span-2">
                 <label className="block text-sm font-medium mb-1">Product Name *</label>
-                <input name="name" value={form.name} onChange={handleChange} placeholder="Enter product name"
-                  className="w-full border rounded-lg p-2 sm:p-3 focus:ring-2 focus:ring-[#7a1c3d] text-sm sm:text-base" />
+                <input 
+                  name="name" 
+                  value={form.name} 
+                  onChange={handleChange} 
+                  placeholder="Enter product name"
+                  className="w-full border rounded-lg p-2 sm:p-3 focus:ring-2 focus:ring-[#7a1c3d] text-sm sm:text-base" 
+                />
               </div>
+              
               <div className="sm:col-span-2">
                 <label className="block text-sm font-medium mb-1">Short Description</label>
-                <input name="short_description" value={form.short_description} onChange={handleChange} placeholder="Brief description"
-                  className="w-full border rounded-lg p-2 sm:p-3 text-sm sm:text-base" />
+                <input 
+                  name="short_description" 
+                  value={form.short_description} 
+                  onChange={handleChange} 
+                  placeholder="Brief description"
+                  className="w-full border rounded-lg p-2 sm:p-3 text-sm sm:text-base" 
+                />
               </div>
+              
               <div className="sm:col-span-2">
                 <label className="block text-sm font-medium mb-1">Full Description</label>
-                <textarea name="description" value={form.description} onChange={handleChange} rows="4"
-                  placeholder="Detailed product description" className="w-full border rounded-lg p-2 sm:p-3 text-sm sm:text-base" />
+                <textarea 
+                  name="description" 
+                  value={form.description} 
+                  onChange={handleChange} 
+                  rows="4"
+                  placeholder="Detailed product description" 
+                  className="w-full border rounded-lg p-2 sm:p-3 text-sm sm:text-base" 
+                />
               </div>
+              
               <div>
                 <label className="block text-sm font-medium mb-1">Category *</label>
-                <select value={parentCategory} onChange={handleCategoryChange} className="w-full border rounded-lg p-2 sm:p-3 text-sm sm:text-base">
+                <select 
+                  value={parentCategory} 
+                  onChange={handleCategoryChange} 
+                  className="w-full border rounded-lg p-2 sm:p-3 text-sm sm:text-base"
+                >
                   <option value="">Select Category</option>
                   {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
               </div>
+              
               <div>
                 <label className="block text-sm font-medium mb-1">Subcategory</label>
-                <select name="category_id" value={form.category_id} onChange={handleChange} className="w-full border rounded-lg p-2 sm:p-3 text-sm sm:text-base">
+                <select 
+                  name="category_id" 
+                  value={form.category_id} 
+                  onChange={handleChange} 
+                  className="w-full border rounded-lg p-2 sm:p-3 text-sm sm:text-base"
+                  disabled={!parentCategory}
+                >
                   <option value="">Select Subcategory</option>
                   {subcategories.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                 </select>
               </div>
+              
               <div>
-                <label className="block text-sm font-medium mb-1">Brand</label>
-                <select name="brand_id" value={form.brand_id} onChange={handleChange} className="w-full border rounded-lg p-2 sm:p-3 text-sm sm:text-base">
+                <label className="block text-sm font-medium mb-1">
+                  Brand {loadingBrands && <span className="text-xs text-gray-500 ml-1">(Loading...)</span>}
+                </label>
+                <select 
+                  name="brand_id" 
+                  value={form.brand_id} 
+                  onChange={handleChange} 
+                  className="w-full border rounded-lg p-2 sm:p-3 text-sm sm:text-base"
+                  disabled={loadingBrands || !form.category_id}
+                >
                   <option value="">Select Brand</option>
-                  {brands.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+                  {brandsByCategory.length === 0 && !loadingBrands && form.category_id && (
+                    <option value="" disabled>No brands available for this category</option>
+                  )}
+                  {brandsByCategory.map(b => (
+                    <option key={b.id} value={b.id}>{b.name}</option>
+                  ))}
                 </select>
+                {!loadingBrands && brandsByCategory.length === 0 && form.category_id && (
+                  <p className="text-xs text-amber-600 mt-1">
+                    ⚠️ No brands found for this category
+                  </p>
+                )}
               </div>
-              <div><label className="block text-sm font-medium mb-1">Price *</label><input name="price" type="number" step="0.01" value={form.price} onChange={handleChange} placeholder="0.00" className="w-full border rounded-lg p-2 sm:p-3" /></div>
-              <div><label className="block text-sm font-medium mb-1">Discount Price</label><input name="discount_price" type="number" step="0.01" value={form.discount_price} onChange={handleChange} placeholder="0.00" className="w-full border rounded-lg p-2 sm:p-3" /></div>
-              <div><label className="block text-sm font-medium mb-1">Cost Price</label><input name="cost_price" type="number" step="0.01" value={form.cost_price} onChange={handleChange} placeholder="0.00" className="w-full border rounded-lg p-2 sm:p-3" /></div>
-              <div><label className="block text-sm font-medium mb-1">Stock Quantity</label><input name="stock" type="number" value={form.stock} onChange={handleChange} placeholder="0" className="w-full border rounded-lg p-2 sm:p-3" /></div>
+              
+              <div>
+                <label className="block text-sm font-medium mb-1">Price *</label>
+                <input 
+                  name="price" 
+                  type="number" 
+                  step="0.01" 
+                  value={form.price} 
+                  onChange={handleChange} 
+                  placeholder="0.00" 
+                  className="w-full border rounded-lg p-2 sm:p-3" 
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium mb-1">Discount Price</label>
+                <input 
+                  name="discount_price" 
+                  type="number" 
+                  step="0.01" 
+                  value={form.discount_price} 
+                  onChange={handleChange} 
+                  placeholder="0.00" 
+                  className="w-full border rounded-lg p-2 sm:p-3" 
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium mb-1">Cost Price</label>
+                <input 
+                  name="cost_price" 
+                  type="number" 
+                  step="0.01" 
+                  value={form.cost_price} 
+                  onChange={handleChange} 
+                  placeholder="0.00" 
+                  className="w-full border rounded-lg p-2 sm:p-3" 
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium mb-1">Stock Quantity</label>
+                <input 
+                  name="stock" 
+                  type="number" 
+                  value={form.stock} 
+                  onChange={handleChange} 
+                  placeholder="0" 
+                  className="w-full border rounded-lg p-2 sm:p-3" 
+                />
+              </div>
+              
               <div className="grid grid-cols-2 gap-3 sm:col-span-2">
-                <div><label className="block text-sm font-medium mb-1">Length (cm)</label><input name="length" type="number" step="0.01" value={form.length} onChange={handleChange} className="w-full border rounded-lg p-2 sm:p-3" /></div>
-                <div><label className="block text-sm font-medium mb-1">Width (cm)</label><input name="width" type="number" step="0.01" value={form.width} onChange={handleChange} className="w-full border rounded-lg p-2 sm:p-3" /></div>
-                <div><label className="block text-sm font-medium mb-1">Height (cm)</label><input name="height" type="number" step="0.01" value={form.height} onChange={handleChange} className="w-full border rounded-lg p-2 sm:p-3" /></div>
-                <div><label className="block text-sm font-medium mb-1">Weight (kg)</label><input name="weight" type="number" step="0.01" value={form.weight} onChange={handleChange} className="w-full border rounded-lg p-2 sm:p-3" /></div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Length (cm)</label>
+                  <input 
+                    name="length" 
+                    type="number" 
+                    step="0.01" 
+                    value={form.length} 
+                    onChange={handleChange} 
+                    className="w-full border rounded-lg p-2 sm:p-3" 
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Width (cm)</label>
+                  <input 
+                    name="width" 
+                    type="number" 
+                    step="0.01" 
+                    value={form.width} 
+                    onChange={handleChange} 
+                    className="w-full border rounded-lg p-2 sm:p-3" 
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Height (cm)</label>
+                  <input 
+                    name="height" 
+                    type="number" 
+                    step="0.01" 
+                    value={form.height} 
+                    onChange={handleChange} 
+                    className="w-full border rounded-lg p-2 sm:p-3" 
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Weight (kg)</label>
+                  <input 
+                    name="weight" 
+                    type="number" 
+                    step="0.01" 
+                    value={form.weight} 
+                    onChange={handleChange} 
+                    className="w-full border rounded-lg p-2 sm:p-3" 
+                  />
+                </div>
               </div>
+              
               <div className="sm:col-span-2">
                 <label className="flex items-center gap-3 cursor-pointer">
-                  <input type="checkbox" name="is_featured" checked={form.is_featured} onChange={handleChange} className="w-4 h-4 sm:w-5 sm:h-5" />
+                  <input 
+                    type="checkbox" 
+                    name="is_featured" 
+                    checked={form.is_featured} 
+                    onChange={handleChange} 
+                    className="w-4 h-4 sm:w-5 sm:h-5" 
+                  />
                   <span className="font-medium text-sm sm:text-base">⭐ Feature this product</span>
                 </label>
               </div>
@@ -396,22 +574,40 @@ const ProductForm = ({ data, onClose, onSuccess }) => {
 
           {currentStep === 2 && (
             <div>
-              <div className="border-2 border-dashed rounded-xl p-6 sm:p-8 text-center hover:border-[#7a1c3d] transition cursor-pointer" onClick={() => document.getElementById('imageUpload')?.click()}>
-                <input type="file" multiple accept="image/*" onChange={handleImageChange} className="hidden" id="imageUpload" />
+              <div 
+                className="border-2 border-dashed rounded-xl p-6 sm:p-8 text-center hover:border-[#7a1c3d] transition cursor-pointer" 
+                onClick={() => document.getElementById('imageUpload')?.click()}
+              >
+                <input 
+                  type="file" 
+                  multiple 
+                  accept="image/*" 
+                  onChange={handleImageChange} 
+                  className="hidden" 
+                  id="imageUpload" 
+                />
                 <div className="flex flex-col items-center">
                   <Upload size={32} className="sm:w-12 sm:h-12 text-gray-400 mb-3" />
                   <p className="text-sm sm:text-base text-gray-600">Click to upload product images</p>
                   <p className="text-xs text-gray-400 mt-1">PNG, JPG, GIF up to 10MB</p>
                 </div>
               </div>
+              
               {preview.length > 0 && (
                 <div className="mt-4">
                   <h3 className="font-semibold mb-3 text-sm sm:text-base">Images to Upload ({preview.length})</h3>
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4">
                     {preview.map((img, i) => (
                       <div key={i} className="relative group">
-                        <img src={img} className="h-24 sm:h-32 w-full object-cover rounded-lg" alt={`Preview ${i}`} />
-                        <button onClick={() => removeImage(i)} className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition">
+                        <img 
+                          src={img} 
+                          className="h-24 sm:h-32 w-full object-cover rounded-lg" 
+                          alt={`Preview ${i}`} 
+                        />
+                        <button 
+                          onClick={() => removeImage(i)} 
+                          className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition"
+                        >
                           <X size={12} className="sm:w-4 sm:h-4" />
                         </button>
                       </div>
@@ -423,7 +619,11 @@ const ProductForm = ({ data, onClose, onSuccess }) => {
           )}
 
           {currentStep === 3 && productId && (
-            <ProductSpecifications productId={productId} isLocked={false} onSpecificationsChange={setSpecifications} />
+            <ProductSpecifications 
+              productId={productId} 
+              isLocked={false} 
+              onSpecificationsChange={setSpecifications} 
+            />
           )}
 
           {currentStep === 4 && (
@@ -436,22 +636,36 @@ const ProductForm = ({ data, onClose, onSuccess }) => {
           )}
 
           {currentStep === 5 && productId && (
-            <VariantSection ref={variantRef} productId={productId} onVariantsLoaded={setExistingVariants} />
+            <VariantSection 
+              ref={variantRef} 
+              productId={productId} 
+              onVariantsLoaded={setExistingVariants} 
+            />
           )}
         </div>
 
         {/* Footer */}
         <div className="border-t px-4 sm:px-6 py-4 bg-gray-50 flex flex-col sm:flex-row justify-between gap-3 flex-shrink-0">
-          <button onClick={() => currentStep > 1 && setCurrentStep(currentStep - 1)} className={`px-4 sm:px-6 py-2 border rounded-lg transition flex items-center justify-center gap-2 text-sm sm:text-base
-            ${currentStep === 1 ? 'invisible' : 'hover:bg-gray-100'}`}>
+          <button 
+            onClick={() => currentStep > 1 && setCurrentStep(currentStep - 1)} 
+            className={`px-4 sm:px-6 py-2 border rounded-lg transition flex items-center justify-center gap-2 text-sm sm:text-base
+              ${currentStep === 1 ? 'invisible' : 'hover:bg-gray-100'}`}
+          >
             <ChevronLeft size={16} /> Previous
           </button>
+          
           <div className="flex flex-col sm:flex-row gap-3">
-            <button onClick={onClose} className="px-4 sm:px-6 py-2 border rounded-lg hover:bg-gray-100 transition text-sm sm:text-base">Cancel</button>
+            <button 
+              onClick={onClose} 
+              className="px-4 sm:px-6 py-2 border rounded-lg hover:bg-gray-100 transition text-sm sm:text-base"
+            >
+              Cancel
+            </button>
+            
             {currentStep < 5 ? (
               <button
                 onClick={handleNextStep}
-                disabled={submitting || uploadingImages || (currentStep === 1 && isProductSaved && !isEdit) || currentStep === 4}
+                disabled={submitting || uploadingImages || (currentStep === 1 && isProductSaved && !isEdit) || (currentStep === 4 && !form.category_id)}
                 className="bg-[#7a1c3d] text-white px-6 sm:px-8 py-2 rounded-lg hover:bg-[#5e132f] disabled:opacity-50 transition flex items-center justify-center gap-2 text-sm sm:text-base"
               >
                 {currentStep === 1 && !isProductSaved && !isEdit ? (submitting ? "Creating..." : "Create Product")
@@ -460,7 +674,10 @@ const ProductForm = ({ data, onClose, onSuccess }) => {
                 {currentStep !== 4 && <ChevronRight size={16} />}
               </button>
             ) : (
-              <button onClick={handleFinalSubmit} className="bg-green-600 text-white px-6 sm:px-8 py-2 rounded-lg hover:bg-green-700 transition flex items-center justify-center gap-2 text-sm sm:text-base">
+              <button 
+                onClick={handleFinalSubmit} 
+                className="bg-green-600 text-white px-6 sm:px-8 py-2 rounded-lg hover:bg-green-700 transition flex items-center justify-center gap-2 text-sm sm:text-base"
+              >
                 <CheckCircle size={16} /> Complete Setup
               </button>
             )}

@@ -355,7 +355,7 @@ const EditProductModal = ({ productId, onClose, onSuccess }) => {
               productId={productId}
               images={productImages}
               onRefresh={() => {
-                refetch();
+                refetch({ force: true });
                 if (data?.data?.images) setProductImages(data.data.images);
               }}
             />

@@ -1,7 +1,4 @@
-import React, { useState, useEffect } from "react";
 import {
-  Phone,
-  Mail,
   Heart,
   ShoppingCart,
   User,
@@ -12,9 +9,9 @@ import {
 import { useNavigate } from "react-router-dom";
 import { useLocation } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
+import { useState, useEffect, useRef } from "react";
 
 import { logout as logoutAction } from "../../app/slices/authSlice";
-import usePermissions from "../../api/hooks/usePermissions";
 import { getImageUrl } from "../../utils/getImageUrl";
 import axiosInstance from "../../api/axiosInstance";
 import TopBar from "./TopBar";
@@ -23,21 +20,17 @@ const Header = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const dispatch = useDispatch();
+  const searchInputRef = useRef(null);
 
   const { user } = useSelector((state) => state.auth);
-  const { can } = usePermissions();
   const { items: cartItems } = useSelector((state) => state.cart);
 
-  // Search
   const [query, setQuery] = useState("");
   const [suggestions, setSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
-
-  // UI States
   const [profileOpen, setProfileOpen] = useState(false);
   const [mobileMenu, setMobileMenu] = useState(false);
 
-  // Search with debounce
   useEffect(() => {
     const timeout = setTimeout(async () => {
       if (!query.trim()) {
@@ -63,20 +56,14 @@ const Header = () => {
   const handleLogout = async () => {
     try {
       await axiosInstance.post("/auth/logout");
-    } catch (e) {
-      // Handle error silently
-    }
-
+    } catch (e) {}
     dispatch(logoutAction());
     setProfileOpen(false);
     navigate("/login");
   };
 
-  const wishlistCount = useSelector(
-    (state) => state.wishlist?.items?.length || 0,
-  );
+  const wishlistCount = useSelector((state) => state.wishlist?.items?.length || 0);
 
-  // Add touch event handling for mobile
   useEffect(() => {
     const handleTouchOutside = (e) => {
       if (
@@ -91,136 +78,168 @@ const Header = () => {
     return () => document.removeEventListener("touchstart", handleTouchOutside);
   }, [profileOpen]);
 
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (searchInputRef.current && !searchInputRef.current.contains(event.target)) {
+        setShowSuggestions(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const handleNavigation = (path) => {
+    navigate(path);
+    setMobileMenu(false);
+  };
+
   return (
     <header className="w-full bg-white border-b shadow-sm">
       <TopBar />
 
-      {/* Main Header */}
-      <div className="flex items-center justify-between px-4 md:px-8 py-4 gap-4">
-        {/* LEFT */}
-        <div className="flex items-center gap-3">
-          {/* Mobile Menu */}
+      {/* Main Header - Tighter spacing */}
+      <div className="flex items-center justify-between px-4 md:px-6 lg:px-8 py-3 gap-3">
+        {/* LEFT - Logo */}
+        <div className="flex items-center gap-2">
           <button className="md:hidden" onClick={() => setMobileMenu(true)}>
             <Menu size={24} />
           </button>
-
-          {/* Logo */}
           <h1
-            className="text-xl md:text-2xl font-extrabold cursor-pointer tracking-tight"
-            onClick={() => navigate("/")}
+            className="text-xl md:text-2xl font-extrabold cursor-pointer tracking-tight whitespace-nowrap"
+            onClick={() => handleNavigation("/")}
           >
             <span className="text-[#7a1c3d]">Soulful</span>{" "}
             <span className="text-black">Overseas</span>
           </h1>
         </div>
 
-        <div className="hidden md:flex flex-1 max-w-2xl">
-          <div className="flex items-center w-full border border-gray-200 rounded-full overflow-hidden bg-gray-50 hover:bg-white transition shadow-sm hover:shadow-md">
-            {/* Icon */}
-            <Search size={18} className="ml-4 text-gray-400" />
-
-            {/* Input */}
+        {/* Desktop Search - Compact */}
+        <div className="hidden md:flex flex-1 max-w-xl relative" ref={searchInputRef}>
+          <div className="flex items-center w-full border border-gray-200 rounded-full overflow-hidden bg-gray-50 hover:bg-white transition">
+            <Search size={16} className="ml-3 text-gray-400" />
             <input
               type="text"
               placeholder="What are you looking for?"
-              className="w-full px-3 py-2.5 bg-transparent outline-none text-sm"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              className="w-full px-2 py-2 bg-transparent outline-none text-sm"
             />
-
-            {/* Button */}
-            <button className="bg-[#7a1c3d] text-white px-6 py-2.5 text-sm font-medium hover:bg-[#5f132e] transition cursor-pointer">
+            <button
+              onClick={() => {
+                if (query.trim()) navigate(`/search?q=${query}`);
+              }}
+              className="bg-[#7a1c3d] text-white px-4 py-2 text-sm font-medium hover:bg-[#5f132e] transition cursor-pointer whitespace-nowrap"
+            >
               Search
             </button>
           </div>
+
+          {showSuggestions && suggestions.length > 0 && (
+            <div className="absolute top-full left-0 right-0 mt-1 bg-white shadow-xl rounded-lg overflow-hidden z-50 max-h-96 overflow-y-auto">
+              {suggestions.slice(0, 8).map((item) => {
+                const imgUrl = item.images?.find((i) => i.is_primary)?.image_url || item.images?.[0]?.image_url;
+                return (
+                  <div
+                    key={item.id}
+                    className="flex gap-3 p-3 hover:bg-gray-50 cursor-pointer border-b"
+                    onClick={() => {
+                      navigate(`/product/${item.slug}`);
+                      setQuery("");
+                      setShowSuggestions(false);
+                    }}
+                  >
+                    <img src={getImageUrl(imgUrl) || "/placeholder.jpg"} alt={item.name} className="w-10 h-10 object-cover rounded" />
+                    <div className="flex-1">
+                      <p className="text-sm font-medium line-clamp-1">{item.name}</p>
+                      <p className="text-sm text-gray-500">₹{item.price}</p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
 
-        {/* RIGHT */}
-        <div className="flex items-center gap-6 md:gap-8">
-          {/* WISHLIST */}
-          <div
-            onClick={() => navigate("/wishlist")}
-            className="relative cursor-pointer group"
+        {/* RIGHT - Icons with tighter spacing */}
+        <div className="flex items-center gap-3 md:gap-4">
+          <button 
+            className="md:hidden"
+            onClick={() => {
+              const searchTerm = prompt("Search products:");
+              if (searchTerm?.trim()) navigate(`/search?q=${searchTerm}`);
+            }}
           >
-            <Heart
-              size={22}
-              className="text-gray-700 group-hover:text-[#7a1c3d] transition"
-            />
+            <Search size={20} className="text-gray-700" />
+          </button>
 
+          <div onClick={() => handleNavigation("/wishlist")} className="relative cursor-pointer group">
+            <Heart size={20} className="text-gray-700 group-hover:text-[#7a1c3d] transition" />
             {wishlistCount > 0 && (
-              <span className="absolute -top-1 -right-2 bg-[#7a1c3d] text-white text-[10px] px-1.5 py-[1px] rounded-full shadow">
-                {wishlistCount}
+              <span className="absolute -top-1.5 -right-1.5 bg-[#7a1c3d] text-white text-[9px] px-1 py-0.5 rounded-full min-w-[16px] text-center leading-none">
+                {wishlistCount > 99 ? '99+' : wishlistCount}
               </span>
             )}
           </div>
 
-          {/* CART */}
-          <div
-            onClick={() => navigate("/cart")}
-            className="relative cursor-pointer group"
-          >
-            <ShoppingCart
-              size={22}
-              className="text-gray-700 group-hover:text-[#7a1c3d] transition"
-            />
-
+          <div onClick={() => handleNavigation("/cart")} className="relative cursor-pointer group">
+            <ShoppingCart size={20} className="text-gray-700 group-hover:text-[#7a1c3d] transition" />
             {cartItems.length > 0 && (
-              <span className="absolute -top-1 -right-2 bg-[#7a1c3d] text-white text-[10px] px-1.5 py-[1px] rounded-full shadow">
-                {cartItems.length}
+              <span className="absolute -top-1.5 -right-1.5 bg-[#7a1c3d] text-white text-[9px] px-1 py-0.5 rounded-full min-w-[16px] text-center leading-none">
+                {cartItems.length > 99 ? '99+' : cartItems.length}
               </span>
             )}
           </div>
 
-          {/* ACCOUNT */}
           <div
             className="relative"
-            onMouseEnter={() => setProfileOpen(true)}
-            onMouseLeave={() => setProfileOpen(false)}
+            onClick={() => window.innerWidth < 768 && setProfileOpen(!profileOpen)}
+            onMouseEnter={() => window.innerWidth >= 768 && setProfileOpen(true)}
+            onMouseLeave={() => window.innerWidth >= 768 && setProfileOpen(false)}
           >
-            {/* TRIGGER */}
-            <div className="flex items-center gap-2 cursor-pointer">
-              {/* Avatar */}
-              <div className="w-9 h-9 rounded-full bg-[#f3e8ee] flex items-center justify-center text-[#7a1c3d] font-semibold text-sm shadow-sm hover:shadow-md transition">
-                {user?.name?.[0] || "A"}
+            <div className="flex items-center gap-1.5 cursor-pointer">
+              <div className="w-8 h-8 rounded-full bg-[#f3e8ee] flex items-center justify-center text-[#7a1c3d] font-semibold text-xs shadow-sm hover:shadow-md transition">
+                {user?.name?.[0]?.toUpperCase() || "A"}
               </div>
-
-              {/* Name */}
-              <div className="hidden md:flex flex-col leading-tight">
-                <span className="text-[11px] text-gray-400">Welcome</span>
-                <span className="text-sm font-semibold text-gray-800">
+              <div className="hidden lg:flex flex-col leading-tight">
+                <span className="text-[10px] text-gray-400">Welcome</span>
+                <span className="text-xs font-semibold text-gray-800">
                   {user?.name?.split(" ")[0] || "Account"}
                 </span>
               </div>
             </div>
 
-            {/* DROPDOWN */}
             <div
-              className={`absolute right-0 top-full pt-2 z-50 transition-all duration-200
-                ${profileOpen
-                  ? "opacity-100 visible translate-y-0"
-                  : "opacity-0 invisible translate-y-2"
-                }
+              className={`absolute right-0 top-full pt-2 z-50 transition-all duration-200 profile-dropdown
+                ${profileOpen ? "opacity-100 visible translate-y-0" : "opacity-0 invisible translate-y-2"}
               `}
             >
-              <div className="w-56 bg-white shadow-2xl rounded-xl py-2 border border-gray-100">
+              <div className="w-52 bg-white shadow-2xl rounded-xl py-2 border border-gray-100">
                 {user ? (
                   <>
                     <div
-                      onClick={() => navigate("/account")}
-                      className="px-4 py-2.5 text-sm hover:bg-gray-50 cursor-pointer transition"
+                      onClick={() => {
+                        handleNavigation("/account");
+                        setProfileOpen(false);
+                      }}
+                      className="px-4 py-2 text-sm hover:bg-gray-50 cursor-pointer transition flex items-center gap-2"
                     >
+                      <User size={14} className="text-gray-500" />
                       My Profile
                     </div>
-
                     <div
                       onClick={handleLogout}
-                      className="px-4 py-2.5 text-sm hover:bg-gray-50 cursor-pointer text-red-500 transition"
+                      className="px-4 py-2 text-sm hover:bg-gray-50 cursor-pointer text-red-500 transition"
                     >
                       Logout
                     </div>
                   </>
                 ) : (
                   <div
-                    onClick={() => navigate("/login")}
-                    className="px-4 py-2.5 text-sm hover:bg-gray-50 cursor-pointer transition"
+                    onClick={() => {
+                      handleNavigation("/login");
+                      setProfileOpen(false);
+                    }}
+                    className="px-4 py-2 text-sm hover:bg-gray-50 cursor-pointer transition"
                   >
                     Login / Register
                   </div>
@@ -231,303 +250,157 @@ const Header = () => {
         </div>
       </div>
 
+      {/* Desktop Navigation - Compact Single Line */}
       <nav className="border-t border-gray-100 hidden md:block bg-white">
-        <div className="max-w-7xl mx-auto px-6 flex items-center justify-between py-3 pb-6">
-          <div className="flex items-center gap-8 text-[14px] font-semibold tracking-wide">
-            {[
-              { name: "Home", path: "/" },
-              { name: "Shop All", path: "/shop" },
-              {
-                name: "About",
-                dropdown: [
-                  { name: "About Us", path: "/about" },
-                  { name: "Contact Us", path: "/contact" },
-                  { name: "Review", path: "/reviews" },
-                ],
-              },
-              { name: "Soulful Special", path: "/soulful-special" },
-            ].map((item, i) => (
-              <div key={i} className="relative group">
-                <span
-                  onClick={() => item.path && navigate(item.path)}
-                  className="relative cursor-pointer text-gray-700 hover:text-[#7A1C3D] transition"
-                >
-                  {item.name}
-
-                  <span
-                    className={`absolute left-0 -bottom-1 h-[1.5px] bg-[#7A1C3D] transition-all duration-300
-                      ${location.pathname === item.path ? "w-full" : "w-0 group-hover:w-full"}
-                    `}
-                  />
-                </span>
-
-                {item.dropdown && (
-                  <div
-                    className="
-                      absolute left-0 top-full mt-4
-                      w-48
-                      bg-white
-                      border border-gray-100
-                      shadow-xl
-                      rounded-xl
-                      opacity-0 invisible
-                      translate-y-2
-                      group-hover:opacity-100
-                      group-hover:visible
-                      group-hover:translate-y-0
-                      transition-all duration-300
-                      z-50
-                    "
-                  >
-                    {item.dropdown.map((sub, idx) => (
-                      <div
-                        key={idx}
-                        onClick={() => navigate(sub.path)}
-                        className="
-                          px-4 py-3 text-sm
-                          cursor-pointer
-                          hover:bg-gray-50
-                          hover:text-[#7A1C3D]
-                          transition
-                          first:rounded-t-xl
-                          last:rounded-b-xl
-                        "
-                      >
-                        {sub.name}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            ))}
-
-            <span className="text-gray-300">|</span>
-
-            {[
-              { name: "Electronics", path: "/category/electronics" },
-              { name: "Fashion", path: "/category/fashion" },
-              { name: "Beauty", path: "/category/beauty" },
-              { name: "Footwear", path: "/category/footwear" },
-              { name: "Bestsellers", path: "/bestsellers" },
-              { name: "Fresh Arrivals", path: "/fresharrivals" },
-              { name: "Essentials", path: "/category/essentials" },
-              { name: "Exclusive", path: "/exclusive" },
-            ].map((item, i) => (
-              <span
-                key={i}
-                onClick={() => item.path && navigate(item.path)}
-                className={`relative cursor-pointer transition group
-                  ${location.pathname === item.path
-                    ? "text-[#7A1C3D]"
-                    : "text-gray-700 hover:text-[#7A1C3D]"
-                  }
-                `}
-              >
-                {item.name}
-                <span
-                  className={`absolute left-0 -bottom-1 h-[1.5px] bg-[#7A1C3D] transition-all duration-300
-                    ${location.pathname === item.path ? "w-full" : "w-0 group-hover:w-full"}
-                  `}
-                />
-              </span>
-            ))}
-          </div>
-          {/* RIGHT SIDE ICONS */}
-          <div className="flex items-center gap-4">
-
-            {/* 
-         {can("dashboard", "view") && (
-  <div
-    title="Admin Panel"
-    className="
-      relative overflow-hidden
-      cursor-pointer
-      flex items-center justify-center
-      w-9 h-9 rounded-full
-      bg-[#7A1C3D]/10
-      hover:bg-[#7A1C3D]
-      transition-all duration-300
-      group
-    "
-  >
-    <span
-      className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent"
-      style={{ animation: "shineMove 2.2s linear infinite" }}
-    />
-
-    <Shield
-      onClick={() => navigate("/dashboard")}
-      className="w-5 h-5 text-[#7A1C3D] group-hover:text-white transition duration-300 z-10"
-    />
-  </div>
-)} */}
-
-            <div
-              title="Admin Panel"
-              className="
-                relative overflow-hidden
-                cursor-pointer
-                flex items-center justify-center
-                w-9 h-9 rounded-full
-                bg-[#7A1C3D]/10
-                hover:bg-[#7A1C3D]
-                transition-all duration-300
-                group
-              "
+        <div className="max-w-7xl mx-auto px-6 lg:px-8">
+          <div className="flex items-center justify-center gap-4 lg:gap-5 py-2.5 flex-wrap">
+            {/* Main Navigation */}
+            <button
+              onClick={() => handleNavigation("/")}
+              className={`relative whitespace-nowrap text-sm font-medium transition-colors ${
+                location.pathname === "/" ? "text-[#7A1C3D]" : "text-gray-700 hover:text-[#7A1C3D]"
+              }`}
             >
-              {/* AUTO SHINE (LEFT → RIGHT CONTINUOUS) */}
+              Home
+              <span className={`absolute left-0 -bottom-1 h-0.5 bg-[#7A1C3D] transition-all duration-300 ${
+                location.pathname === "/" ? "w-full" : "w-0 group-hover:w-full"
+              }`} />
+            </button>
+
+            <button
+              onClick={() => handleNavigation("/shop")}
+              className={`relative whitespace-nowrap text-sm font-medium transition-colors ${
+                location.pathname === "/shop" ? "text-[#7A1C3D]" : "text-gray-700 hover:text-[#7A1C3D]"
+              }`}
+            >
+              Shop All
+              <span className={`absolute left-0 -bottom-1 h-0.5 bg-[#7A1C3D] transition-all duration-300 ${
+                location.pathname === "/shop" ? "w-full" : "w-0 group-hover:w-full"
+              }`} />
+            </button>
+
+            {/* About Dropdown */}
+            <div className="relative group">
+              <button className="relative whitespace-nowrap text-sm font-medium text-gray-700 hover:text-[#7A1C3D] transition-colors">
+                About
+                <span className="absolute left-0 -bottom-1 h-0.5 bg-[#7A1C3D] w-0 group-hover:w-full transition-all duration-300" />
+              </button>
+              <div className="absolute left-0 top-full pt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                <div className="w-44 bg-white shadow-lg rounded-lg py-1 border border-gray-100">
+                  <button onClick={() => handleNavigation("/about")} className="block w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-[#7A1C3D] transition-colors">
+                    About Us
+                  </button>
+                  <button onClick={() => handleNavigation("/contact")} className="block w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-[#7A1C3D] transition-colors">
+                    Contact Us
+                  </button>
+                  <button onClick={() => handleNavigation("/reviews")} className="block w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-[#7A1C3D] transition-colors">
+                    Reviews
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <button
+              onClick={() => handleNavigation("/soulful-special")}
+              className={`relative whitespace-nowrap text-sm font-medium transition-colors ${
+                location.pathname === "/soulful-special" ? "text-[#7A1C3D]" : "text-gray-700 hover:text-[#7A1C3D]"
+              }`}
+            >
+              Soulful Special
+              <span className={`absolute left-0 -bottom-1 h-0.5 bg-[#7A1C3D] transition-all duration-300 ${
+                location.pathname === "/soulful-special" ? "w-full" : "w-0 group-hover:w-full"
+              }`} />
+            </button>
+
+            <span className="text-gray-300 text-sm">|</span>
+
+            {/* Categories - Compact */}
+            {[
+              "Electronics", "Fashion", "Beauty", "Footwear",
+              "Bestsellers", "Fresh Arrivals", "Essentials", "Exclusive"
+            ].map((category) => (
+              <button
+                key={category}
+                onClick={() => handleNavigation(`/category/${category.toLowerCase()}`)}
+                className={`relative whitespace-nowrap text-sm transition-colors ${
+                  location.pathname === `/category/${category.toLowerCase()}`
+                    ? "text-[#7A1C3D] font-semibold"
+                    : "text-gray-600 hover:text-[#7A1C3D]"
+                }`}
+              >
+                {category}
+                <span className={`absolute left-0 -bottom-1 h-0.5 bg-[#7A1C3D] transition-all duration-300 ${
+                  location.pathname === `/category/${category.toLowerCase()}` ? "w-full" : "w-0 hover:w-full"
+                }`} />
+              </button>
+            ))}
+
+            {/* Admin Button - Compact */}
+            <button
+              onClick={() => handleNavigation("/dashboard")}
+              className="relative overflow-hidden flex items-center justify-center w-7 h-7 rounded-full bg-[#7A1C3D]/10 hover:bg-[#7A1C3D] transition-all duration-300 group"
+              title="Admin Panel"
+            >
               <span
                 className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent"
-                style={{
-                  animation: "shineMove 2.2s linear infinite",
-                }}
-              ></span>
-
-              {/* ICON */}
-              <Shield
-                onClick={() => navigate("/dashboard")}
-                className="w-5 h-5 text-[#7A1C3D] group-hover:text-white transition duration-300 z-10"
+                style={{ animation: "shineMove 2.2s linear infinite" }}
               />
-            </div>
+              <Shield className="w-3.5 h-3.5 text-[#7A1C3D] group-hover:text-white transition duration-300" />
+            </button>
           </div>
         </div>
       </nav>
 
-      {/* Promo Banner - Moved BELOW the navigation */}
-      <div className="bg-[#8b0d3a] text-white text-sm h-2 flex items-center justify-center overflow-hidden">
-        <div className="relative h-10 w-full flex items-center justify-center"></div>
-      </div>
-
       {/* Mobile Menu Drawer */}
       {mobileMenu && (
         <>
-          <div
-            className="fixed inset-0 bg-black/50 z-40 md:hidden"
-            onClick={() => setMobileMenu(false)}
-          />
-          <div className="fixed left-0 top-0 bottom-0 w-64 bg-white shadow-xl z-50 md:hidden flex flex-col">
-            <div className="p-4 border-b flex justify-between items-center">
-              <span className="font-bold text-[#7a1c3d]">Menu</span>
-              <button onClick={() => setMobileMenu(false)}>
-                <Menu size={20} />
+          <div className="fixed inset-0 bg-black/50 z-40 md:hidden" onClick={() => setMobileMenu(false)} />
+          <div className="fixed left-0 top-0 bottom-0 w-80 max-w-[85vw] bg-white shadow-xl z-50 md:hidden flex flex-col">
+            <div className="p-4 border-b flex justify-between items-center sticky top-0 bg-white">
+              <span className="font-bold text-[#7a1c3d] text-lg">Menu</span>
+              <button onClick={() => setMobileMenu(false)} className="p-1">
+                <Menu size={22} />
               </button>
             </div>
-            <div className="flex flex-col p-4 gap-4 text-base">
-              <span
-                onClick={() => {
-                  navigate("/");
-                  setMobileMenu(false);
-                }}
-                className="cursor-pointer hover:text-[#7a1c3d]"
-              >
-                Home
-              </span>
-              <span
-                onClick={() => {
-                  navigate("/shop");
-                  setMobileMenu(false);
-                }}
-                className="cursor-pointer hover:text-[#7a1c3d]"
-              >
-                Shop
-              </span>
-              <span
-                onClick={() => {
-                  navigate("/about");
-                  setMobileMenu(false);
-                }}
-                className="cursor-pointer hover:text-[#7a1c3d]"
-              >
-                About Us
-              </span>
-              <span
-                onClick={() => {
-                  navigate("/contact");
-                  setMobileMenu(false);
-                }}
-                className="cursor-pointer hover:text-[#7a1c3d]"
-              >
-                Contact Us
-              </span>
-              <span
-                onClick={() => {
-                  navigate("/soulful-special");
-                  setMobileMenu(false);
-                }}
-                className="cursor-pointer hover:text-[#7a1c3d]"
-              >
-                Soulful Special
-              </span>
-              {/* <span
-                onClick={() => {
-                  navigate("/BecomeVendor"); 
-                  setMobileMenu(false);
-                }}
-                className="cursor-pointer hover:text-[#7a1c3d]"
-              >
-                Become a Vendor
-              </span> */}
-
-              {/* {hasPermission(permissions, "dashboard", "view") && (
-                <span
-                  onClick={() => {
-                    navigate("/dashboard");
-                    setMobileMenu(false);
-                  }}
-                  className="cursor-pointer hover:text-[#7a1c3d]"
-                >
-                  Dashboard
-                </span>
-              )} */}
-              <hr />
-              {/* Mobile Search */}
-              <div className="relative">
-                <div className="flex border rounded-lg overflow-hidden">
-                  <input
-                    value={query}
-                    onChange={(e) => setQuery(e.target.value)}
-                    className="w-full px-3 py-2 outline-none text-sm"
-                    placeholder="Search products..."
-                  />
-                  <button className="bg-[#7a1c3d] px-4 text-white">
-                    <Search size={18} />
-                  </button>
-                </div>
-                {showSuggestions && suggestions.length > 0 && (
-                  <div className="absolute left-0 right-0 bg-white shadow-xl mt-1 rounded-lg overflow-hidden z-50 max-h-64 overflow-y-auto">
-                    {suggestions.slice(0, 5).map((item) => {
-                      const imgUrl =
-                        item.images?.find((i) => i.is_primary)?.image_url ||
-                        item.images?.[0]?.image_url;
-                      return (
-                        <div
-                          key={item.id}
-                          className="flex gap-2 p-2 hover:bg-gray-50 cursor-pointer border-b"
-                          onClick={() => {
-                            navigate(`/product/${item.slug}`);
-                            setQuery("");
-                            setShowSuggestions(false);
-                            setMobileMenu(false);
-                          }}
-                        >
-                          <img
-                            src={getImageUrl(imgUrl) || "/placeholder.jpg"}
-                            alt={item.name}
-                            className="w-10 h-10 object-cover rounded"
-                          />
-                          <div>
-                            <p className="text-xs font-medium truncate">
-                              {item.name}
-                            </p>
-                            <p className="text-xs text-gray-500">
-                              ₹{item.price}
-                            </p>
-                          </div>
-                        </div>
-                      );
-                    })}
+            <div className="flex-1 overflow-y-auto p-4">
+              <div className="space-y-3">
+                <button onClick={() => handleNavigation("/")} className="block w-full text-left py-2 text-gray-700 hover:text-[#7a1c3d] cursor-pointer font-medium">Home</button>
+                <button onClick={() => handleNavigation("/shop")} className="block w-full text-left py-2 text-gray-700 hover:text-[#7a1c3d] cursor-pointer font-medium">Shop All</button>
+                <button onClick={() => handleNavigation("/about")} className="block w-full text-left py-2 text-gray-700 hover:text-[#7a1c3d] cursor-pointer font-medium">About Us</button>
+                <button onClick={() => handleNavigation("/contact")} className="block w-full text-left py-2 text-gray-700 hover:text-[#7a1c3d] cursor-pointer font-medium">Contact Us</button>
+                <button onClick={() => handleNavigation("/soulful-special")} className="block w-full text-left py-2 text-gray-700 hover:text-[#7a1c3d] cursor-pointer font-medium">Soulful Special</button>
+                
+                <div className="pt-2 border-t">
+                  <p className="text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wide">Shop by Category</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {["Electronics", "Fashion", "Beauty", "Footwear", "Bestsellers", "Fresh Arrivals", "Essentials", "Exclusive"].map((cat) => (
+                      <button
+                        key={cat}
+                        onClick={() => handleNavigation(`/category/${cat.toLowerCase()}`)}
+                        className="py-2 px-2 text-sm text-left cursor-pointer hover:text-[#7a1c3d] hover:bg-gray-50 rounded-md transition"
+                      >
+                        {cat}
+                      </button>
+                    ))}
                   </div>
-                )}
+                </div>
+                
+                <div className="border-t pt-3">
+                  <div className="flex border rounded-lg overflow-hidden">
+                    <input
+                      value={query}
+                      onChange={(e) => setQuery(e.target.value)}
+                      className="flex-1 px-3 py-2 outline-none text-sm"
+                      placeholder="Search products..."
+                    />
+                    <button
+                      onClick={() => { if (query.trim()) { navigate(`/search?q=${query}`); setMobileMenu(false); } }}
+                      className="bg-[#7a1c3d] px-4 text-white"
+                    >
+                      <Search size={18} />
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           </div>

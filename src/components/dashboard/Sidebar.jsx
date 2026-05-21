@@ -203,6 +203,18 @@ export default function Sidebar() {
         path: "/dashboard/coupons",
         icon: TicketPercent,
       },
+
+       // ✅ ADD THESE TWO NEW MENU ITEMS
+    {
+      label: "Vendor Earnings",      // For vendors
+      path: "/dashboard/earnings",
+      icon: BadgeDollarSign,
+    },
+    {
+      label: "Withdrawals",   // For admin
+      path: "/dashboard/withdrawals",
+      icon: BadgeDollarSign,
+    },
     ],
     []
   );
