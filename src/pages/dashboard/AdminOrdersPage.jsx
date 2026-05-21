@@ -2,8 +2,11 @@
 import React, { useState } from "react";
 import useGet from "../../api/hooks/useGet";
 import AdminOrdersTable from "../../components/dashboard/orders/AdminOrdersTable";
+import usePermissions from "../../api/hooks/usePermissions";
 
 const AdminOrdersPage = () => {
+
+  const { can } = usePermissions();
   const [filters, setFilters] = useState({
     status: "",
     search: "",
@@ -19,6 +22,9 @@ const AdminOrdersPage = () => {
     refetch({ params: filters });
   };
 
+  //  if (!can('orders', 'manage')) {
+  //   return <div className="p-6 text-center text-red-500">Access Denied</div>;
+  // }
   return (
     <div className="p-6 space-y-6">
 

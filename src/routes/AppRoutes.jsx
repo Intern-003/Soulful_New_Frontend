@@ -54,6 +54,10 @@ import CreateCoupon from "../pages/dashboard/CreateCoupon";
 import EditCoupon from "../pages/dashboard/EditCoupon";
 import BannerLayoutPreview from "../components/dashboard/banners/BannerLayoutPreview";
 
+
+import VendorEarningsPage from "../pages/dashboard/VendorEarningsPage";
+import AdminWithdrawalsPage from "../pages/dashboard/AdminWithdrawalsPage";
+
 const AppRoutes = () => {
   return (
     <>
@@ -103,6 +107,13 @@ const AppRoutes = () => {
           <Route path="admin/orders/:id" element={<AdminOrderDetailsPage />} />
           <Route path="support" element={<SupportAdmin />} />
           <Route path="vendors" element={<Vendors />} />
+
+           {/* ✅ ADD EARNINGS ROUTE (for vendors) */}
+          <Route path="earnings" element={<VendorEarningsPage />} />
+          
+          {/* ✅ ADD WITHDRAWALS ROUTE (for admin) */}
+          <Route path="withdrawals" element={<AdminWithdrawalsPage />} />
+
 
           <Route
             path="subcategories/:id/products"

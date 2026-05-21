@@ -54,6 +54,24 @@ const Products = () => {
   const products = data?.data || [];
   const meta = data;
 
+  // Helper function to get vendor/creator name
+  const getVendorCreatorName = (product) => {
+    if (product.vendor && product.vendor.store_name) {
+      return product.vendor.store_name;
+    }
+    if (product.user && product.user.name) {
+      return product.user.name;
+    }
+    return "N/A";
+  };
+
+  // Helper function to calculate price after commission
+  const calculatePriceAfterCommission = (price, commission) => {
+    if (!price || !commission) return price;
+    const commissionAmount = (parseFloat(price) * parseFloat(commission)) / 100;
+    return commissionAmount.toFixed(2);
+  };
+
   // Update local products only when products reference changes
   useEffect(() => {
     if (isInitialLoad.current) {
@@ -557,7 +575,7 @@ const Products = () => {
 
       {/* Table */}
       <div className="bg-white rounded-xl shadow overflow-x-auto">
-        <table className="w-full min-w-[950px]">
+        <table className="w-full min-w-[1150px]">
           <thead className="bg-gray-100 text-left">
             <tr>
               <th className="p-3 sm:p-4 w-10">
@@ -575,6 +593,9 @@ const Products = () => {
               <th className="p-3 sm:p-4">Image</th>
               <th className="p-3 sm:p-4">Name</th>
               <th className="p-3 sm:p-4">Price</th>
+              <th className="p-3 sm:p-4">Commission</th>
+              <th className="p-3 sm:p-4">Commission Price</th>
+              <th className="p-3 sm:p-4">Vendor/Creator</th>
               <th className="p-3 sm:p-4">Stock</th>
               <th className="p-3 sm:p-4">Approval</th>
               <th className="p-3 sm:p-4">Status</th>
@@ -584,7 +605,7 @@ const Products = () => {
           <tbody>
             {filteredProducts.length === 0 ? (
               <tr>
-                <td colSpan="8" className="text-center p-8 text-gray-400">
+                <td colSpan="11" className="text-center p-8 text-gray-400">
                   No products found
                 </td>
               </tr>
@@ -593,6 +614,9 @@ const Products = () => {
                 const image =
                   product?.images?.find((img) => img.is_primary)?.image_url ||
                   product?.images?.[0]?.image_url;
+                
+                const sellingPrice = product.discount_price || product.price;
+                const priceAfterCommission = calculatePriceAfterCommission(sellingPrice, product.commission);
 
                 return (
                   <tr key={product.id} className="border-t hover:bg-gray-50 transition">
@@ -622,7 +646,26 @@ const Products = () => {
                       )}
                     </td>
                     <td className="p-3 sm:p-4 font-medium">{product.name}</td>
-                    <td className="p-3 sm:p-4">₹{product.discount_price || product.price}</td>
+                    <td className="p-3 sm:p-4">₹{sellingPrice}</td>
+                    <td className="p-3 sm:p-4">
+                      {product.commission ? (
+                        <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
+                          {product.commission}%
+                        </span>
+                      ) : (
+                        <span className="text-gray-400 text-sm">-</span>
+                      )}
+                    </td>
+                    <td className="p-3 sm:p-4">
+                      <span className="font-medium text-green-600">
+                        ₹{priceAfterCommission}
+                      </span>
+                    </td>
+                    <td className="p-3 sm:p-4">
+                      <span className="text-sm font-medium">
+                        {getVendorCreatorName(product)}
+                      </span>
+                    </td>
                     <td className="p-3 sm:p-4">
                       <span className={`px-2 py-1 rounded-full text-xs font-medium ${product.stock > 0 ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
                         }`}>

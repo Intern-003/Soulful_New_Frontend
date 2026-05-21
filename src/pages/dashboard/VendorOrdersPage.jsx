@@ -1,9 +1,15 @@
 import React from "react";
 import useGet from "../../api/hooks/useGet";
 import OrdersTable from "../../components/dashboard/orders/OrdersTable";
+import usePermissions from "../../api/hooks/usePermissions";
 
 const VendorOrdersPage = () => {
   const { data, loading, error } = useGet("/vendor/orders");
+const { can } = usePermissions();
+
+  // if (!can('orders', 'view')) {
+  //   return <div className="p-6 text-center text-red-500">Access Denied</div>;
+  // }
 
   return (
     <div className="p-6 bg-gray-50 min-h-screen">

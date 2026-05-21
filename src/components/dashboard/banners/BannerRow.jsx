@@ -131,20 +131,14 @@ const BannerRow = ({
           </button>
 
           <button
-            type="button"
-            onClick={() =>
-              onDelete?.(
-                banner.id
-              )
-            }
-            className="inline-flex h-10 items-center justify-center gap-2 rounded-2xl bg-rose-600 px-4 text-sm font-medium text-white transition hover:bg-rose-700"
-            aria-label="Delete banner"
-          >
-            <Trash2
-              size={15}
-            />
-            Delete
-          </button>
+  type="button"
+  onClick={() => onDelete?.(banner)}  // ✅ Passes full banner object
+  className="inline-flex h-10 items-center justify-center gap-2 rounded-2xl bg-rose-600 px-4 text-sm font-medium text-white transition hover:bg-rose-700"
+  aria-label="Delete banner"
+>
+  <Trash2 size={15} />
+  Delete
+</button>
         </div>
       </td>
     </tr>

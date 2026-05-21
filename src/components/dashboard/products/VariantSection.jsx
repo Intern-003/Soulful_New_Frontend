@@ -5,6 +5,8 @@ import useGet from "../../../api/hooks/useGet";
 import toast from "react-hot-toast";
 import { Save, Trash2, Upload, CheckCircle, AlertCircle, Package, RefreshCw, X } from "lucide-react";
 
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
+
 const VariantSection = forwardRef(({ productId, onVariantsLoaded }, ref) => {
   const { data, refetch } = useGet(`/vendor/products/${productId}`);
   const { postData } = usePost();

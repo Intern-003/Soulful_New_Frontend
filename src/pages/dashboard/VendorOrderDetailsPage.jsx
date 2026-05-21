@@ -1,4 +1,5 @@
-import React from "react";
+// src/pages/vendor/VendorOrderDetailsPage.jsx
+import React, { useCallback } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import useGet from "../../api/hooks/useGet";
 import OrderItemsTable from "../../components/dashboard/orders/OrderItemsTable";
@@ -8,7 +9,12 @@ const VendorOrderDetailsPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
 
-  const { data, loading, error, refetch } = useGet(`vendor/orders/${id}`);
+  const { data, loading, error, refetch } = useGet(`/vendor/orders/${id}`);
+
+  // Use useCallback to prevent recreation on every render
+  const handleRefetch = useCallback(() => {
+    refetch({ force: true });
+  }, [refetch]);
 
   if (loading) {
     return (
@@ -26,7 +32,6 @@ const VendorOrderDetailsPage = () => {
 
   return (
     <div className="p-6 bg-gray-50 min-h-screen space-y-6">
-
       {/* Breadcrumb + Back */}
       <div className="flex items-center justify-between">
         <div className="text-sm text-gray-500">
@@ -84,7 +89,11 @@ const VendorOrderDetailsPage = () => {
           Order Items
         </h2>
 
-        <OrderItemsTable items={order.items} onUpdated={refetch({ force: true })} />
+        <OrderItemsTable 
+          items={order.items} 
+          onUpdated={handleRefetch}
+          canUpdate={true}
+        />
       </div>
 
       {/* Shipment Section */}
@@ -93,7 +102,7 @@ const VendorOrderDetailsPage = () => {
           Shipment
         </h2>
 
-        <ShipmentForm orderId={order.id} onCreated={refetch({ force: true })} />
+        <ShipmentForm orderId={order.id} onCreated={handleRefetch} />
       </div>
     </div>
   );

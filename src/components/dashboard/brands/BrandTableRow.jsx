@@ -105,28 +105,19 @@ const BrandTableRow = ({
         {index + 1}
       </td>
 
-      {/* ===================================================
-          BRAND
-      =================================================== */}
-
-      <td className="px-4 py-4">
-        <div className="flex items-center gap-4">
-          {/* LOGO */}
-          <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
-            <img
-              src={logo}
-              alt={
-                brand?.name
-              }
-              className="h-full w-full object-contain"
-              onError={(
-                e
-              ) => {
-                e.currentTarget.src =
-                  "/placeholder.jpg";
-              }}
-            />
-          </div>
+      {/* LOGO */}
+      <td className="px-4">
+        <img
+  src={brand?.logo ? getImageUrl(brand.logo) : "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 24 24' fill='none' stroke='%23999' stroke-width='1' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='3' width='18' height='18' rx='2' ry='2'%3E%3C/rect%3E%3Ccircle cx='8.5' cy='8.5' r='1.5' fill='%23999'%3E%3C/circle%3E%3Cpolyline points='21 15 16 10 5 21'%3E%3C/polyline%3E%3C/svg%3E"}
+  alt={brand?.name || "brand"}
+  className="w-10 h-10 object-contain rounded"
+  onError={(e) => {
+    // Prevent infinite loop by removing onError after first failure
+    e.currentTarget.onerror = null;
+    e.currentTarget.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 24 24' fill='none' stroke='%23999' stroke-width='1'%3E%3Crect x='3' y='3' width='18' height='18' rx='2' ry='2'%3E%3C/rect%3E%3Ccircle cx='8.5' cy='8.5' r='1.5' fill='%23999'%3E%3C/circle%3E%3Cpolyline points='21 15 16 10 5 21'%3E%3C/polyline%3E%3C/svg%3E";
+  }}
+/>
+      </td>
 
           {/* CONTENT */}
           <div className="min-w-0">

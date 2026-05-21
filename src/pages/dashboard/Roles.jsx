@@ -330,7 +330,7 @@ const Roles = () => {
           }
         );
 
-        refetch();
+        refetch({ force: true });
       } catch (error) {
         console.error(
           error
