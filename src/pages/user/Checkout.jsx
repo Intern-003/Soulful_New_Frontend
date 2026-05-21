@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Check } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
+import { useNavigate } from "react-router-dom"; // Add this import
 import { fetchCart } from "../../app/slices/cartSlice";
 import axiosInstance from "../../api/axiosInstance";
 import { getImageUrl } from "../../utils/getImageUrl";
@@ -24,7 +25,9 @@ const Input = ({ name, value, onChange, placeholder }) => (
 );
 
 export default function Checkout() {
+  const navigate = useNavigate(); // Add this line
   const [step, setStep] = useState(1);
+  const [isPlacingOrder, setIsPlacingOrder] = useState(false); // Add loading state
 
   const [form, setForm] = useState({
     firstName: "",
@@ -50,14 +53,42 @@ export default function Checkout() {
     setForm({ ...form, [e.target.name]: e.target.value });
 
   const handlePlaceOrder = async () => {
-    await axiosInstance.post("/order/create", {
-      customer: form,
-      items,
-      totals,
-      payment_method: form.payment,
-    });
+    try {
+      setIsPlacingOrder(true); // Set loading state
+      
+      const response = await axiosInstance.post("/order/create", {
+        customer: form,
+        items,
+        totals,
+        payment_method: form.payment,
+      });
 
-    alert("Order placed 🎉");
+      // Store order details in localStorage or state management
+      const orderData = {
+        orderId: response.data.order_id || response.data.id,
+        orderDetails: response.data,
+        timestamp: new Date().toISOString(),
+      };
+      
+      // Navigate to order complete page with order data
+      navigate("/order-complete", { 
+        state: { 
+          orderData: orderData,
+          orderSummary: {
+            items,
+            totals,
+            shippingAddress: form,
+            paymentMethod: form.payment
+          }
+        } 
+      });
+      
+    } catch (error) {
+      console.error("Order placement failed:", error);
+      alert("Failed to place order. Please try again.");
+    } finally {
+      setIsPlacingOrder(false);
+    }
   };
 
   return (
@@ -255,9 +286,17 @@ export default function Checkout() {
               ) : (
                 <button
                   onClick={handlePlaceOrder}
-                  className="px-6 py-3 bg-green-600 text-white rounded-xl shadow"
+                  disabled={isPlacingOrder}
+                  className="px-6 py-3 bg-green-600 text-white rounded-xl shadow disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Place Order
+                  {isPlacingOrder ? (
+                    <span className="flex items-center gap-2">
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      Processing...
+                    </span>
+                  ) : (
+                    "Place Order"
+                  )}
                 </button>
               )}
             </div>

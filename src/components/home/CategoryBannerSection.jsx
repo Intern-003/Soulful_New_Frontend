@@ -1,8 +1,8 @@
 // FILE: src/components/home/CategoryBannerSection.jsx
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { ArrowRight } from "lucide-react"; // ADD THIS IMPORT
+import { ArrowRight } from "lucide-react";
 import { fetchChildrenByParent } from "../../app/slices/categorySlice";
 import {
   selectParentCategories,
@@ -26,42 +26,15 @@ const CategoryBannerSection = () => {
 
   const childrenCache = useSelector((state) => state.categories.children);
 
-  // Preload images for better performance
-  useEffect(() => {
-    if (!children?.length) return;
+  // Get responsive number of items to show - CONSISTENT 4 cards on all devices
+  const getItemsToShow = useCallback(() => {
+    // Show 4 cards on ALL devices for consistent 2x2 or 4x1 grid
+    // You can adjust based on your preference:
+    // - 4 cards = 2x2 on mobile, 2x2 on tablet, 4x1 on desktop OR 4x1 on all
+    return 4; // Always show 4 cards for perfect grid
+  }, []);
 
-    const itemsToShow = window.innerWidth < 640 ? 4 : 3;
-    children.slice(0, itemsToShow).forEach((cat) => {
-      if (cat.image) {
-        const img = new Image();
-        img.src = getImageUrl(cat.image);
-      }
-    });
-  }, [children?.length]);
-
-  useEffect(() => {
-    if (!activeParent?.id) return;
-
-    if (!childrenCache[activeParent.id]) {
-      dispatch(fetchChildrenByParent(activeParent.id));
-    }
-  }, [dispatch, activeParent?.id, childrenCache[activeParent?.id]]);
-
-  useEffect(() => {
-    if (parentCategories.length > 0 && !activeParent?.id) {
-      setActiveParent(parentCategories[0]);
-    }
-  }, [parentCategories]);
-
-  // Get responsive number of items to show
-  const getItemsToShow = () => {
-    if (typeof window !== 'undefined') {
-      return window.innerWidth < 640 ? 4 : 3;
-    }
-    return 3; // Default for SSR
-  };
-
-  const [itemsToShow, setItemsToShow] = useState(3);
+  const [itemsToShow, setItemsToShow] = useState(4);
 
   useEffect(() => {
     setItemsToShow(getItemsToShow());
@@ -72,7 +45,34 @@ const CategoryBannerSection = () => {
     
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
-  }, []);
+  }, [getItemsToShow]);
+
+  // Preload images for better performance
+  useEffect(() => {
+    if (!children?.length) return;
+
+    const itemsToShow = getItemsToShow();
+    children.slice(0, itemsToShow).forEach((cat) => {
+      if (cat.image) {
+        const img = new Image();
+        img.src = getImageUrl(cat.image);
+      }
+    });
+  }, [children?.length, getItemsToShow]);
+
+  useEffect(() => {
+    if (!activeParent?.id) return;
+
+    if (!childrenCache[activeParent.id]) {
+      dispatch(fetchChildrenByParent(activeParent.id));
+    }
+  }, [dispatch, activeParent?.id, childrenCache]);
+
+  useEffect(() => {
+    if (parentCategories.length > 0 && !activeParent?.id) {
+      setActiveParent(parentCategories[0]);
+    }
+  }, [parentCategories, activeParent?.id]);
 
   const displayChildren = children.slice(0, itemsToShow);
 
@@ -86,13 +86,10 @@ const CategoryBannerSection = () => {
           ))}
         </div>
         
-        {/* GRID SKELETON - Responsive 2x2 on mobile, 1x3 on tablet, 3x1 on desktop */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 xs:gap-4 sm:gap-5 md:gap-6">
+        {/* GRID SKELETON - Responsive 2x2 on mobile, 4x1 on desktop */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 xs:gap-4 sm:gap-5 md:gap-6">
           {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="hidden sm:block first:block sm:first:block h-[200px] xs:h-[220px] sm:h-[240px] md:h-[280px] lg:h-[320px] bg-gray-200 rounded-lg xs:rounded-xl animate-pulse" />
-          ))}
-          {[1, 2, 3, 4].slice(0, 4).map((i) => (
-            <div key={i} className="block sm:hidden h-[200px] xs:h-[220px] bg-gray-200 rounded-lg animate-pulse" />
+            <div key={i} className="h-[200px] xs:h-[220px] sm:h-[240px] md:h-[260px] lg:h-[280px] bg-gray-200 rounded-lg xs:rounded-xl animate-pulse" />
           ))}
         </div>
       </div>
@@ -102,7 +99,7 @@ const CategoryBannerSection = () => {
   return (
     <section className="w-full bg-white">
       <div className="max-w-7xl mx-auto px-4 xs:px-6 sm:px-8 py-12 xs:py-16 sm:py-20">
-        {/* SECTION HEADER - Optional but recommended */}
+        {/* SECTION HEADER */}
         <div className="text-center mb-8 xs:mb-10 sm:mb-12">
           <h2 className="text-xl xs:text-2xl sm:text-3xl md:text-4xl font-light tracking-wide text-gray-800">
             Shop by <span className="font-semibold text-[#7a1c3d]">Category</span>
@@ -110,7 +107,7 @@ const CategoryBannerSection = () => {
           <div className="w-12 xs:w-16 h-0.5 bg-[#7a1c3d] mx-auto mt-2 xs:mt-3"></div>
         </div>
 
-        {/* TABS - FULLY RESPONSIVE WITH SCROLL ON MOBILE IF NEEDED */}
+        {/* TABS - Responsive with scroll on mobile if needed */}
         <div className="flex justify-center items-center gap-3 xs:gap-4 sm:gap-6 md:gap-8 lg:gap-10 mb-8 xs:mb-10 sm:mb-12 md:mb-14 border-b border-gray-200 pb-2 xs:pb-3 overflow-x-auto scrollbar-hide">
           {parentCategories.slice(0, 3).map((cat) => {
             const isActive = activeParent?.id === cat.id;
@@ -130,7 +127,8 @@ const CategoryBannerSection = () => {
                   ${isActive ? "text-[#7a1c3d]" : "text-gray-400 hover:text-gray-600"}
                 `}
               >
-                {cat.name.length > 12 ? cat.name.substring(0, 10) + '...' : cat.name}
+                {/* Fixed: Better text truncation for category names */}
+                {cat.name.length > 15 ? cat.name.substring(0, 12) + '...' : cat.name}
 
                 <span
                   className={`
@@ -150,23 +148,20 @@ const CategoryBannerSection = () => {
           })}
         </div>
 
-        {/* CHILDREN CARDS - RESPONSIVE GRID (2x2 on mobile, 1x3 on tablet/desktop) */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 xs:gap-4 sm:gap-5 md:gap-6">
+        {/* CHILDREN CARDS - CONSISTENT GRID STRUCTURE */}
+        {/* 2x2 on mobile (up to 640px), 2x2 on tablet (640px-1024px), 4x1 on desktop (1024px+) */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 xs:gap-4 sm:gap-5 md:gap-6">
           {displayChildren.length > 0 ? (
-            displayChildren.map((item, index) => (
+            displayChildren.map((item) => (
               <div 
                 key={item.id} 
-                className={`
-                  transform transition-all duration-300
-                  hover:scale-[1.02] sm:hover:scale-[1.03]
-                  ${index === 3 ? 'block sm:hidden' : ''}
-                `}
+                className="transform transition-all duration-300 hover:scale-[1.02] sm:hover:scale-[1.03]"
               >
                 <CategoryCard category={item} variant="banner" />
               </div>
             ))
           ) : (
-            <div className="col-span-2 sm:col-span-3 text-center py-10 xs:py-12 sm:py-16">
+            <div className="col-span-2 lg:col-span-4 text-center py-10 xs:py-12 sm:py-16">
               <div className="inline-flex items-center justify-center w-12 h-12 xs:w-16 xs:h-16 bg-gray-100 rounded-full mb-3 xs:mb-4">
                 <svg className="w-6 h-6 xs:w-8 xs:h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
@@ -177,13 +172,12 @@ const CategoryBannerSection = () => {
           )}
         </div>
 
-        {/* VIEW ALL BUTTON - Optional but adds better UX */}
+        {/* VIEW ALL BUTTON */}
         {children.length > itemsToShow && (
           <div className="text-center mt-8 xs:mt-10 sm:mt-12">
             <button
               onClick={() => {
                 if (activeParent?.slug) {
-                  // Navigate to parent category page
                   window.location.href = `/category/${activeParent.slug}`;
                 }
               }}

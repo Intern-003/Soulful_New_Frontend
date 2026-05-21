@@ -1,4 +1,4 @@
-// FILE: src/components/common/CategoryBannerCard.jsx (Enhanced for better mobile experience)
+// FILE: src/components/common/CategoryBannerCard.jsx
 
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
@@ -29,6 +29,22 @@ const CategoryBannerCard = ({ category }) => {
     ? getImageUrl(category.image)
     : "/placeholder.jpg";
 
+  // Get category name with better truncation logic
+  const getDisplayName = () => {
+    const name = category?.name || "Category";
+    
+    if (isMobile) {
+      // On mobile: show max 12 characters
+      return name.length > 12 ? name.substring(0, 10) + '...' : name;
+    } else if (window.innerWidth < 768) {
+      // On tablet: show max 15 characters
+      return name.length > 15 ? name.substring(0, 13) + '...' : name;
+    } else {
+      // On desktop: show full name or max 20 characters
+      return name.length > 20 ? name.substring(0, 18) + '...' : name;
+    }
+  };
+
   return (
     <div
       onClick={handleClick}
@@ -39,7 +55,7 @@ const CategoryBannerCard = ({ category }) => {
         w-full
         bg-gray-100
 
-        h-[180px] xs:h-[200px] sm:h-[220px] md:h-[260px] lg:h-[300px]
+        h-[180px] xs:h-[200px] sm:h-[220px] md:h-[240px] lg:h-[260px] xl:h-[280px]
         
         shadow-sm hover:shadow-md
         transition-all duration-300
@@ -68,13 +84,13 @@ const CategoryBannerCard = ({ category }) => {
         `}
       />
 
-      {/* GRADIENT OVERLAY - Better text readability */}
-      <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+      {/* GRADIENT OVERLAY */}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 
-      {/* DARK OVERLAY ON HOVER FOR BETTER TEXT CONTRAST */}
-      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all duration-400 md:duration-500" />
+      {/* DARK OVERLAY ON HOVER */}
+      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all duration-400 md:duration-500" />
 
-      {/* CATEGORY BUTTON/LABEL - Optimized for mobile touch */}
+      {/* CATEGORY BUTTON/LABEL - IMPROVED TEXT HANDLING */}
       <div className="absolute left-1/2 bottom-2 xs:bottom-3 sm:bottom-4 md:bottom-5 lg:bottom-6 -translate-x-1/2 w-[90%] xs:w-auto">
         <div
           className={`
@@ -107,10 +123,8 @@ const CategoryBannerCard = ({ category }) => {
             touch-manipulation
           `}
         >
-          <span className="truncate max-w-[120px] xs:max-w-[150px] sm:max-w-none">
-            {isMobile && category?.name?.length > 15 
-              ? category.name.substring(0, 12) + '...' 
-              : category?.name}
+          <span className="truncate max-w-[100px] xs:max-w-[120px] sm:max-w-[140px] md:max-w-[160px]">
+            {getDisplayName()}
           </span>
           <span className="text-[10px] xs:text-[11px] sm:text-xs md:text-sm group-hover:translate-x-0.5 transition-transform duration-300">
             {isMobile ? '→' : '→'}
@@ -118,7 +132,7 @@ const CategoryBannerCard = ({ category }) => {
         </div>
       </div>
 
-      {/* DECORATIVE ELEMENT - Optional */}
+      {/* DECORATIVE ELEMENT */}
       <div className="absolute top-0 right-0 w-16 h-16 xs:w-20 xs:h-20 bg-gradient-to-bl from-white/5 to-transparent rounded-bl-full opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
     </div>
   );

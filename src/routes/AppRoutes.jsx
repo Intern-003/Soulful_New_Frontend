@@ -58,6 +58,8 @@ import BannerLayoutPreview from "../components/dashboard/banners/BannerLayoutPre
 import VendorEarningsPage from "../pages/dashboard/VendorEarningsPage";
 import AdminWithdrawalsPage from "../pages/dashboard/AdminWithdrawalsPage";
 
+import OrderComplete from "../pages/user/OrderComplete";
+
 const AppRoutes = () => {
   return (
     <>
@@ -88,6 +90,7 @@ const AppRoutes = () => {
           <Route path="/returnsexchange" element={<ReturnsExchange />} />
           <Route path="/support" element={<Support />} />
           <Route path="/BecomeVendor" element={<BecomeVendor />} />
+           <Route path="/order-complete" element={<OrderComplete />} />
         </Route>
 
         {/* DASHBOARD */}
