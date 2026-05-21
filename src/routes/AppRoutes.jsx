@@ -20,7 +20,6 @@ import Checkout from "../pages/user/Checkout";
 import AccountPage from "../pages/account/AccountPage";
 import Sidebar from "../components/account/Sidebar";
 import Orders from "../components/account/sections/Orders";
-
 import Roles from "../pages/dashboard/Roles";
 import ShopPage from "../pages/public/ShopPage";
 import SoulfullSpecialPage from "../pages/public/SoulfullSpecialPage";
@@ -37,12 +36,13 @@ import ReturnsExchange from "../pages/public/ReturnsExchange";
 import Support from "../pages/public/Support";
 import VendorOrdersPage from "../pages/dashboard/VendorOrdersPage";
 import VendorOrderDetailsPage from "../pages/dashboard/VendorOrderDetailsPage";
+import BrandProductsPage from "../pages/dashboard/brands/BrandProducts";
 import AdminOrderDetailsPage from "../pages/dashboard/AdminOrderDetailsPage";
 import AdminOrdersPage from "../pages/dashboard/AdminOrdersPage";
 import Permissions from "../pages/dashboard/Permissions";
 import SubCategoryProducts from "../pages/dashboard/categories/SubCategoryProducts";
 import SubCategoryPage from "../pages/dashboard/categories/SubCategoryPage";
-import Brands from "../pages/dashboard/brands";
+import Brands from "../pages/dashboard/brands/brands";
 import Banner from "../pages/dashboard/Banner";
 import SupportAdmin from "../pages/dashboard/SupportAdmin";
 import Vendors from "../pages/dashboard/Vendors";
@@ -127,6 +127,10 @@ const AppRoutes = () => {
           <Route path="/dashboard/coupons" element={<CouponsList />} />
           <Route path="/dashboard/coupons/create" element={<CreateCoupon />} />
           <Route path="/dashboard/coupons/edit/:id" element={<EditCoupon />} />
+          <Route
+  path="/dashboard/brands/:id/products"
+  element={<BrandProductsPage />}
+/>
 
 
 

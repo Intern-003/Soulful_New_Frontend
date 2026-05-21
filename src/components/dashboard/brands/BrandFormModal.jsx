@@ -1,267 +1,568 @@
-import { useEffect, useState } from "react";
+// FILE: src/components/dashboard/brands/BrandFormModal.jsx
+
+import React, {
+  memo,
+  useEffect,
+  useState,
+} from "react";
+
+import {
+  X,
+  Save,
+  Loader2,
+} from "lucide-react";
+
+import toast from "react-hot-toast";
+
 import usePost from "../../../api/hooks/usePost";
 import usePut from "../../../api/hooks/usePut";
 import useGet from "../../../api/hooks/useGet";
+
 import { getImageUrl } from "../../../utils/getImageUrl";
 
+import BrandLogoUpload from "./BrandLogoUpload";
+import BrandSubcategorySelector from "./BrandSubcategorySelector";
 
-const BrandFormModal = ({ open, onClose, editData, refresh }) => {
-  const { postData, loading: postLoading } = usePost();
-  const { putData, loading: putLoading } = usePut();
-  const { data: categoriesData } = useGet("/categories");
+/* ==========================================================
+   FILE: BrandFormModal.jsx
+   Elite Production Grade
+========================================================== */
 
-  const loading = postLoading || putLoading;
+const BrandFormModal = ({
+  open = false,
+  onClose,
+  editData = null,
+  refresh,
+}) => {
+  /* ========================================================
+     EDIT MODE
+  ======================================================== */
 
-  const [form, setForm] = useState({
-    name: "",
-    slug: "",
-    status: 1,
-    logo: null,
-  });
+  const isEdit =
+    Boolean(
+      editData?.id
+    );
 
-  const [preview, setPreview] = useState(null);
+  /* ========================================================
+     API
+  ======================================================== */
 
-  const [categories, setCategories] = useState([]);
-  const [selectedCategory, setSelectedCategory] = useState("");
-  const [subcategories, setSubcategories] = useState([]);
-  const [selectedSubcategories, setSelectedSubcategories] = useState([]);
+  const {
+    postData,
+    loading:
+      postLoading,
+  } = usePost();
 
-  // ================= FETCH =================
+  const {
+    putData,
+    loading:
+      putLoading,
+  } = usePut();
+
+  const {
+    data: categoriesData,
+  } = useGet(
+    "/categories"
+  );
+
+  /* ========================================================
+     SUBCATEGORIES
+  ======================================================== */
+
+  const subcategories =
+    categoriesData?.data?.flatMap(
+      (
+        category
+      ) =>
+        category.children ||
+        []
+    ) || [];
+
+  /* ========================================================
+     LOADING
+  ======================================================== */
+
+  const loading =
+    postLoading ||
+    putLoading;
+
+  /* ========================================================
+     FORM STATE
+  ======================================================== */
+
+  const [
+    form,
+    setForm,
+  ] =
+    useState({
+      name: "",
+      slug: "",
+      logo: null,
+      status: true,
+      subcategory_ids:
+        [],
+    });
+
+  const [
+    preview,
+    setPreview,
+  ] =
+    useState(
+      null
+    );
+
+  /* ========================================================
+     EDIT LOAD
+  ======================================================== */
+
   useEffect(() => {
-    if (categoriesData?.data) {
-      setCategories(categoriesData.data);
-    }
-  }, [categoriesData]);
-
-  // ================= PREFILL =================
-  useEffect(() => {
-    if (editData && categories.length) {
+    if (
+      open &&
+      editData
+    ) {
       setForm({
-        name: editData.name || "",
-        slug: editData.slug || "",
-        status: editData.status ? 1 : 0,
-        logo: null,
+        name:
+          editData?.name ||
+          "",
+
+        slug:
+          editData?.slug ||
+          "",
+
+        logo:
+          null,
+
+        status:
+          Boolean(
+            editData?.status
+          ),
+
+        subcategory_ids:
+          editData?.subcategories?.map(
+            (
+              item
+            ) =>
+              item.id
+          ) || [],
       });
 
-setPreview(
-  editData.logo
-    ? getImageUrl(editData.logo)
-    : null
-);
+      setPreview(
+        getImageUrl(
+          editData?.logo
+        )
+      );
+    }
 
-      const subIds = editData.subcategories?.map((s) => s.id) || [];
-      setSelectedSubcategories(subIds);
+    /* ==========================================
+       CREATE RESET
+    ========================================== */
 
-      // 🔥 FIND CATEGORY FROM SUBCATEGORY
-      let foundCategory = null;
-
-      categories.forEach((cat) => {
-        if (cat.children?.some((child) => subIds.includes(child.id))) {
-          foundCategory = cat;
-        }
-      });
-
-      if (foundCategory) {
-        setSelectedCategory(foundCategory.id);
-        setSubcategories(foundCategory.children || []);
-      }
-
-    } else {
+    if (
+      open &&
+      !editData
+    ) {
       setForm({
         name: "",
         slug: "",
-        status: 1,
         logo: null,
+        status: true,
+        subcategory_ids:
+          [],
       });
 
-      setPreview(null);
-      setSelectedCategory("");
-      setSubcategories([]);
-      setSelectedSubcategories([]);
+      setPreview(
+        null
+      );
     }
-  }, [editData, open, categories]);
+  }, [
+    open,
+    editData,
+  ]);
 
-  // ================= HANDLERS =================
-  const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
-  };
+  /* ========================================================
+     SET VALUE
+  ======================================================== */
 
-  const handleFile = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    setForm({ ...form, logo: file });
-    setPreview(URL.createObjectURL(file));
-  };
-
-  const handleCategoryChange = (e) => {
-    const categoryId = parseInt(e.target.value);
-    setSelectedCategory(categoryId);
-
-    const selected = categories.find((c) => c.id === categoryId);
-
-    setSubcategories(selected?.children || []);
-    setSelectedSubcategories([]); // reset only on manual change
-  };
-
-  const handleSubcategoryChange = (id) => {
-    setSelectedSubcategories((prev) =>
-      prev.includes(id)
-        ? prev.filter((item) => item !== id)
-        : [...prev, id]
+  const setValue = (
+    key,
+    value
+  ) => {
+    setForm(
+      (
+        prev
+      ) => ({
+        ...prev,
+        [key]:
+          value,
+      })
     );
   };
 
-  // ================= SUBMIT =================
-  const handleSubmit = async () => {
-    if (!form.name) {
-      alert("Brand name is required");
-      return;
-    }
+  /* ========================================================
+     IMAGE
+  ======================================================== */
 
-    if (!selectedSubcategories.length) {
-      alert("Please select at least one subcategory");
-      return;
-    }
+  const handleImage =
+    (
+      file
+    ) => {
+      if (!file)
+        return;
 
-    const data = new FormData();
-    data.append("name", form.name);
-    data.append("slug", form.slug);
-    data.append("status", form.status);
+      setValue(
+        "logo",
+        file
+      );
 
-    if (form.logo) {
-      data.append("logo", form.logo);
-    }
+      setPreview(
+        URL.createObjectURL(
+          file
+        )
+      );
+    };
 
-    selectedSubcategories.forEach((id) => {
-      data.append("subcategory_ids[]", id);
-    });
+  /* ========================================================
+     SUBMIT
+  ======================================================== */
 
-    try {
-      if (editData) {
-        await putData({
-          url: `/admin/brands/${editData.id}`,
-          data,
-        });
-      } else {
-        await postData({
-          url: "/admin/brands",
-          data,
-        });
+  const handleSubmit =
+    async (
+      e
+    ) => {
+      e.preventDefault();
+
+      if (
+        !form.name.trim()
+      ) {
+        toast.error(
+          "Brand name required"
+        );
+
+        return;
       }
 
-      refresh();
-      onClose();
-    } catch (err) {
-      console.error("Brand Error:", err);
-    }
-  };
+      try {
+        const payload =
+          new FormData();
 
-  if (!open) return null;
+        payload.append(
+          "name",
+          form.name
+        );
+
+        payload.append(
+          "slug",
+          form.slug
+        );
+
+        payload.append(
+          "status",
+          form.status
+            ? 1
+            : 0
+        );
+
+        /* ======================================
+           LOGO
+        ====================================== */
+
+        if (
+          form.logo
+        ) {
+          payload.append(
+            "logo",
+            form.logo
+          );
+        }
+
+        /* ======================================
+           SUBCATEGORIES
+        ====================================== */
+
+        form.subcategory_ids.forEach(
+          (
+            id,
+            index
+          ) => {
+            payload.append(
+              `subcategory_ids[${index}]`,
+              id
+            );
+          }
+        );
+
+        /* ======================================
+           UPDATE
+        ====================================== */
+
+        if (
+          isEdit
+        ) {
+          await putData(
+            {
+              url: `/admin/brands/${editData.id}`,
+              data: payload,
+            }
+          );
+
+          toast.success(
+            "Brand updated successfully"
+          );
+        }
+
+        /* ======================================
+           CREATE
+        ====================================== */
+
+        else {
+          await postData(
+            {
+              url: "/admin/brands",
+              data: payload,
+            }
+          );
+
+          toast.success(
+            "Brand created successfully"
+          );
+        }
+
+        refresh?.();
+
+        onClose?.();
+      } catch (
+        error
+      ) {
+        console.error(
+          error
+        );
+
+        toast.error(
+          "Failed to save brand"
+        );
+      }
+    };
+
+  /* ========================================================
+     HIDE
+  ======================================================== */
+
+  if (!open)
+    return null;
+
+  /* ========================================================
+     UI
+  ======================================================== */
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
+    <div className="fixed inset-0 z-[100] overflow-y-auto bg-black/50 backdrop-blur-sm">
+      <div className="flex min-h-screen items-center justify-center p-4">
+        <div className="w-full max-w-3xl overflow-hidden rounded-3xl bg-white shadow-2xl">
+          {/* =================================================
+              HEADER
+          ================================================= */}
 
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-lg font-semibold">
-            {editData ? "Edit Brand" : "Add Brand"}
-          </h2>
-          <button onClick={onClose}>✕</button>
-        </div>
-
-        <div className="space-y-3">
-
-          <input
-            name="name"
-            value={form.name}
-            onChange={handleChange}
-            placeholder="Brand Name"
-            className="w-full border p-2 rounded"
-          />
-
-          <input
-            name="slug"
-            value={form.slug}
-            onChange={handleChange}
-            placeholder="Slug"
-            className="w-full border p-2 rounded"
-          />
-
-          <input type="file" onChange={handleFile} />
-
-          {preview && (
-            <img
-              src={preview}
-              alt="preview"
-              className="w-16 h-16 object-cover rounded"
-            />
-          )}
-
-          <select
-            name="status"
-            value={form.status}
-            onChange={handleChange}
-            className="w-full border p-2 rounded"
-          >
-            <option value={1}>Active</option>
-            <option value={0}>Inactive</option>
-          </select>
-
-          {/* CATEGORY */}
-          <select
-            value={selectedCategory}
-            onChange={handleCategoryChange}
-            className="w-full border p-2 rounded"
-          >
-            <option value="">Select Category</option>
-            {categories.map((cat) => (
-              <option key={cat.id} value={cat.id}>
-                {cat.name}
-              </option>
-            ))}
-          </select>
-
-          {/* SUBCATEGORIES */}
-          {subcategories.length > 0 && (
+          <div className="flex items-center justify-between border-b border-slate-200 px-6 py-5">
             <div>
-              <p className="text-sm font-medium mt-2">
-                Select Subcategories
-              </p>
+              <h2 className="text-xl font-bold text-slate-900">
+                {isEdit
+                  ? "Edit Brand"
+                  : "Create Brand"}
+              </h2>
 
-              <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto border p-2 rounded">
-                {subcategories.map((sub) => (
-                  <label key={sub.id} className="flex items-center gap-2 text-sm">
-                    <input
-                      type="checkbox"
-                      checked={selectedSubcategories.includes(sub.id)}
-                      onChange={() => handleSubcategoryChange(sub.id)}
-                    />
-                    {sub.name}
-                  </label>
-                ))}
+              <p className="mt-1 text-sm text-slate-500">
+                Manage your product brands
+              </p>
+            </div>
+
+            <button
+              onClick={
+                onClose
+              }
+              className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 transition hover:bg-slate-50"
+            >
+              <X
+                size={18}
+              />
+            </button>
+          </div>
+
+          {/* =================================================
+              FORM
+          ================================================= */}
+
+          <form
+            onSubmit={
+              handleSubmit
+            }
+            className="space-y-6 p-6"
+          >
+            {/* ===============================================
+                NAME + SLUG
+            =============================================== */}
+
+            <div className="grid gap-5 md:grid-cols-2">
+              {/* NAME */}
+              <div>
+                <label className="mb-2 block text-sm font-semibold text-slate-700">
+                  Brand Name
+                </label>
+
+                <input
+                  type="text"
+                  value={
+                    form.name
+                  }
+                  onChange={(
+                    e
+                  ) =>
+                    setValue(
+                      "name",
+                      e.target
+                        .value
+                    )
+                  }
+                  placeholder="Enter brand name"
+                  className="h-12 w-full rounded-2xl border border-slate-200 px-4 text-sm outline-none transition focus:border-[#7a1c3d]"
+                />
+              </div>
+
+              {/* SLUG */}
+              <div>
+                <label className="mb-2 block text-sm font-semibold text-slate-700">
+                  Slug
+                </label>
+
+                <input
+                  type="text"
+                  value={
+                    form.slug
+                  }
+                  onChange={(
+                    e
+                  ) =>
+                    setValue(
+                      "slug",
+                      e.target
+                        .value
+                    )
+                  }
+                  placeholder="brand-slug"
+                  className="h-12 w-full rounded-2xl border border-slate-200 px-4 text-sm outline-none transition focus:border-[#7a1c3d]"
+                />
               </div>
             </div>
-          )}
 
-        </div>
+            {/* ===============================================
+                LOGO
+            =============================================== */}
 
-        <div className="flex justify-end gap-2 mt-5">
-          <button onClick={onClose} className="border px-4 py-2 rounded">
-            Cancel
-          </button>
+            <BrandLogoUpload
+              preview={
+                preview
+              }
+              onChange={
+                handleImage
+              }
+            />
 
-          <button
-            onClick={handleSubmit}
-            disabled={loading}
-            className="bg-black text-white px-4 py-2 rounded"
-          >
-            {loading ? "Saving..." : "Submit"}
-          </button>
+            {/* ===============================================
+                SUBCATEGORIES
+            =============================================== */}
+
+            <BrandSubcategorySelector
+              subcategories={
+                subcategories
+              }
+              selected={
+                form.subcategory_ids
+              }
+              onChange={(
+                ids
+              ) =>
+                setValue(
+                  "subcategory_ids",
+                  ids
+                )
+              }
+            />
+
+            {/* ===============================================
+                STATUS
+            =============================================== */}
+
+            <div className="flex items-center gap-3">
+              <input
+                id="status"
+                type="checkbox"
+                checked={
+                  form.status
+                }
+                onChange={(
+                  e
+                ) =>
+                  setValue(
+                    "status",
+                    e.target
+                      .checked
+                  )
+                }
+                className="h-5 w-5 rounded border-slate-300"
+              />
+
+              <label
+                htmlFor="status"
+                className="text-sm font-medium text-slate-700"
+              >
+                Active Brand
+              </label>
+            </div>
+
+            {/* ===============================================
+                FOOTER
+            =============================================== */}
+
+            <div className="flex justify-end gap-3 border-t border-slate-200 pt-5">
+              <button
+                type="button"
+                onClick={
+                  onClose
+                }
+                className="inline-flex h-12 items-center justify-center rounded-2xl border border-slate-200 px-5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+              >
+                Cancel
+              </button>
+
+              <button
+                type="submit"
+                disabled={
+                  loading
+                }
+                className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-[#7a1c3d] px-5 text-sm font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {loading ? (
+                  <Loader2
+                    size={18}
+                    className="animate-spin"
+                  />
+                ) : (
+                  <Save
+                    size={18}
+                  />
+                )}
+
+                {isEdit
+                  ? "Update Brand"
+                  : "Create Brand"}
+              </button>
+            </div>
+          </form>
         </div>
       </div>
     </div>
   );
 };
 
-export default BrandFormModal;
+export default memo(
+  BrandFormModal
+);
