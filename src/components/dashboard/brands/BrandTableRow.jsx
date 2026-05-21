@@ -1,3 +1,18 @@
+// FILE: src/components/dashboard/brands/BrandTableRow.jsx
+
+import React, {
+  memo,
+} from "react";
+
+import {
+  Pencil,
+  Trash2,
+  Package,
+  ChevronRight,
+} from "lucide-react";
+
+import { useNavigate } from "react-router-dom";
+
 import { getImageUrl } from "../../../utils/getImageUrl";
 
 import BrandStatusToggle from "./BrandStatusToggle";
