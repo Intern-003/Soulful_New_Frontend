@@ -72,3 +72,4 @@ const CategoryBannerCard = ({ category }) => {
 };
 
 export default React.memo(CategoryBannerCard);
+
