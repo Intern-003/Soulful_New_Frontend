@@ -60,7 +60,7 @@ const Badge = ({ children, icon: Icon = Sparkles }) => {
 };
 
 // ======================================================
-// PRODUCT CARD FOR GRID - Consistent sizing across devices
+// PRODUCT CARD FOR GRID - Smaller on mobile
 // ======================================================
 
 const GridProductCard = ({ product, onClick }) => {
@@ -69,7 +69,7 @@ const GridProductCard = ({ product, onClick }) => {
   return (
     <div
       onClick={onClick}
-      className="cursor-pointer rounded-xl overflow-hidden bg-white shadow-md hover:shadow-lg transition-all duration-300 group"
+      className="cursor-pointer rounded-lg sm:rounded-xl overflow-hidden bg-white shadow-sm hover:shadow-md transition-all duration-300 group"
     >
       <div className="relative w-full pt-[100%] overflow-hidden bg-gray-100">
         <img
@@ -82,11 +82,11 @@ const GridProductCard = ({ product, onClick }) => {
           className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
         />
       </div>
-      <div className="p-2 sm:p-2.5 text-center">
-        <p className="text-xs sm:text-sm font-medium text-gray-700 truncate">
-          {product?.name?.length > 15 ? product.name.substring(0, 12) + '..' : product?.name}
+      <div className="p-1.5 sm:p-2 text-center">
+        <p className="text-[10px] sm:text-xs font-medium text-gray-700 truncate">
+          {product?.name?.length > 12 ? product.name.substring(0, 10) + '..' : product?.name}
         </p>
-        <p className="text-sm sm:text-base font-bold text-[#7a1c3d] mt-0.5">
+        <p className="text-[11px] sm:text-sm font-bold text-[#7a1c3d] mt-0.5">
           ₹{Number(product?.price || 0).toLocaleString()}
         </p>
       </div>
@@ -95,7 +95,7 @@ const GridProductCard = ({ product, onClick }) => {
 };
 
 // ======================================================
-// REGULAR PRODUCT CARD - Consistent sizing across devices
+// REGULAR PRODUCT CARD
 // ======================================================
 
 const ProductCard = ({ product, onClick }) => {
@@ -107,7 +107,7 @@ const ProductCard = ({ product, onClick }) => {
       onClick={onClick}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
-      className="group cursor-pointer overflow-hidden rounded-xl bg-white shadow-md hover:shadow-lg transition-all duration-300 hover:-translate-y-1"
+      className="group cursor-pointer overflow-hidden rounded-lg sm:rounded-xl bg-white shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-1"
     >
       <div className="relative aspect-square overflow-hidden bg-gray-100">
         <img
@@ -122,16 +122,16 @@ const ProductCard = ({ product, onClick }) => {
           }`}
         />
       </div>
-      <div className="p-2 sm:p-3">
-        <h3 className="text-xs sm:text-sm font-medium text-gray-800 line-clamp-2 min-h-[32px] sm:min-h-[40px]">
-          {product?.name}
+      <div className="p-1.5 sm:p-2.5">
+        <h3 className="text-[10px] sm:text-xs font-medium text-gray-800 line-clamp-2 min-h-[28px] sm:min-h-[36px]">
+          {product?.name?.length > 18 ? product.name.substring(0, 15) + '...' : product?.name}
         </h3>
-        <div className="mt-2 flex items-center justify-between">
-          <p className="text-sm sm:text-base font-bold text-[#7a1c3d]">
+        <div className="mt-1.5 flex items-center justify-between">
+          <p className="text-[11px] sm:text-sm font-bold text-[#7a1c3d]">
             ₹{Number(product?.price || 0).toLocaleString()}
           </p>
-          <div className="rounded-full bg-[#7a1c3d]/10 p-1.5 text-[#7a1c3d] transition-all duration-300 group-hover:bg-[#7a1c3d] group-hover:text-white">
-            <ShoppingBag size={14} className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+          <div className="rounded-full bg-[#7a1c3d]/10 p-1 text-[#7a1c3d] transition-all duration-300 group-hover:bg-[#7a1c3d] group-hover:text-white">
+            <ShoppingBag size={10} className="w-2.5 h-2.5 sm:w-3.5 sm:h-3.5" />
           </div>
         </div>
       </div>
@@ -140,7 +140,7 @@ const ProductCard = ({ product, onClick }) => {
 };
 
 // ======================================================
-// PRODUCT MARQUEE - Consistent sizing
+// PRODUCT MARQUEE
 // ======================================================
 
 const ProductMarquee = ({ products, navigate }) => {
@@ -149,12 +149,12 @@ const ProductMarquee = ({ products, navigate }) => {
   const duplicated = [...products, ...products, ...products];
 
   return (
-    <div className="relative overflow-hidden py-3">
-      <div className="marquee-track flex w-max gap-3 sm:gap-4">
+    <div className="relative overflow-hidden py-2 sm:py-3">
+      <div className="marquee-track flex w-max gap-2 sm:gap-3 md:gap-4">
         {duplicated.map((product, index) => (
           <div
             key={`${product.id}-${index}`}
-            className="w-[130px] xs:w-[140px] sm:w-[160px] md:w-[180px] flex-shrink-0"
+            className="w-[100px] xs:w-[110px] sm:w-[130px] md:w-[150px] flex-shrink-0"
           >
             <ProductCard
               product={product}
@@ -265,16 +265,16 @@ const HeroSlider = () => {
           <div className="container mx-auto px-4 xs:px-6 sm:px-8 lg:px-12">
             <div className="max-w-sm xs:max-w-md sm:max-w-lg md:max-w-xl lg:max-w-2xl">
               <Badge icon={Zap}>{title || "Premium Collection"}</Badge>
-              <h1 className="mt-2 xs:mt-3 text-xl xs:text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold leading-tight text-white drop-shadow-lg">
+              <h1 className="mt-2 xs:mt-3 text-lg xs:text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold leading-tight text-white drop-shadow-lg">
                 {subtitle || "Luxury Fashion Collection"}
               </h1>
-              <p className="mt-1 xs:mt-2 max-w-md text-[11px] xs:text-xs sm:text-sm md:text-base text-white/90 drop-shadow">
+              <p className="mt-1 xs:mt-2 text-[11px] xs:text-xs sm:text-sm md:text-base text-white/90 drop-shadow">
                 {description || "Discover premium collections curated for style and elegance."}
               </p>
-              <div className="mt-3 xs:mt-4 sm:mt-5 md:mt-6">
+              <div className="mt-3 xs:mt-4 sm:mt-5">
                 <button onClick={() => handleCTA(banner)} className={BUTTON_STYLES}>
                   {banner.button_text}
-                  <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+                  <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
                 </button>
               </div>
             </div>
@@ -283,39 +283,42 @@ const HeroSlider = () => {
       );
     }
 
-    // GRID LAYOUT - 2x2 on ALL devices
+    // GRID LAYOUT - 2x2 with smaller cards on mobile
     if (layout === "grid") {
       const displayProducts = products?.slice(0, 4) || [];
       
       return (
         <div className="flex h-full items-center">
-          <div className="container mx-auto px-4 xs:px-6 sm:px-8 lg:px-12">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 sm:gap-6 md:gap-8 items-center">
-              <div className="text-center lg:text-left">
+          <div className="container mx-auto px-3 xs:px-4 sm:px-6 lg:px-8">
+            <div className="flex flex-col lg:flex-row gap-4 sm:gap-5 lg:gap-8 items-center">
+              {/* Left Text Section */}
+              <div className="w-full lg:w-1/2 text-center lg:text-left">
                 <Badge icon={TrendingUp}>{title || "Trending Now"}</Badge>
-                <h1 className="mt-2 xs:mt-3 text-xl xs:text-2xl sm:text-3xl md:text-4xl font-bold text-white drop-shadow-lg">
+                <h1 className="mt-2 xs:mt-3 text-lg xs:text-xl sm:text-2xl md:text-3xl font-bold text-white drop-shadow-lg">
                   {subtitle}
                 </h1>
-                <p className="mt-1 xs:mt-2 text-[11px] xs:text-xs sm:text-sm md:text-base text-white/90 drop-shadow">
+                <p className="mt-1 xs:mt-2 text-[11px] xs:text-xs sm:text-sm md:text-base text-white/90 drop-shadow max-w-md mx-auto lg:mx-0">
                   {description}
                 </p>
-                <div className="mt-3 xs:mt-4 sm:mt-5">
+                <div className="mt-3 xs:mt-4">
                   <button onClick={() => handleCTA(banner)} className={BUTTON_STYLES}>
                     {banner.button_text}
-                    <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+                    <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
                   </button>
                 </div>
               </div>
 
-              {/* 2x2 Grid - Same structure on ALL devices */}
-              <div className="grid grid-cols-2 gap-3 sm:gap-4 md:gap-5">
-                {displayProducts.map((product) => (
-                  <GridProductCard
-                    key={product.id}
-                    product={product}
-                    onClick={() => navigate(getProductPath(product))}
-                  />
-                ))}
+              {/* Right Section - 2x2 Product Grid with smaller cards on mobile */}
+              <div className="w-full lg:w-1/2">
+                <div className="grid grid-cols-2 gap-2 xs:gap-2.5 sm:gap-3 md:gap-4 max-w-md mx-auto lg:mx-0 lg:max-w-none">
+                  {displayProducts.map((product) => (
+                    <GridProductCard
+                      key={product.id}
+                      product={product}
+                      onClick={() => navigate(getProductPath(product))}
+                    />
+                  ))}
+                </div>
               </div>
             </div>
           </div>
@@ -326,17 +329,17 @@ const HeroSlider = () => {
     // PRODUCTS LAYOUT
     if (layout === "products") {
       return (
-        <div className="flex min-h-full items-center py-5 xs:py-6 sm:py-8">
-          <div className="w-full px-4 xs:px-6 sm:px-8 lg:px-12">
-            <div className="text-center mb-5 xs:mb-6 sm:mb-8">
+        <div className="flex min-h-full items-center py-4 xs:py-5 sm:py-6 md:py-8">
+          <div className="w-full px-3 xs:px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-4 xs:mb-5 sm:mb-6 md:mb-8">
               <Badge icon={TrendingUp}>{title || "Featured Products"}</Badge>
-              <h1 className="mt-2 text-lg xs:text-xl sm:text-2xl md:text-3xl font-bold text-white drop-shadow-lg">
+              <h1 className="mt-2 text-base xs:text-lg sm:text-xl md:text-2xl font-bold text-white drop-shadow-lg">
                 {subtitle}
               </h1>
-              <p className="mt-1 text-[11px] xs:text-xs sm:text-sm text-white/90">{description}</p>
+              <p className="mt-1 text-[10px] xs:text-[11px] sm:text-xs text-white/90">{description}</p>
             </div>
 
-            <div className="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3 xs:gap-4 sm:gap-5">
+            <div className="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-2 xs:gap-2.5 sm:gap-3 md:gap-4">
               {products?.slice(0, 10).map((product) => (
                 <ProductCard
                   key={product.id}
@@ -346,10 +349,10 @@ const HeroSlider = () => {
               ))}
             </div>
 
-            <div className="text-center mt-5 xs:mt-6 sm:mt-8">
+            <div className="text-center mt-4 xs:mt-5 sm:mt-6 md:mt-8">
               <button onClick={() => handleCTA(banner)} className={BUTTON_STYLES}>
                 {banner.button_text}
-                <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+                <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
               </button>
             </div>
           </div>
@@ -360,19 +363,19 @@ const HeroSlider = () => {
     // SPLIT LAYOUT
     if (layout === "split") {
       return (
-        <div className="flex h-full items-end pb-6 xs:pb-8 sm:pb-10 lg:pb-12 px-4 xs:px-6 sm:px-8 lg:px-12">
+        <div className="flex h-full items-end pb-5 xs:pb-6 sm:pb-8 md:pb-10 px-4 xs:px-6 sm:px-8 lg:px-12">
           <div className="max-w-sm xs:max-w-md sm:max-w-lg md:max-w-xl lg:max-w-2xl">
             <Badge icon={Zap}>{title || "Exclusive Offer"}</Badge>
-            <h1 className="mt-2 xs:mt-3 text-xl xs:text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold leading-tight text-white drop-shadow-lg">
+            <h1 className="mt-2 xs:mt-3 text-lg xs:text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold leading-tight text-white drop-shadow-lg">
               {subtitle}
             </h1>
             <p className="mt-1 xs:mt-2 text-[11px] xs:text-xs sm:text-sm md:text-base text-white/90 drop-shadow">
               {description}
             </p>
-            <div className="mt-3 xs:mt-4 sm:mt-5">
+            <div className="mt-3 xs:mt-4">
               <button onClick={() => handleCTA(banner)} className={BUTTON_STYLES}>
                 {banner.button_text}
-                <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+                <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
               </button>
             </div>
           </div>
@@ -383,18 +386,18 @@ const HeroSlider = () => {
     // CAROUSEL LAYOUT
     if (layout === "slider" || layout === "carousel") {
       return (
-        <div className="flex min-h-full items-center py-5 xs:py-6 sm:py-8">
-          <div className="w-full px-4 xs:px-6 sm:px-8 lg:px-12">
-            <div className="text-center mb-5 xs:mb-6 sm:mb-8">
+        <div className="flex min-h-full items-center py-4 xs:py-5 sm:py-6 md:py-8">
+          <div className="w-full px-3 xs:px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-4 xs:mb-5 sm:mb-6 md:mb-8">
               <Badge icon={ShoppingBag}>{title || "New Arrivals"}</Badge>
-              <h1 className="mt-2 text-lg xs:text-xl sm:text-2xl md:text-3xl font-bold text-white drop-shadow-lg">
+              <h1 className="mt-2 text-base xs:text-lg sm:text-xl md:text-2xl font-bold text-white drop-shadow-lg">
                 {subtitle}
               </h1>
-              <p className="mt-1 text-[11px] xs:text-xs sm:text-sm text-white/90">{description}</p>
+              <p className="mt-1 text-[10px] xs:text-[11px] sm:text-xs text-white/90">{description}</p>
               <div className="mt-3 xs:mt-4">
                 <button onClick={() => handleCTA(banner)} className={BUTTON_STYLES}>
                   {banner.button_text}
-                  <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+                  <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
                 </button>
               </div>
             </div>
@@ -411,12 +414,12 @@ const HeroSlider = () => {
       return (
         <div className="flex h-full items-center">
           <div className="container mx-auto px-4 xs:px-6 sm:px-8 lg:px-12">
-            <div className="flex flex-col md:flex-row gap-5 sm:gap-6 md:gap-8 items-center">
+            <div className="flex flex-col md:flex-row gap-4 sm:gap-5 md:gap-8 items-center">
               <div className="md:w-1/2 flex justify-center">
                 {product && (
                   <div
                     onClick={() => navigate(getProductPath(product))}
-                    className="cursor-pointer rounded-2xl overflow-hidden bg-white shadow-lg hover:shadow-xl transition-all duration-300 w-full max-w-[180px] xs:max-w-[200px] sm:max-w-[240px] md:max-w-[260px] lg:max-w-[280px] group"
+                    className="cursor-pointer rounded-xl sm:rounded-2xl overflow-hidden bg-white shadow-lg hover:shadow-xl transition-all duration-300 w-full max-w-[140px] xs:max-w-[160px] sm:max-w-[180px] md:max-w-[220px] lg:max-w-[240px] group"
                   >
                     <div className="relative aspect-square overflow-hidden bg-gray-100">
                       <img
@@ -426,11 +429,11 @@ const HeroSlider = () => {
                         onError={(e) => (e.target.src = "/placeholder.jpg")}
                       />
                     </div>
-                    <div className="p-3 sm:p-4">
-                      <p className="text-xs sm:text-sm font-medium text-gray-800 line-clamp-2">
-                        {product?.name}
+                    <div className="p-2 sm:p-3">
+                      <p className="text-[10px] xs:text-xs font-medium text-gray-800 line-clamp-2">
+                        {product?.name?.length > 15 ? product.name.substring(0, 12) + '...' : product?.name}
                       </p>
-                      <p className="text-sm sm:text-base font-bold text-[#7a1c3d] mt-1">
+                      <p className="text-[11px] xs:text-sm font-bold text-[#7a1c3d] mt-0.5">
                         ₹{Number(product?.price || 0).toLocaleString()}
                       </p>
                     </div>
@@ -439,16 +442,16 @@ const HeroSlider = () => {
               </div>
               <div className="md:w-1/2 text-center md:text-left">
                 <Badge>{title || "Featured Product"}</Badge>
-                <h1 className="mt-2 xs:mt-3 text-xl xs:text-2xl sm:text-3xl md:text-4xl font-bold text-white drop-shadow-lg">
+                <h1 className="mt-2 xs:mt-3 text-lg xs:text-xl sm:text-2xl md:text-3xl font-bold text-white drop-shadow-lg">
                   {subtitle}
                 </h1>
                 <p className="mt-1 xs:mt-2 text-[11px] xs:text-xs sm:text-sm md:text-base text-white/90 drop-shadow">
                   {description}
                 </p>
-                <div className="mt-3 xs:mt-4 sm:mt-5">
+                <div className="mt-3 xs:mt-4">
                   <button onClick={() => handleCTA(banner)} className={BUTTON_STYLES}>
                     {banner.button_text}
-                    <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+                    <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
                   </button>
                 </div>
               </div>
@@ -484,7 +487,7 @@ const HeroSlider = () => {
       </style>
 
       <section
-        className="relative h-[450px] xs:h-[500px] sm:h-[550px] md:h-[600px] lg:h-[650px] xl:h-[700px] overflow-hidden"
+        className="relative h-[450px] xs:h-[500px] sm:h-[550px] md:h-[600px] lg:h-[650px] overflow-hidden"
         onMouseEnter={stopAutoSlide}
         onMouseLeave={startAutoSlide}
         onTouchStart={handleTouchStart}
@@ -536,15 +539,15 @@ const HeroSlider = () => {
 
         {/* Dots Indicator */}
         {processedBanners.length > 1 && (
-          <div className="absolute bottom-3 sm:bottom-4 md:bottom-6 left-1/2 z-30 flex -translate-x-1/2 gap-1.5 sm:gap-2 md:gap-2.5">
+          <div className="absolute bottom-3 sm:bottom-4 md:bottom-5 left-1/2 z-30 flex -translate-x-1/2 gap-1.5 sm:gap-2 md:gap-2.5">
             {processedBanners.map((_, index) => (
               <button
                 key={index}
                 onClick={() => setCurrent(index)}
                 className={`rounded-full transition-all duration-300 ${
                   current === index 
-                    ? "w-6 sm:w-8 md:w-10 h-1 bg-white shadow-md" 
-                    : "w-1.5 h-1 bg-white/50 hover:bg-white/80"
+                    ? "w-5 sm:w-7 md:w-9 h-1 bg-white shadow-md" 
+                    : "w-1 h-1 bg-white/50 hover:bg-white/80"
                 }`}
                 aria-label={`Go to slide ${index + 1}`}
               />

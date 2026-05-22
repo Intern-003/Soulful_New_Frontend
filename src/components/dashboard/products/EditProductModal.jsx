@@ -12,9 +12,9 @@ const EditProductModal = ({ productId, onClose, onSuccess }) => {
   const { data, loading, refetch } = useGet(`/vendor/products/${productId}`);
   const { putData, loading: updating } = usePut();
   const { data: categoryData } = useGet("/categories");
-  const { data: brandData } = useGet("/brands");
-  const { data: subcategoryData, refetch: fetchSubcategories } = useGet("", { autoFetch: false });
   const { data: attributeData } = useGet("/admin/attributes-with-values");
+  const { data: activeBrandsData, loading: loadingActiveBrands } = useGet("/brands/active");
+  const { refetch: fetchSubcategories } = useGet("/categories/placeholder", { autoFetch: false });
 
   const product = data?.data;
   const variantRef = useRef(null);
@@ -23,26 +23,28 @@ const EditProductModal = ({ productId, onClose, onSuccess }) => {
   const [form, setForm] = useState({
     name: "", short_description: "", description: "", price: "", discount_price: "",
     cost_price: "", stock: "", category_id: "", brand_id: "", weight: "", length: "",
-    width: "", height: "", is_featured: false, status: false, approval_status: "",
+    width: "", height: "", is_featured: false,
   });
   const [parentCategory, setParentCategory] = useState("");
+  const [subcategories, setSubcategories] = useState([]);
   const [selectedAttributeValues, setSelectedAttributeValues] = useState({});
   const [existingVariants, setExistingVariants] = useState([]);
   const [pendingVariants, setPendingVariants] = useState([]);
   const [productImages, setProductImages] = useState([]);
 
+  // Get active brands from API
+  const activeBrands = activeBrandsData?.data || activeBrandsData || [];
+
   // Load product data and populate form
   useEffect(() => {
     if (!product) return;
-
-    const isSub = !!product.category?.parent_id;
 
     setForm({
       name: product.name || "",
       short_description: product.short_description || "",
       description: product.description || "",
       price: product.price ?? "",
-      discount_price: product.discount_price ?? "", // FIXED: Added discount_price
+      discount_price: product.discount_price ?? "",
       cost_price: product.cost_price ?? "",
       stock: product.stock ?? "",
       category_id: product.category_id || "",
@@ -51,22 +53,26 @@ const EditProductModal = ({ productId, onClose, onSuccess }) => {
       length: product.length || "",
       width: product.width || "",
       height: product.height || "",
-      is_featured: product.is_featured || false,
-      status: product.status || false,
+      is_featured: !!product.is_featured,
     });
 
     setSpecifications(product.specifications || []);
     setProductImages(product.images || []);
     setExistingVariants(product.variants || []);
 
-    if (isSub) {
-      const parentId = product.category.parent_id;
-      setParentCategory(parentId);
-      fetchSubcategories({ url: `/categories/${parentId}/children` }).then(() => {
-        setForm(prev => ({ ...prev, category_id: product.category_id }));
-      });
+    // Handle category hierarchy
+    if (product.category?.parent_id) {
+      setParentCategory(product.category.parent_id);
+      // Fetch subcategories for this parent
+      fetchSubcategories({ url: `/categories/${product.category.parent_id}/children`, force: true })
+        .then(res => {
+          const children = res?.data || [];
+          setSubcategories(children);
+          setForm(prev => ({ ...prev, category_id: product.category_id }));
+        });
     } else {
       setParentCategory(product.category?.id || "");
+      setForm(prev => ({ ...prev, category_id: product.category_id || "" }));
     }
   }, [product]);
 
@@ -98,11 +104,40 @@ const EditProductModal = ({ productId, onClose, onSuccess }) => {
   }, [pendingVariants]);
 
   const handleCategoryChange = async (e) => {
-    const parentId = Number(e.target.value);
-    setParentCategory(parentId);
-    setForm((prev) => ({ ...prev, category_id: "" }));
-    if (parentId) {
-      await fetchSubcategories({ url: `/categories/${parentId}/children` });
+    const id = e.target.value;
+    setParentCategory(id);
+    setForm(prev => ({
+      ...prev,
+      category_id: "",
+      brand_id: "",
+    }));
+
+    if (!id) {
+      setSubcategories([]);
+      return;
+    }
+
+    try {
+      const res = await fetchSubcategories({
+        url: `/categories/${id}/children`,
+        force: true,
+      });
+      const children = res?.data || [];
+      setSubcategories(children);
+
+      if (children.length === 0) {
+        setForm(prev => ({
+          ...prev,
+          category_id: id
+        }));
+      }
+    } catch (err) {
+      console.error(err);
+      setSubcategories([]);
+      setForm(prev => ({
+        ...prev,
+        category_id: id
+      }));
     }
   };
 
@@ -151,30 +186,55 @@ const EditProductModal = ({ productId, onClose, onSuccess }) => {
     const attributes = attributeData?.data || [];
     const generated = generateVariants(selected, attributes);
 
-    const map = new Map();
-    const filtered = generated.filter(v => {
-      const key = v.sku?.toLowerCase();
-      if (!key) return false;
-      if (map.has(key)) return false;
-      map.set(key, true);
-      return true;
+    // Merge with existing variants - preserve existing data
+    const mergedVariants = generated.map(newVariant => {
+      const existingVariant = existingVariants.find(ev => ev.sku === newVariant.sku);
+      if (existingVariant) {
+        return {
+          ...newVariant,
+          price: existingVariant.price || newVariant.price,
+          stock: existingVariant.stock || newVariant.stock,
+          weight: existingVariant.weight || newVariant.weight,
+          barcode: existingVariant.barcode || newVariant.barcode,
+          discount_price: existingVariant.discount_price || newVariant.discount_price,
+          existingImages: existingVariant.existingImages || [],
+          previews: existingVariant.previews || [],
+          isSaved: existingVariant.isSaved || false,
+        };
+      }
+      return newVariant;
     });
 
-    setPendingVariants(filtered);
+    setPendingVariants(mergedVariants);
     setActiveTab("variants");
   };
 
   const handleUpdate = async () => {
+    // Validate basic info
+    const selectedCategoryId = form.category_id || parentCategory;
+    if (!form.name.trim()) {
+      toast.error("Product name is required");
+      return;
+    }
+    if (!selectedCategoryId) {
+      toast.error("Please select a category");
+      return;
+    }
+    if (!form.price || Number(form.price) <= 0) {
+      toast.error("Valid price is required");
+      return;
+    }
+
     try {
       const payload = {
         name: form.name,
         short_description: form.short_description,
         description: form.description,
         price: Number(form.price || 0),
-        discount_price: Number(form.discount_price || 0), // FIXED: Added discount_price
+        discount_price: Number(form.discount_price || 0),
         cost_price: Number(form.cost_price || 0),
         stock: Number(form.stock || 0),
-        category_id: form.category_id,
+        category_id: selectedCategoryId,
         brand_id: form.brand_id || null,
         weight: Number(form.weight || 0),
         length: Number(form.length || 0),
@@ -183,13 +243,12 @@ const EditProductModal = ({ productId, onClose, onSuccess }) => {
         is_featured: form.is_featured ? 1 : 0,
         specifications: specifications.length ? specifications : null,
         approval_status: "pending",
-        status: false,
       };
 
       await putData({ url: `/vendor/products/${productId}`, data: payload });
 
       toast.success("Product Updated Successfully ✅");
-      onSuccess();
+      onSuccess?.();
       onClose();
     } catch (err) {
       toast.error(err?.response?.data?.message || "Update failed");
@@ -208,8 +267,6 @@ const EditProductModal = ({ productId, onClose, onSuccess }) => {
   }
 
   const categories = categoryData?.data || [];
-  const subcategories = subcategoryData?.data || [];
-  const brands = brandData?.data?.data || brandData?.data || [];
   const attributes = attributeData?.data || [];
 
   const tabs = [
@@ -292,22 +349,45 @@ const EditProductModal = ({ productId, onClose, onSuccess }) => {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
               <div className="sm:col-span-2">
                 <label className="block text-sm font-medium mb-1">Product Name *</label>
-                <input name="name" value={form.name} onChange={handleChange} className="w-full border rounded-lg p-2 sm:p-3 text-sm sm:text-base focus:ring-2 focus:ring-[#7a1c3d]" />
+                <input 
+                  name="name" 
+                  value={form.name} 
+                  onChange={handleChange} 
+                  placeholder="Enter product name"
+                  className="w-full border rounded-lg p-2 sm:p-3 text-sm sm:text-base focus:ring-2 focus:ring-[#7a1c3d]" 
+                />
               </div>
 
               <div className="sm:col-span-2">
                 <label className="block text-sm font-medium mb-1">Short Description</label>
-                <input name="short_description" value={form.short_description} onChange={handleChange} className="w-full border rounded-lg p-2 sm:p-3 text-sm sm:text-base" />
+                <input 
+                  name="short_description" 
+                  value={form.short_description} 
+                  onChange={handleChange} 
+                  placeholder="Brief description"
+                  className="w-full border rounded-lg p-2 sm:p-3 text-sm sm:text-base" 
+                />
               </div>
 
               <div className="sm:col-span-2">
                 <label className="block text-sm font-medium mb-1">Full Description</label>
-                <textarea name="description" value={form.description} onChange={handleChange} rows="4" className="w-full border rounded-lg p-2 sm:p-3 text-sm sm:text-base" />
+                <textarea 
+                  name="description" 
+                  value={form.description} 
+                  onChange={handleChange} 
+                  rows="4" 
+                  placeholder="Detailed product description"
+                  className="w-full border rounded-lg p-2 sm:p-3 text-sm sm:text-base" 
+                />
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-1">Category</label>
-                <select value={parentCategory} onChange={handleCategoryChange} className="w-full border rounded-lg p-2 sm:p-3 text-sm sm:text-base">
+                <label className="block text-sm font-medium mb-1">Category *</label>
+                <select 
+                  value={parentCategory} 
+                  onChange={handleCategoryChange} 
+                  className="w-full border rounded-lg p-2 sm:p-3 text-sm sm:text-base"
+                >
                   <option value="">Select Category</option>
                   {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
@@ -315,35 +395,127 @@ const EditProductModal = ({ productId, onClose, onSuccess }) => {
 
               <div>
                 <label className="block text-sm font-medium mb-1">Subcategory</label>
-                <select name="category_id" value={form.category_id} onChange={handleChange} className="w-full border rounded-lg p-2 sm:p-3 text-sm sm:text-base">
-                  <option value="">Select Subcategory</option>
+                <select 
+                  name="category_id" 
+                  value={form.category_id} 
+                  onChange={handleChange} 
+                  disabled={!parentCategory || subcategories.length === 0}
+                  className="w-full border rounded-lg p-2 sm:p-3 text-sm sm:text-base"
+                >
+                  <option value="">
+                    {subcategories.length
+                      ? "Select Subcategory"
+                      : "No subcategories available"}
+                  </option>
                   {subcategories.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                 </select>
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-1">Brand</label>
-                <select name="brand_id" value={form.brand_id} onChange={handleChange} className="w-full border rounded-lg p-2 sm:p-3 text-sm sm:text-base">
+                <label className="block text-sm font-medium mb-1">
+                  Brand {loadingActiveBrands && <span className="text-xs text-gray-500 ml-1">(Loading...)</span>}
+                </label>
+                <select
+                  name="brand_id"
+                  value={form.brand_id}
+                  onChange={handleChange}
+                  className="w-full border rounded-lg p-2 sm:p-3 text-sm sm:text-base"
+                  disabled={loadingActiveBrands}
+                >
                   <option value="">Select Brand</option>
-                  {brands.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+                  {activeBrands.length === 0 && !loadingActiveBrands && (
+                    <option value="" disabled>No active brands available</option>
+                  )}
+                  {activeBrands.map(b => (
+                    <option key={b.id} value={b.id}>{b.name}</option>
+                  ))}
                 </select>
+                {!loadingActiveBrands && activeBrands.length === 0 && (
+                  <p className="text-xs text-amber-600 mt-1">
+                    ⚠️ No active brands found
+                  </p>
+                )}
               </div>
 
-              <div><label className="block text-sm font-medium mb-1">Price *</label><input name="price" type="number" step="0.01" value={form.price} onChange={handleChange} className="w-full border rounded-lg p-2 sm:p-3 text-sm sm:text-base" /></div>
-              <div><label className="block text-sm font-medium mb-1">Discount Price</label><input name="discount_price" type="number" step="0.01" value={form.discount_price} onChange={handleChange} className="w-full border rounded-lg p-2 sm:p-3 text-sm sm:text-base" /></div>
-              <div><label className="block text-sm font-medium mb-1">Cost Price</label><input name="cost_price" type="number" step="0.01" value={form.cost_price} onChange={handleChange} className="w-full border rounded-lg p-2 sm:p-3 text-sm sm:text-base" /></div>
-              <div><label className="block text-sm font-medium mb-1">Stock</label><input name="stock" type="number" value={form.stock} onChange={handleChange} className="w-full border rounded-lg p-2 sm:p-3 text-sm sm:text-base" /></div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Price *</label>
+                <input 
+                  name="price" 
+                  type="number" 
+                  step="0.01" 
+                  value={form.price} 
+                  onChange={handleChange} 
+                  placeholder="0.00"
+                  className="w-full border rounded-lg p-2 sm:p-3 text-sm sm:text-base" 
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">Discount Price</label>
+                <input 
+                  name="discount_price" 
+                  type="number" 
+                  step="0.01" 
+                  value={form.discount_price} 
+                  onChange={handleChange} 
+                  placeholder="0.00"
+                  className="w-full border rounded-lg p-2 sm:p-3 text-sm sm:text-base" 
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">Cost Price</label>
+                <input 
+                  name="cost_price" 
+                  type="number" 
+                  step="0.01" 
+                  value={form.cost_price} 
+                  onChange={handleChange} 
+                  placeholder="0.00"
+                  className="w-full border rounded-lg p-2 sm:p-3 text-sm sm:text-base" 
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">Stock Quantity</label>
+                <input 
+                  name="stock" 
+                  type="number" 
+                  value={form.stock} 
+                  onChange={handleChange} 
+                  placeholder="0"
+                  className="w-full border rounded-lg p-2 sm:p-3 text-sm sm:text-base" 
+                />
+              </div>
 
               <div className="grid grid-cols-2 gap-3 sm:col-span-2">
-                <div><label className="block text-sm font-medium mb-1">Length (cm)</label><input name="length" type="number" step="0.01" value={form.length} onChange={handleChange} className="w-full border rounded-lg p-2 sm:p-3" /></div>
-                <div><label className="block text-sm font-medium mb-1">Width (cm)</label><input name="width" type="number" step="0.01" value={form.width} onChange={handleChange} className="w-full border rounded-lg p-2 sm:p-3" /></div>
-                <div><label className="block text-sm font-medium mb-1">Height (cm)</label><input name="height" type="number" step="0.01" value={form.height} onChange={handleChange} className="w-full border rounded-lg p-2 sm:p-3" /></div>
-                <div><label className="block text-sm font-medium mb-1">Weight (kg)</label><input name="weight" type="number" step="0.01" value={form.weight} onChange={handleChange} className="w-full border rounded-lg p-2 sm:p-3" /></div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Length (cm)</label>
+                  <input name="length" type="number" step="0.01" value={form.length} onChange={handleChange} className="w-full border rounded-lg p-2 sm:p-3" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Width (cm)</label>
+                  <input name="width" type="number" step="0.01" value={form.width} onChange={handleChange} className="w-full border rounded-lg p-2 sm:p-3" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Height (cm)</label>
+                  <input name="height" type="number" step="0.01" value={form.height} onChange={handleChange} className="w-full border rounded-lg p-2 sm:p-3" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Weight (kg)</label>
+                  <input name="weight" type="number" step="0.01" value={form.weight} onChange={handleChange} className="w-full border rounded-lg p-2 sm:p-3" />
+                </div>
               </div>
 
               <div className="sm:col-span-2">
                 <label className="flex items-center gap-2 cursor-pointer">
-                  <input type="checkbox" name="is_featured" checked={form.is_featured} onChange={handleChange} className="w-4 h-4 sm:w-5 sm:h-5" />
+                  <input 
+                    type="checkbox" 
+                    name="is_featured" 
+                    checked={form.is_featured} 
+                    onChange={handleChange} 
+                    className="w-4 h-4 sm:w-5 sm:h-5" 
+                  />
                   <span className="text-sm sm:text-base">⭐ Feature this product</span>
                 </label>
               </div>
@@ -365,6 +537,7 @@ const EditProductModal = ({ productId, onClose, onSuccess }) => {
             <ProductSpecifications
               productId={productId}
               isLocked={false}
+              specifications={specifications}
               onSpecificationsChange={setSpecifications}
             />
           )}
@@ -391,8 +564,17 @@ const EditProductModal = ({ productId, onClose, onSuccess }) => {
 
         {/* Footer */}
         <div className="border-t px-4 sm:px-6 py-3 sm:py-4 bg-gray-50 flex flex-col sm:flex-row justify-end gap-2 sm:gap-3 flex-shrink-0">
-          <button onClick={onClose} className="px-4 sm:px-6 py-2 border rounded-lg hover:bg-gray-100 transition text-sm sm:text-base order-2 sm:order-1">Cancel</button>
-          <button onClick={handleUpdate} className="bg-[#7a1c3d] text-white px-4 sm:px-6 py-2 rounded-lg hover:bg-[#5e132f] transition flex items-center justify-center gap-2 text-sm sm:text-base order-1 sm:order-2" disabled={updating}>
+          <button 
+            onClick={onClose} 
+            className="px-4 sm:px-6 py-2 border rounded-lg hover:bg-gray-100 transition text-sm sm:text-base order-2 sm:order-1"
+          >
+            Cancel
+          </button>
+          <button 
+            onClick={handleUpdate} 
+            className="bg-[#7a1c3d] text-white px-4 sm:px-6 py-2 rounded-lg hover:bg-[#5e132f] transition flex items-center justify-center gap-2 text-sm sm:text-base order-1 sm:order-2" 
+            disabled={updating}
+          >
             <Save size={16} className="sm:w-[18px] sm:h-[18px]" />
             {updating ? "Updating..." : "Update Product"}
           </button>
