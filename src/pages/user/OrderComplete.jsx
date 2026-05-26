@@ -1,4 +1,3 @@
-
 import React, { useEffect } from "react";
 import { motion } from "framer-motion";
 import { CheckCircle, Package, Truck, Clock, ArrowRight, Printer, Download, Home } from "lucide-react";
@@ -6,7 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { clearCart } from "../../app/slices/cartSlice";
 import { useLocation } from "react-router-dom";
-
+import { getImageUrl } from "../../utils/getImageUrl";
 
 // Mock order data - In production, this would come from your API response
 const mockOrderDetails = {
@@ -37,36 +36,36 @@ const OrderComplete = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  const { items: cartItems, totals: cartTotals } = useSelector((state) => state.cart);
-  
+  const { items: cartItems, displayTotals: cartTotals } = useSelector((state) => state.cart);
+
   // Get order data from navigation state or fallback to cart data
   const { orderData, orderSummary } = location.state || {};
-  
+
   // Use real order data if available, otherwise use cart data
   const displayItems = orderSummary?.items || cartItems;
   const displayTotals = orderSummary?.totals || cartTotals;
   const shippingAddress = orderSummary?.shippingAddress || mockOrderDetails.shippingAddress;
   const paymentMethod = orderSummary?.paymentMethod || mockOrderDetails.paymentMethod;
-  
+
   const orderId = orderData?.orderId || mockOrderDetails.orderId;
-  const orderDate = orderData?.timestamp 
+  const orderDate = orderData?.timestamp
     ? new Date(orderData.timestamp).toLocaleDateString()
     : mockOrderDetails.date;
 
 
   // Clear cart on successful order placement (only once)
   useEffect(() => {
-    if (items.length > 0) {
+    if (cartItems.length > 0) {
       dispatch(clearCart());
     }
-  }, [dispatch, items.length]);
+  }, [dispatch, cartItems.length]);
 
   const handleContinueShopping = () => {
     navigate("/shop");
   };
 
   const handleViewOrders = () => {
-    navigate("/account/orders");
+    navigate("/account");
   };
 
   const handlePrintOrder = () => {
@@ -166,10 +165,9 @@ const OrderComplete = () => {
                     <div className="relative z-10">
                       <div
                         className={`w-10 h-10 mx-auto rounded-full flex items-center justify-center border-2 
-                          ${
-                            step.status === "completed"
-                              ? "bg-green-500 border-green-500 text-white"
-                              : step.status === "current"
+                          ${step.status === "completed"
+                            ? "bg-green-500 border-green-500 text-white"
+                            : step.status === "current"
                               ? "bg-[#8B0D3A] border-[#8B0D3A] text-white"
                               : "bg-white border-gray-300 text-gray-400"
                           }`}
@@ -188,10 +186,9 @@ const OrderComplete = () => {
                     {idx < 3 && (
                       <div
                         className={`absolute top-5 left-[calc(50%+20px)] w-[calc(100%-40px)] h-0.5 
-                          ${
-                            idx === 0 || idx === 1
-                              ? "bg-green-500"
-                              : "bg-gray-200"
+                          ${idx === 0 || idx === 1
+                            ? "bg-green-500"
+                            : "bg-gray-200"
                           }`}
                       />
                     )}
@@ -211,10 +208,9 @@ const OrderComplete = () => {
                     <div className="flex flex-col items-center">
                       <div
                         className={`w-10 h-10 rounded-full flex items-center justify-center border-2 
-                          ${
-                            step.status === "completed"
-                              ? "bg-green-500 border-green-500 text-white"
-                              : step.status === "current"
+                          ${step.status === "completed"
+                            ? "bg-green-500 border-green-500 text-white"
+                            : step.status === "current"
                               ? "bg-[#8B0D3A] border-[#8B0D3A] text-white"
                               : "bg-white border-gray-300 text-gray-400"
                           }`}
@@ -245,11 +241,12 @@ const OrderComplete = () => {
               Order Summary
             </h3>
             <div className="space-y-3 max-h-[280px] overflow-y-auto pr-2">
-              {items.map((item, idx) => {
+              {displayItems.map((item, idx) => {
                 const product = item.product;
                 const img =
                   product?.images?.find((i) => i.is_primary)?.image_url ||
                   product?.images?.[0]?.image_url;
+
                 return (
                   <div
                     key={item.id}
@@ -257,10 +254,11 @@ const OrderComplete = () => {
                   >
                     <div className="w-16 h-16 rounded-lg bg-gray-100 overflow-hidden flex-shrink-0">
                       <img
-                        src={img || "/api/placeholder/64/64"}
+                        src={getImageUrl(img || "/placeholder.png")}
                         alt={product?.name}
                         className="w-full h-full object-cover"
                       />
+
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="font-medium text-gray-800 text-sm truncate">
@@ -282,21 +280,21 @@ const OrderComplete = () => {
             <div className="mt-6 pt-4 border-t border-gray-200 space-y-2">
               <div className="flex justify-between text-sm">
                 <span className="text-gray-600">Subtotal</span>
-                <span className="font-medium">₹{totals.subtotal.toLocaleString()}</span>
+                <span className="font-medium">₹{displayTotals.subtotal.toLocaleString()}</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-gray-600">Shipping</span>
-                <span className="font-medium">₹{totals.shipping.toLocaleString()}</span>
+                <span className="font-medium">₹{displayTotals.shipping.toLocaleString()}</span>
               </div>
-              {totals.discount > 0 && (
+              {displayTotals.discount > 0 && (
                 <div className="flex justify-between text-sm text-green-600">
                   <span>Discount</span>
-                  <span>-₹{totals.discount.toLocaleString()}</span>
+                  <span>-₹{displayTotals.discount.toLocaleString()}</span>
                 </div>
               )}
               <div className="flex justify-between pt-2 text-base md:text-lg font-bold">
                 <span>Total</span>
-                <span className="text-[#8B0D3A]">₹{totals.total.toLocaleString()}</span>
+                <span className="text-[#8B0D3A]">₹{displayTotals.total.toLocaleString()}</span>
               </div>
             </div>
           </div>
@@ -314,32 +312,31 @@ const OrderComplete = () => {
               <Truck size={16} className="text-[#8B0D3A]" />
               Shipping Address
             </h4>
-            // In OrderComplete component, update these sections:
 
-// Shipping Address section - use shippingAddress from props
-<p className="text-sm text-gray-700">
-  {shippingAddress.firstName} {shippingAddress.lastName}
-  <br />
-  {shippingAddress.address}
-  <br />
-  {shippingAddress.city}, {shippingAddress.state} {shippingAddress.zip}
-  <br />
-  {shippingAddress.country}
-</p>
 
-// Payment Method section - use paymentMethod from props
-<p className="text-sm text-gray-700">{paymentMethod}</p>
 
-// Order ID section - use dynamic orderId
-<p className="text-lg md:text-2xl font-mono font-semibold text-[#8B0D3A]">
-  #{orderId}
-</p>
+            <p className="text-sm text-gray-700">
+              {shippingAddress.firstName} {shippingAddress.lastName}
+              <br />
+              {shippingAddress.address}
+              <br />
+              {shippingAddress.city}, {shippingAddress.state} {shippingAddress.zip}
+              <br />
+              {shippingAddress.country}
+            </p>
 
-// Order date section
-<span className="flex items-center gap-2">
-  <Clock size={14} className="text-gray-400" />
-  {orderDate}
-</span>
+
+            <p className="text-sm text-gray-700">{paymentMethod}</p>
+
+            <p className="text-lg md:text-2xl font-mono font-semibold text-[#8B0D3A]">
+              #{orderId}
+            </p>
+
+
+            <span className="flex items-center gap-2">
+              <Clock size={14} className="text-gray-400" />
+              {orderDate}
+            </span>
           </motion.div>
 
           <motion.div
@@ -351,7 +348,7 @@ const OrderComplete = () => {
             <h4 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
               💳 Payment Method
             </h4>
-            <p className="text-sm text-gray-700">{mockOrderDetails.paymentMethod}</p>
+            <p className="text-sm text-gray-700">{paymentMethod}</p>
             <p className="text-xs text-green-600 mt-2 flex items-center gap-1">
               <CheckCircle size={12} /> Payment confirmed
             </p>

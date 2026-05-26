@@ -1,0 +1,46 @@
+/* ==========================================
+   FOOTER STYLES
+   ========================================== */
+
+/* Footer link hover animation */
+.footer-link {
+  transition: all 0.2s ease;
+}
+
+.footer-link:hover {
+  color: #7a1c3d;
+  transform: translateX(2px);
+}
+
+/* Social icon animation */
+.footer-social-icon {
+  transition: all 0.3s ease;
+}
+
+.footer-social-icon:hover {
+  background-color: #7a1c3d;
+  color: white;
+  transform: translateY(-2px);
+}
+
+/* Footer responsive tweaks */
+@media (max-width: 768px) {
+  footer .grid {
+    gap: 1.5rem;
+  }
+
+  footer li {
+    padding: 4px 0;
+  }
+}
+
+/* Very small devices */
+@media (max-width: 360px) {
+  footer span {
+    font-size: 11px;
+  }
+
+  .footer-email {
+    word-break: break-word;
+  }
+}

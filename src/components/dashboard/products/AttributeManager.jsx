@@ -4,7 +4,7 @@ import useGet from "../../../api/hooks/useGet";
 import usePost from "../../../api/hooks/usePost";
 import usePut from "../../../api/hooks/usePut";
 import useDelete from "../../../api/hooks/useDelete";
-import { X, Plus, Edit2, Trash2, Save, ChevronRight, ChevronDown, Settings } from "lucide-react";
+import { X, Plus, Edit2, Trash2, Save, Settings } from "lucide-react";
 import toast from "react-hot-toast";
 
 const AttributeManager = ({ onClose, onSuccess }) => {
@@ -31,8 +31,8 @@ const AttributeManager = ({ onClose, onSuccess }) => {
     (a) => a.id === selectedAttributeId
   );
 
-  const isColor =
-    selectedAttribute?.name?.toLowerCase().includes("color");
+  const isColor = selectedAttribute?.name?.toLowerCase().includes("color");
+  
   useEffect(() => {
     if (data?.data) {
       setAttributes(data.data);
@@ -110,7 +110,6 @@ const AttributeManager = ({ onClose, onSuccess }) => {
         await putData({
           url: `/admin/attribute-values/${editingValue.id}`,
           data: { value: valueForm.value, hex_code: isColor ? valueForm.hex_code : null },
-
         });
         toast.success("Value updated successfully");
       } else {
@@ -124,8 +123,6 @@ const AttributeManager = ({ onClose, onSuccess }) => {
       setShowValueForm(false);
       setEditingValue(null);
       setValueForm({ value: "", hex_code: "" });
-
-
       refetch({ force: true });
       onSuccess?.();
     } catch (err) {
@@ -138,7 +135,6 @@ const AttributeManager = ({ onClose, onSuccess }) => {
   const handleEditValue = (attributeId, value) => {
     setSelectedAttributeId(attributeId);
     setEditingValue(value);
-
     setValueForm({
       value: value.value || "",
       hex_code: value.hex_code || "",
@@ -171,18 +167,18 @@ const AttributeManager = ({ onClose, onSuccess }) => {
       <div className="bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden shadow-2xl flex flex-col">
 
         {/* Header */}
-        <div className="bg-gradient-to-r from-[#7a1c3d] to-[#9b2c4f] px-6 py-4 flex justify-between items-center flex-shrink-0">
+        <div className="bg-gradient-to-r from-[#7a1c3d] to-[#9b2c4f] px-4 sm:px-6 py-4 flex justify-between items-center flex-shrink-0">
           <h2 className="text-xl sm:text-2xl font-bold text-white flex items-center gap-2">
-            <Settings size={24} />
+            <Settings size={20} className="sm:w-6 sm:h-6" />
             Manage Attributes
           </h2>
           <button onClick={onClose} className="text-white hover:bg-white/20 rounded-full p-2 transition">
-            <X size={20} />
+            <X size={18} className="sm:w-5 sm:h-5" />
           </button>
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto p-6">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6">
           {/* Add Attribute Button */}
           <div className="flex justify-end mb-4">
             <button
@@ -191,7 +187,7 @@ const AttributeManager = ({ onClose, onSuccess }) => {
                 setAttributeForm({ name: "" });
                 setShowAttributeForm(true);
               }}
-              className="bg-[#7a1c3d] text-white px-4 py-2 rounded-lg hover:bg-[#5e132f] transition flex items-center gap-2 text-sm"
+              className="bg-[#7a1c3d] text-white px-3 sm:px-4 py-2 rounded-lg hover:bg-[#5e132f] transition flex items-center gap-2 text-sm"
             >
               <Plus size={16} />
               Add Attribute
@@ -208,17 +204,24 @@ const AttributeManager = ({ onClose, onSuccess }) => {
             <div className="space-y-3">
               {attributes.map((attr) => (
                 <div key={attr.id} className="border rounded-xl overflow-hidden">
-                  {/* Attribute Header */}
+                  {/* Attribute Header - Removed dropdown icon */}
                   <div className="flex items-center justify-between p-4 bg-gray-50 hover:bg-gray-100 transition">
-                    <button
+                    <div 
                       onClick={() => toggleAttribute(attr.id)}
-                      className="flex items-center gap-2 flex-1 text-left"
+                      className="flex items-center gap-2 flex-1 text-left cursor-pointer"
                     >
-                      {expandedAttributes[attr.id] ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
-                      <span className="font-semibold text-gray-800">{attr.name}</span>
+                      <span className="font-semibold text-gray-800 text-sm sm:text-base">{attr.name}</span>
                       <span className="text-xs text-gray-400">({attr.values?.length || 0} values)</span>
-                    </button>
+                    </div>
                     <div className="flex gap-2">
+                      {/* Add Value Button - Plus icon near edit icons */}
+                      <button
+                        onClick={() => openValueForm(attr.id)}
+                        className="p-1.5 text-green-600 hover:bg-green-50 rounded-lg transition"
+                        title="Add Value"
+                      >
+                        <Plus size={14} />
+                      </button>
                       <button
                         onClick={() => handleEditAttribute(attr)}
                         className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition"
@@ -295,8 +298,8 @@ const AttributeManager = ({ onClose, onSuccess }) => {
         </div>
 
         {/* Footer */}
-        <div className="border-t px-6 py-4 bg-gray-50 flex justify-end flex-shrink-0">
-          <button onClick={onClose} className="px-6 py-2 border rounded-lg hover:bg-gray-100 transition">
+        <div className="border-t px-4 sm:px-6 py-4 bg-gray-50 flex justify-end flex-shrink-0">
+          <button onClick={onClose} className="px-4 sm:px-6 py-2 border rounded-lg hover:bg-gray-100 transition text-sm sm:text-base">
             Close
           </button>
         </div>
@@ -304,7 +307,7 @@ const AttributeManager = ({ onClose, onSuccess }) => {
 
       {/* Attribute Form Modal */}
       {showAttributeForm && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60]">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4">
           <div className="bg-white rounded-xl p-6 w-full max-w-md">
             <h3 className="text-lg font-bold mb-4">
               {editingAttribute ? "Edit Attribute" : "Add New Attribute"}
@@ -342,19 +345,11 @@ const AttributeManager = ({ onClose, onSuccess }) => {
 
       {/* Value Form Modal */}
       {showValueForm && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60]">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4">
           <div className="bg-white rounded-xl p-6 w-full max-w-md">
             <h3 className="text-lg font-bold mb-4">
               {editingValue ? "Edit Value" : "Add New Value"}
             </h3>
-            {/* <input
-              type="text"
-              value={valueForm.value}
-              onChange={(e) => setValueForm({ value: e.target.value })}
-              placeholder="Value (e.g., Large, Red, 256GB)"
-              className="w-full border rounded-lg p-3 text-sm focus:ring-2 focus:ring-[#7a1c3d] outline-none"
-              autoFocus
-            /> */}
             <input
               type="text"
               value={valueForm.value}
@@ -367,16 +362,14 @@ const AttributeManager = ({ onClose, onSuccess }) => {
             />
             {isColor && (
               <div className="mt-3 flex items-center gap-3">
-
                 <input
                   type="color"
                   value={valueForm.hex_code || "#000000"}
                   onChange={(e) =>
                     setValueForm((prev) => ({ ...prev, hex_code: e.target.value }))
                   }
-                  className="w-10 h-10 cursor-pointer"
+                  className="w-10 h-10 cursor-pointer rounded border"
                 />
-
                 <input
                   type="text"
                   value={valueForm.hex_code}
@@ -384,9 +377,8 @@ const AttributeManager = ({ onClose, onSuccess }) => {
                     setValueForm((prev) => ({ ...prev, hex_code: e.target.value }))
                   }
                   placeholder="#ffffff"
-                  className="border px-2 py-2 text-sm rounded w-28"
+                  className="border rounded-lg px-2 py-2 text-sm w-28 focus:ring-2 focus:ring-[#7a1c3d] outline-none"
                 />
-
                 {/* preview */}
                 <div
                   className="w-6 h-6 rounded border"
@@ -394,7 +386,6 @@ const AttributeManager = ({ onClose, onSuccess }) => {
                 />
               </div>
             )}
-
             <div className="flex justify-end gap-3 mt-6">
               <button
                 onClick={() => {

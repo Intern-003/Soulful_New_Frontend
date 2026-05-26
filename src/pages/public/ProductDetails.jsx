@@ -128,12 +128,12 @@ const ProductDetails = () => {
   const images =
     selectedVariant?.images?.length > 0
       ? selectedVariant.images.map((img) =>
-          getImageUrl(img.image_url),
-        )
+        getImageUrl(img.image_url),
+      )
       : product?.images?.length > 0
         ? product.images.map((img) =>
-            getImageUrl(img.image_url),
-          )
+          getImageUrl(img.image_url),
+        )
         : ["/fallback.png"];
 
   const reviews = product?.reviews || [];
@@ -141,22 +141,22 @@ const ProductDetails = () => {
   const avgRating =
     reviews.length > 0
       ? (
-          reviews.reduce(
-            (acc, r) => acc + r.rating,
-            0,
-          ) / reviews.length
-        ).toFixed(1)
+        reviews.reduce(
+          (acc, r) => acc + r.rating,
+          0,
+        ) / reviews.length
+      ).toFixed(1)
       : 0;
 
   const discountPercent =
     product?.price &&
-    product?.discount_price
+      product?.discount_price
       ? Math.round(
-          ((product.price -
-            product.discount_price) /
-            product.price) *
-            100,
-        )
+        ((product.price -
+          product.discount_price) /
+          product.price) *
+        100,
+      )
       : 0;
 
   const isInCart = cartItems.some(
@@ -273,24 +273,37 @@ const ProductDetails = () => {
       <div className="bg-gradient-to-r from-[#fdf7f9] to-[#f6f1f3] border-b">
         <div className="max-w-7xl mx-auto px-4 md:px-8 py-6">
           {/* BREADCRUMB */}
-          <div className="flex flex-wrap items-center gap-2 text-sm text-gray-500">
-            <span className="cursor-pointer hover:text-[#7a1c3d]">
-              Home
-            </span>
+          <nav aria-label="breadcrumb">
+            <div className="flex flex-wrap items-center gap-2 text-sm text-gray-500">
 
-            <span>/</span>
+              {/* HOME */}
+              <span
+                onClick={() => navigate("/")}
+                className="cursor-pointer hover:text-[#7a1c3d]"
+              >
+                Home
+              </span>
 
-            <span className="cursor-pointer hover:text-[#7a1c3d]">
-              {product?.category?.name}
-            </span>
+              <span>/</span>
 
-            <span>/</span>
-
-            <span className="text-[#2d0f1f] font-medium">
-              {product?.name}
-            </span>
-          </div>
-
+              {/* CATEGORY */}
+              {product?.category?.slug && (
+  <span
+    onClick={() =>
+      navigate(`/category/${product.category.slug}`)
+    }
+    className="cursor-pointer hover:text-[#7a1c3d]"
+  >
+    {product.category.name}
+  </span>
+)}
+ <span>/</span>
+              {/* PRODUCT */}
+              <span className="text-[#2d0f1f] font-medium">
+                {product?.name}
+              </span>
+            </div>
+          </nav>
           <h1 className="text-2xl md:text-4xl font-bold text-[#2d0f1f] mt-3 leading-tight">
             {product?.name}
           </h1>
@@ -312,10 +325,9 @@ const ProductDetails = () => {
                     min-w-[70px] w-[70px] h-[70px]
                     rounded-2xl overflow-hidden border-2 bg-white
                     transition-all duration-300
-                    ${
-                      currentIndex === i
-                        ? "border-[#7a1c3d] shadow-lg scale-105"
-                        : "border-gray-200 hover:border-[#7a1c3d]"
+                    ${currentIndex === i
+                      ? "border-[#7a1c3d] shadow-lg scale-105"
+                      : "border-gray-200 hover:border-[#7a1c3d]"
                     }
                   `}
                 >
@@ -340,8 +352,8 @@ const ProductDetails = () => {
                     src={
                       selectedVariant?.primary_image
                         ? getImageUrl(
-                            selectedVariant.primary_image,
-                          )
+                          selectedVariant.primary_image,
+                        )
                         : images[currentIndex]
                     }
                     style={zoomStyle}
@@ -479,10 +491,9 @@ const ProductDetails = () => {
                         }}
                         className={`
                           relative w-12 h-12 rounded-full border-2 flex items-center justify-center transition-all duration-300
-                          ${
-                            isSelected
-                              ? "border-[#7a1c3d] scale-110 shadow-lg"
-                              : "border-gray-300 hover:scale-105"
+                          ${isSelected
+                            ? "border-[#7a1c3d] scale-110 shadow-lg"
+                            : "border-gray-300 hover:scale-105"
                           }
                         `}
                       >
@@ -550,12 +561,11 @@ const ProductDetails = () => {
                         className={`
                           relative min-w-[70px] h-12 px-5 rounded-2xl border text-sm font-semibold transition-all duration-300
                           
-                          ${
-                            disabled
-                              ? "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed"
-                              : isSelected
-                                ? "bg-[#7a1c3d] text-white border-[#7a1c3d] shadow-lg scale-105"
-                                : "bg-white border-gray-300 hover:border-[#7a1c3d] hover:text-[#7a1c3d] hover:shadow-md"
+                          ${disabled
+                            ? "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed"
+                            : isSelected
+                              ? "bg-[#7a1c3d] text-white border-[#7a1c3d] shadow-lg scale-105"
+                              : "bg-white border-gray-300 hover:border-[#7a1c3d] hover:text-[#7a1c3d] hover:shadow-md"
                           }
                         `}
                       >
@@ -609,12 +619,11 @@ const ProductDetails = () => {
                 className={`
                   flex-1 h-14 rounded-2xl font-semibold transition-all duration-300 flex items-center justify-center gap-2 shadow-md
                   
-                  ${
-                    isInCart
-                      ? "bg-gray-300 text-gray-600 cursor-not-allowed"
-                      : added
-                        ? "bg-green-500 text-white"
-                        : "bg-[#7a1c3d] text-white hover:shadow-xl hover:scale-[1.02]"
+                  ${isInCart
+                    ? "bg-gray-300 text-gray-600 cursor-not-allowed"
+                    : added
+                      ? "bg-green-500 text-white"
+                      : "bg-[#7a1c3d] text-white hover:shadow-xl hover:scale-[1.02]"
                   }
                 `}
               >
@@ -646,10 +655,9 @@ const ProductDetails = () => {
                 className={`
                   h-14 w-14 rounded-2xl border flex items-center justify-center transition-all duration-300
                   
-                  ${
-                    isInWishlist
-                      ? "bg-red-50 border-red-200"
-                      : "bg-white hover:bg-[#7a1c3d] hover:text-white"
+                  ${isInWishlist
+                    ? "bg-red-50 border-red-200"
+                    : "bg-white hover:bg-[#7a1c3d] hover:text-white"
                   }
                 `}
               >

@@ -277,25 +277,37 @@ ${
         {/* HEADER */}
         <div className="border-b p-5">
           <div className="flex items-center justify-between">
-            {!collapsed ? (
-              <div>
-                <h1 className="flex items-center gap-2 text-2xl font-bold text-[#7b183f]">
-                  <Sparkles
-                    size={18}
-                  />
-                  Admin Panel
-                </h1>
+           
+  
+  {/* BACK BUTTON (HOME) */}
+  {!collapsed && (
+    <button
+      onClick={() => navigate("/")}
+      className="flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-[#7b183f]"
+    >
+      <ChevronLeft size={20} />
+     
+    </button>
+  )}
 
-                <p className="text-xs text-gray-500 mt-1">
-                  Elite Management
-                  Suite
-                </p>
-              </div>
-            ) : (
-              <div className="mx-auto text-2xl font-bold text-[#7b183f]">
-                A
-              </div>
-            )}
+  {/* TITLE */}
+  {!collapsed ? (
+    <div className="ml-2">
+      <h1 className="flex items-center gap-2 text-2xl font-bold text-[#7b183f]">
+        <Sparkles size={18} />
+        Admin Panel
+      </h1>
+
+      <p className="text-xs text-gray-500 mt-1">
+        Elite Management Suite
+      </p>
+    </div>
+  ) : (
+    <div className="mx-auto text-2xl font-bold text-[#7b183f]">
+      A
+    </div>
+  )}
+             
 
             <div className="flex gap-1">
               {/* DESKTOP COLLAPSE */}

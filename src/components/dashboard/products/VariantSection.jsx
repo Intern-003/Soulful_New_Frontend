@@ -4,8 +4,7 @@ import useDelete from "../../../api/hooks/useDelete";
 import useGet from "../../../api/hooks/useGet";
 import toast from "react-hot-toast";
 import { Save, Trash2, Upload, CheckCircle, AlertCircle, Package, RefreshCw, X } from "lucide-react";
-
-const BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
+import { getImageUrl } from "../../../utils/getImageUrl";
 
 const VariantSection = forwardRef(({ productId, onVariantsLoaded }, ref) => {
   const { data, refetch } = useGet(`/vendor/products/${productId}`);
@@ -20,18 +19,26 @@ const VariantSection = forwardRef(({ productId, onVariantsLoaded }, ref) => {
   const hasInitialized = useRef(false);
   const fileInputRefs = useRef({});
   const blobUrlsRef = useRef({});
-  const processingRef = useRef({}); // Track processing state per variant
+  const processingRef = useRef({});
 
   // Load existing variants from backend
   useEffect(() => {
     if (data?.data?.variants && !hasInitialized.current) {
       hasInitialized.current = true;
       const mapped = data.data.variants.map((v) => {
-        const existingImages = v.images || [];
-        const previews = existingImages.map(img => {
-          const url = img.image_url || img.image;
-          return url ? (url.startsWith('http') ? url : `${BASE_URL}${url}`) : null;
-        }).filter(Boolean);
+        // Map existing images with proper URLs
+        const existingImages = (v.images || []).map(img => ({
+          id: img.id,
+          image_url: img.image_url,
+          is_primary: img.is_primary,
+          url: getImageUrl(img.image_url) // Use the utility function
+        }));
+        
+        // Create previews from existing images
+        const previews = existingImages.map(img => img.url);
+        
+        // Determine if variant has images
+        const hasImages = existingImages.length > 0;
 
         return {
           id: v.id,
@@ -45,8 +52,10 @@ const VariantSection = forwardRef(({ productId, onVariantsLoaded }, ref) => {
           newImages: [],
           existingImages: existingImages,
           previews: previews,
+          hasImages: hasImages,
           isSaved: true,
           isModified: false,
+          imagesToDelete: [],
         };
       });
       setVariants(mapped);
@@ -60,13 +69,11 @@ const VariantSection = forwardRef(({ productId, onVariantsLoaded }, ref) => {
   useImperativeHandle(ref, () => ({
     addVariants: (newVariants) => {
       setVariants((prev) => {
-        // Create a map of existing SKUs for quick lookup
         const existingSkuMap = new Map();
         prev.forEach(v => {
           existingSkuMap.set(v.sku?.toLowerCase(), v);
         });
 
-        // Separate existing and new variants
         const updatedVariants = [...prev];
         const variantsToAdd = [];
 
@@ -75,7 +82,6 @@ const VariantSection = forwardRef(({ productId, onVariantsLoaded }, ref) => {
           const existingVariant = existingSkuMap.get(skuKey);
 
           if (existingVariant) {
-            // Update existing variant with new values while preserving saved data
             const index = updatedVariants.findIndex(v => v.id === existingVariant.id);
             if (index !== -1) {
               updatedVariants[index] = {
@@ -83,8 +89,8 @@ const VariantSection = forwardRef(({ productId, onVariantsLoaded }, ref) => {
                 ...newVariant,
                 id: existingVariant.id,
                 isSaved: existingVariant.isSaved,
-                existingImages: existingVariant.existingImages,
-                previews: existingVariant.previews,
+                existingImages: existingVariant.existingImages || [],
+                previews: existingVariant.previews || [],
                 price: existingVariant.price || newVariant.price,
                 stock: existingVariant.stock || newVariant.stock,
                 weight: existingVariant.weight || newVariant.weight,
@@ -92,9 +98,16 @@ const VariantSection = forwardRef(({ productId, onVariantsLoaded }, ref) => {
               };
             }
           } else {
-            // Add new variant - ensure unique SKU
             if (!variantsToAdd.some(v => v.sku?.toLowerCase() === skuKey)) {
-              variantsToAdd.push(newVariant);
+              variantsToAdd.push({
+                ...newVariant,
+                existingImages: [],
+                previews: [],
+                newImages: [],
+                isSaved: false,
+                isModified: false,
+                imagesToDelete: [],
+              });
             }
           }
         });
@@ -105,6 +118,9 @@ const VariantSection = forwardRef(({ productId, onVariantsLoaded }, ref) => {
     hasVariants: () => variants.length > 0,
     getVariantsCount: () => variants.length,
     getUnsavedVariants: () => variants.filter(v => !v.isSaved && (v.price || v.stock)),
+    setVariants: (newVariants) => {
+      setVariants(newVariants);
+    }
   }));
 
   const handleChange = (i, field, value) => {
@@ -119,33 +135,27 @@ const VariantSection = forwardRef(({ productId, onVariantsLoaded }, ref) => {
   };
 
   const handleImageChange = useCallback((i, event) => {
-    // CRITICAL: Prevent multiple simultaneous uploads for the same variant
     if (processingRef.current[i]) {
-      event.target.value = ''; // Clear the input
+      event.target.value = '';
       return;
     }
 
     const files = event.target.files;
     if (!files || files.length === 0) return;
 
-    // Mark as processing immediately
     processingRef.current[i] = true;
 
-    // Store files in a variable before resetting input
     const fileArray = Array.from(files);
 
-    // CRITICAL: Clear the input IMMEDIATELY to prevent re-trigger
     if (fileInputRefs.current[`variant-${i}`]) {
       fileInputRefs.current[`variant-${i}`].value = '';
     }
 
-    // Use requestAnimationFrame to ensure this runs after the current event loop
     requestAnimationFrame(() => {
       setVariants(prev => {
         const updated = [...prev];
         if (!updated[i]) return updated;
 
-        // Store new images for upload (prevent duplicates within same batch)
         const existingNewImages = updated[i].newImages || [];
         const uniqueNewImages = fileArray.filter(
           file => !existingNewImages.some(existing => existing.name === file.name && existing.size === file.size)
@@ -153,7 +163,6 @@ const VariantSection = forwardRef(({ productId, onVariantsLoaded }, ref) => {
         
         updated[i].newImages = [...existingNewImages, ...uniqueNewImages];
 
-        // Create preview URLs for new images
         const newPreviews = uniqueNewImages.map(file => {
           const blobUrl = URL.createObjectURL(file);
           if (!blobUrlsRef.current[`variant-${i}`]) {
@@ -165,11 +174,11 @@ const VariantSection = forwardRef(({ productId, onVariantsLoaded }, ref) => {
 
         updated[i].previews = [...(updated[i].previews || []), ...newPreviews];
         updated[i].isModified = true;
+        updated[i].hasImages = true;
 
         return updated;
       });
 
-      // Release the lock after a delay
       setTimeout(() => {
         delete processingRef.current[i];
       }, 200);
@@ -202,14 +211,18 @@ const VariantSection = forwardRef(({ productId, onVariantsLoaded }, ref) => {
         if (!updated[i].imagesToDelete) {
           updated[i].imagesToDelete = [];
         }
-        const imageId = updated[i].existingImages?.[imageIndex]?.id;
-        if (imageId && !updated[i].imagesToDelete.includes(imageId)) {
-          updated[i].imagesToDelete.push(imageId);
+        const imageToDelete = updated[i].existingImages?.[imageIndex];
+        if (imageToDelete && imageToDelete.id && !updated[i].imagesToDelete.includes(imageToDelete.id)) {
+          updated[i].imagesToDelete.push(imageToDelete.id);
         }
+        
+        // Remove from existingImages array
+        updated[i].existingImages = updated[i].existingImages.filter((_, idx) => idx !== imageIndex);
       }
 
       updated[i].previews = updated[i].previews.filter((_, idx) => idx !== imageIndex);
       updated[i].isModified = true;
+      updated[i].hasImages = updated[i].previews.length > 0;
 
       return updated;
     });
@@ -242,7 +255,6 @@ const VariantSection = forwardRef(({ productId, onVariantsLoaded }, ref) => {
         setDeletingId(null);
       }
     } else {
-      // Clean up blob URLs
       if (blobUrlsRef.current[`variant-${i}`]) {
         blobUrlsRef.current[`variant-${i}`].forEach(url => URL.revokeObjectURL(url));
         delete blobUrlsRef.current[`variant-${i}`];
@@ -288,6 +300,13 @@ const VariantSection = forwardRef(({ productId, onVariantsLoaded }, ref) => {
         });
       }
 
+      // Handle deletion of existing images
+      if (variant.imagesToDelete && variant.imagesToDelete.length) {
+        variant.imagesToDelete.forEach(imageId => {
+          fd.append("deleted_image_ids[]", imageId);
+        });
+      }
+
       if (variant.id) {
         fd.append("_method", "PUT");
         await postData({
@@ -314,6 +333,9 @@ const VariantSection = forwardRef(({ productId, onVariantsLoaded }, ref) => {
 
       setSavedVariants(prev => new Set([...prev, variant.sku?.toLowerCase()]));
 
+      await refetch();
+      
+      // After refetch, the variants will be reloaded with updated images
       setVariants(prev => {
         const updated = [...prev];
         if (updated[index]) {
@@ -324,8 +346,6 @@ const VariantSection = forwardRef(({ productId, onVariantsLoaded }, ref) => {
         }
         return updated;
       });
-
-      await refetch();
     } catch (e) {
       console.error(e);
       toast.error(e?.response?.data?.message || "Save failed - duplicate SKU or invalid data");
@@ -351,7 +371,7 @@ const VariantSection = forwardRef(({ productId, onVariantsLoaded }, ref) => {
     setSaving(true);
 
     try {
-      const savePromises = unsavedVariants.map(async (v) => {
+      const savePromises = unsavedVariants.map(async (v, idx) => {
         const fd = new FormData();
         fd.append("sku", v.sku);
         fd.append("price", v.price || 0);
@@ -372,6 +392,12 @@ const VariantSection = forwardRef(({ productId, onVariantsLoaded }, ref) => {
         if (v.newImages && v.newImages.length) {
           v.newImages.forEach(img => {
             fd.append("images[]", img);
+          });
+        }
+
+        if (v.imagesToDelete && v.imagesToDelete.length) {
+          v.imagesToDelete.forEach(imageId => {
+            fd.append("deleted_image_ids[]", imageId);
           });
         }
 
@@ -402,21 +428,15 @@ const VariantSection = forwardRef(({ productId, onVariantsLoaded }, ref) => {
       });
       blobUrlsRef.current = {};
 
-      setSavedVariants(prev => {
-        const newSet = new Set(prev);
-        unsavedVariants.forEach(v => newSet.add(v.sku?.toLowerCase()));
-        return newSet;
-      });
-
+      await refetch();
+      
       setVariants(prev => prev.map(v => ({
         ...v,
-        isSaved: v.isSaved || unsavedVariants.includes(v),
+        isSaved: true,
         isModified: false,
         newImages: [],
         imagesToDelete: [],
       })));
-
-      await refetch();
     } catch (e) {
       console.error(e);
       toast.error("Failed to save some variants. Check for duplicates.");
@@ -478,7 +498,6 @@ const VariantSection = forwardRef(({ productId, onVariantsLoaded }, ref) => {
       ) : (
         <div className="space-y-4 max-h-[500px] overflow-y-auto">
           {variants.map((v, i) => {
-            // Generate a unique key that changes when images are added/removed
             const imageKey = `${v.id || i}-${v.previews?.length || 0}-${v.newImages?.length || 0}`;
             
             return (
@@ -497,6 +516,11 @@ const VariantSection = forwardRef(({ productId, onVariantsLoaded }, ref) => {
                       {v.isModified && (
                         <span className="text-xs text-blue-600">● Modified</span>
                       )}
+                      {v.hasImages && v.previews?.length > 0 && (
+                        <span className="text-xs text-purple-600 flex items-center gap-1">
+                          <Package size={10} /> {v.previews.length} image(s)
+                        </span>
+                      )}
                     </div>
                   </div>
                   <button
@@ -510,25 +534,25 @@ const VariantSection = forwardRef(({ productId, onVariantsLoaded }, ref) => {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                   <div>
-                    <label className="block text-xs text-gray-500 mb-1">Price</label>
+                    <label className="block text-xs text-gray-500 mb-1">Price *</label>
                     <input
                       type="number"
                       step="0.01"
-                      placeholder="Price *"
+                      placeholder="Price"
                       value={v.price || ''}
                       onChange={(e) => handleChange(i, "price", parseFloat(e.target.value) || 0)}
-                      className="border rounded-lg p-2 text-sm w-full"
+                      className="border rounded-lg p-2 text-sm w-full focus:ring-2 focus:ring-[#7a1c3d] focus:border-transparent"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-xs text-gray-500 mb-1">Stock</label>
+                    <label className="block text-xs text-gray-500 mb-1">Stock *</label>
                     <input
                       type="number"
-                      placeholder="Stock *"
+                      placeholder="Stock"
                       value={v.stock || ''}
                       onChange={(e) => handleChange(i, "stock", parseInt(e.target.value) || 0)}
-                      className="border rounded-lg p-2 text-sm w-full"
+                      className="border rounded-lg p-2 text-sm w-full focus:ring-2 focus:ring-[#7a1c3d] focus:border-transparent"
                     />
                   </div>
 
@@ -540,7 +564,7 @@ const VariantSection = forwardRef(({ productId, onVariantsLoaded }, ref) => {
                       placeholder="Weight (kg)"
                       value={v.weight || ''}
                       onChange={(e) => handleChange(i, "weight", parseFloat(e.target.value) || 0)}
-                      className="border rounded-lg p-2 text-sm w-full"
+                      className="border rounded-lg p-2 text-sm w-full focus:ring-2 focus:ring-[#7a1c3d] focus:border-transparent"
                     />
                   </div>
 
@@ -550,7 +574,7 @@ const VariantSection = forwardRef(({ productId, onVariantsLoaded }, ref) => {
                       placeholder="Barcode"
                       value={v.barcode || ''}
                       onChange={(e) => handleChange(i, "barcode", e.target.value)}
-                      className="border rounded-lg p-2 text-sm w-full"
+                      className="border rounded-lg p-2 text-sm w-full focus:ring-2 focus:ring-[#7a1c3d] focus:border-transparent"
                     />
                   </div>
 
@@ -581,7 +605,8 @@ const VariantSection = forwardRef(({ productId, onVariantsLoaded }, ref) => {
                                   className="h-16 w-16 object-cover rounded border"
                                   alt={`Variant ${imgIdx}`}
                                   onError={(e) => {
-                                    e.target.style.display = 'none';
+                                    e.target.onerror = null;
+                                    e.target.src = '/placeholder.jpg';
                                   }}
                                 />
                                 <button
@@ -600,6 +625,11 @@ const VariantSection = forwardRef(({ productId, onVariantsLoaded }, ref) => {
                             {v.newImages.length} new image(s) pending upload
                           </p>
                         )}
+                        {v.imagesToDelete && v.imagesToDelete.length > 0 && (
+                          <p className="text-xs text-red-600 mt-1">
+                            {v.imagesToDelete.length} image(s) will be deleted
+                          </p>
+                        )}
                       </div>
                     )}
                   </div>
@@ -611,7 +641,7 @@ const VariantSection = forwardRef(({ productId, onVariantsLoaded }, ref) => {
                       className={`px-3 sm:px-4 py-2 rounded-lg transition flex items-center justify-center gap-2 text-sm w-full
                         ${(v.isSaved && !v.isModified)
                           ? 'bg-gray-300 cursor-not-allowed'
-                          : 'bg-blue-600 hover:bg-blue-700 text-white'
+                          : 'bg-[#7a1c3d] hover:bg-[#5e132f] text-white'
                         }`}
                     >
                       {savingId === (v.id || i) ? (

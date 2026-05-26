@@ -1,0 +1,96 @@
+/* ==========================================
+   HEADER STYLES
+   ========================================== */
+
+/* Admin button shine animation */
+@keyframes shineMove {
+  0% {
+    transform: translateX(-100%);
+  }
+
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.header-admin-shine {
+  animation: shineMove 2.2s linear infinite;
+}
+
+/* Mobile drawer animation */
+@keyframes slideIn {
+  from {
+    transform: translateX(-100%);
+  }
+
+  to {
+    transform: translateX(0);
+  }
+}
+
+.mobile-menu-drawer {
+  animation: slideIn 0.3s ease-out;
+}
+
+/* Search suggestions */
+.search-suggestions {
+  max-height: 24rem;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+/* Profile dropdown */
+.profile-dropdown-menu {
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease;
+}
+
+/* Desktop navigation hover underline */
+.nav-link {
+  position: relative;
+}
+
+.nav-link::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: -4px;
+  width: 0;
+  height: 2px;
+  background: #7a1c3d;
+  transition: width 0.3s ease;
+}
+
+.nav-link:hover::after {
+  width: 100%;
+}
+
+.nav-link.active::after {
+  width: 100%;
+}
+
+/* Hide horizontal scrollbar on nav */
+.header-nav-scroll {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.header-nav-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+/* Mobile specific */
+@media (max-width: 768px) {
+  .header-touch-target {
+    min-width: 44px;
+    min-height: 44px;
+  }
+}
+
+@media (max-width: 480px) {
+  .header-touch-target {
+    min-width: 40px;
+    min-height: 40px;
+  }
+}

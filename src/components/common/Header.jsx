@@ -15,6 +15,7 @@ import { logout as logoutAction } from "../../app/slices/authSlice";
 import { getImageUrl } from "../../utils/getImageUrl";
 import axiosInstance from "../../api/axiosInstance";
 import TopBar from "./TopBar";
+import "../../styles/header.css";
 
 const Header = () => {
   const navigate = useNavigate();
@@ -56,7 +57,7 @@ const Header = () => {
   const handleLogout = async () => {
     try {
       await axiosInstance.post("/auth/logout");
-    } catch (e) {}
+    } catch (e) { }
     dispatch(logoutAction());
     setProfileOpen(false);
     navigate("/login");
@@ -91,6 +92,17 @@ const Header = () => {
   const handleNavigation = (path) => {
     navigate(path);
     setMobileMenu(false);
+  };
+  const routes = {
+    Electronics: "/category/electronics",
+    Fashion: "/category/fashion",
+    Beauty: "/category/beauty",
+    Footwear: "/category/footwear",
+
+    Bestsellers: "/bestsellers",
+    "Fresh Arrivals": "/fresh-arrivals",
+    Essentials: "/essentials",
+    Exclusive: "/exclusive",
   };
 
   return (
@@ -162,7 +174,7 @@ const Header = () => {
 
         {/* RIGHT - Icons with tighter spacing */}
         <div className="flex items-center gap-3 md:gap-4">
-          <button 
+          <button
             className="md:hidden"
             onClick={() => {
               const searchTerm = prompt("Search products:");
@@ -257,26 +269,22 @@ const Header = () => {
             {/* Main Navigation */}
             <button
               onClick={() => handleNavigation("/")}
-              className={`relative whitespace-nowrap text-sm font-medium transition-colors ${
-                location.pathname === "/" ? "text-[#7A1C3D]" : "text-gray-700 hover:text-[#7A1C3D]"
-              }`}
+              className={`relative whitespace-nowrap text-sm font-medium transition-colors ${location.pathname === "/" ? "text-[#7A1C3D]" : "text-gray-700 hover:text-[#7A1C3D]"
+                }`}
             >
               Home
-              <span className={`absolute left-0 -bottom-1 h-0.5 bg-[#7A1C3D] transition-all duration-300 ${
-                location.pathname === "/" ? "w-full" : "w-0 group-hover:w-full"
-              }`} />
+              <span className={`absolute left-0 -bottom-1 h-0.5 bg-[#7A1C3D] transition-all duration-300 ${location.pathname === "/" ? "w-full" : "w-0 group-hover:w-full"
+                }`} />
             </button>
 
             <button
               onClick={() => handleNavigation("/shop")}
-              className={`relative whitespace-nowrap text-sm font-medium transition-colors ${
-                location.pathname === "/shop" ? "text-[#7A1C3D]" : "text-gray-700 hover:text-[#7A1C3D]"
-              }`}
+              className={`relative whitespace-nowrap text-sm font-medium transition-colors ${location.pathname === "/shop" ? "text-[#7A1C3D]" : "text-gray-700 hover:text-[#7A1C3D]"
+                }`}
             >
               Shop All
-              <span className={`absolute left-0 -bottom-1 h-0.5 bg-[#7A1C3D] transition-all duration-300 ${
-                location.pathname === "/shop" ? "w-full" : "w-0 group-hover:w-full"
-              }`} />
+              <span className={`absolute left-0 -bottom-1 h-0.5 bg-[#7A1C3D] transition-all duration-300 ${location.pathname === "/shop" ? "w-full" : "w-0 group-hover:w-full"
+                }`} />
             </button>
 
             {/* About Dropdown */}
@@ -302,14 +310,12 @@ const Header = () => {
 
             <button
               onClick={() => handleNavigation("/soulful-special")}
-              className={`relative whitespace-nowrap text-sm font-medium transition-colors ${
-                location.pathname === "/soulful-special" ? "text-[#7A1C3D]" : "text-gray-700 hover:text-[#7A1C3D]"
-              }`}
+              className={`relative whitespace-nowrap text-sm font-medium transition-colors ${location.pathname === "/soulful-special" ? "text-[#7A1C3D]" : "text-gray-700 hover:text-[#7A1C3D]"
+                }`}
             >
               Soulful Special
-              <span className={`absolute left-0 -bottom-1 h-0.5 bg-[#7A1C3D] transition-all duration-300 ${
-                location.pathname === "/soulful-special" ? "w-full" : "w-0 group-hover:w-full"
-              }`} />
+              <span className={`absolute left-0 -bottom-1 h-0.5 bg-[#7A1C3D] transition-all duration-300 ${location.pathname === "/soulful-special" ? "w-full" : "w-0 group-hover:w-full"
+                }`} />
             </button>
 
             <span className="text-gray-300 text-sm">|</span>
@@ -321,17 +327,20 @@ const Header = () => {
             ].map((category) => (
               <button
                 key={category}
-                onClick={() => handleNavigation(`/category/${category.toLowerCase()}`)}
-                className={`relative whitespace-nowrap text-sm transition-colors ${
-                  location.pathname === `/category/${category.toLowerCase()}`
+                onClick={() => handleNavigation(routes[category])}
+                className={`group relative whitespace-nowrap text-sm transition-colors ${location.pathname === routes[category]
                     ? "text-[#7A1C3D] font-semibold"
                     : "text-gray-600 hover:text-[#7A1C3D]"
-                }`}
+                  }`}
               >
                 {category}
-                <span className={`absolute left-0 -bottom-1 h-0.5 bg-[#7A1C3D] transition-all duration-300 ${
-                  location.pathname === `/category/${category.toLowerCase()}` ? "w-full" : "w-0 hover:w-full"
-                }`} />
+
+                <span
+                  className={`absolute left-0 -bottom-1 h-0.5 bg-[#7A1C3D] transition-all duration-300 ${location.pathname === routes[category]
+                      ? "w-full"
+                      : "w-0 group-hover:w-full"
+                    }`}
+                />
               </button>
             ))}
 
@@ -343,7 +352,7 @@ const Header = () => {
             >
               <span
                 className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent"
-                style={{ animation: "shineMove 2.2s linear infinite" }}
+                className="header-admin-shine"
               />
               <Shield className="w-3.5 h-3.5 text-[#7A1C3D] group-hover:text-white transition duration-300" />
             </button>
@@ -355,7 +364,7 @@ const Header = () => {
       {mobileMenu && (
         <>
           <div className="fixed inset-0 bg-black/50 z-40 md:hidden" onClick={() => setMobileMenu(false)} />
-          <div className="fixed left-0 top-0 bottom-0 w-80 max-w-[85vw] bg-white shadow-xl z-50 md:hidden flex flex-col">
+          <div className="fixed left-0 top-0 bottom-0 w-80 max-w-[85vw] bg-white shadow-xl z-50 md:hidden flex flex-col mobile-menu-drawer">
             <div className="p-4 border-b flex justify-between items-center sticky top-0 bg-white">
               <span className="font-bold text-[#7a1c3d] text-lg">Menu</span>
               <button onClick={() => setMobileMenu(false)} className="p-1">
@@ -369,22 +378,21 @@ const Header = () => {
                 <button onClick={() => handleNavigation("/about")} className="block w-full text-left py-2 text-gray-700 hover:text-[#7a1c3d] cursor-pointer font-medium">About Us</button>
                 <button onClick={() => handleNavigation("/contact")} className="block w-full text-left py-2 text-gray-700 hover:text-[#7a1c3d] cursor-pointer font-medium">Contact Us</button>
                 <button onClick={() => handleNavigation("/soulful-special")} className="block w-full text-left py-2 text-gray-700 hover:text-[#7a1c3d] cursor-pointer font-medium">Soulful Special</button>
-                
+
                 <div className="pt-2 border-t">
                   <p className="text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wide">Shop by Category</p>
                   <div className="grid grid-cols-2 gap-2">
                     {["Electronics", "Fashion", "Beauty", "Footwear", "Bestsellers", "Fresh Arrivals", "Essentials", "Exclusive"].map((cat) => (
                       <button
                         key={cat}
-                        onClick={() => handleNavigation(`/category/${cat.toLowerCase()}`)}
-                        className="py-2 px-2 text-sm text-left cursor-pointer hover:text-[#7a1c3d] hover:bg-gray-50 rounded-md transition"
+                        onClick={() => handleNavigation(routes[cat])} className="py-2 px-2 text-sm text-left cursor-pointer hover:text-[#7a1c3d] hover:bg-gray-50 rounded-md transition"
                       >
                         {cat}
                       </button>
                     ))}
                   </div>
                 </div>
-                
+
                 <div className="border-t pt-3">
                   <div className="flex border rounded-lg overflow-hidden">
                     <input

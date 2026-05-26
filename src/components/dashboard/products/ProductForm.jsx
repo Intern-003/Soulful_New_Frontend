@@ -41,7 +41,8 @@ const ProductForm = ({ data, onClose, onSuccess }) => {
   const [images, setImages] = useState([]);
   const [preview, setPreview] = useState([]);
 
-  // Get active brands from API
+  const [brands, setBrands] = useState([]);
+  const [loadingBrands, setLoadingBrands] = useState(false);
   const activeBrands = activeBrandsData?.data || activeBrandsData || [];
 
   // Cleanup preview URLs on unmount
@@ -79,6 +80,30 @@ const ProductForm = ({ data, onClose, onSuccess }) => {
     }
   }, [generatedVariants]);
 
+  const fetchBrandsByCategory = async (categoryId) => {
+    if (!categoryId) {
+      setBrands([]);
+      return;
+    }
+
+    setLoadingBrands(true);
+
+    try {
+      const res = await fetch(
+        `${import.meta.env.VITE_API_URL}/brands/category/${categoryId}`
+      );
+
+      const data = await res.json();
+
+      setBrands(data?.data || []);
+    } catch (err) {
+      console.error("Brand fetch error:", err);
+      setBrands([]);
+    } finally {
+      setLoadingBrands(false);
+    }
+  };
+
   const handleCategoryChange = async (e) => {
     const id = e.target.value;
 
@@ -89,6 +114,8 @@ const ProductForm = ({ data, onClose, onSuccess }) => {
       category_id: "",
       brand_id: "",
     }));
+
+    setBrands([]);
 
     if (!id) {
       setSubcategories([]);
@@ -102,15 +129,19 @@ const ProductForm = ({ data, onClose, onSuccess }) => {
       });
 
       const children = res?.data || [];
-
       setSubcategories(children);
 
-      if (children.length === 0) {
-        setForm(prev => ({
-          ...prev,
-          category_id: id
-        }));
+      if (children.length > 0) {
+        return;
       }
+
+      setForm(prev => ({
+        ...prev,
+        category_id: id
+      }));
+
+      await fetchBrandsByCategory(id);
+
     } catch (err) {
       console.error(err);
       setSubcategories([]);
@@ -119,9 +150,23 @@ const ProductForm = ({ data, onClose, onSuccess }) => {
         ...prev,
         category_id: id
       }));
+
+      await fetchBrandsByCategory(id);
     }
   };
-  
+
+  const handleSubcategoryChange = async (e) => {
+    const subId = e.target.value;
+
+    setForm(prev => ({
+      ...prev,
+      category_id: subId,
+      brand_id: "",
+    }));
+
+    await fetchBrandsByCategory(subId);
+  };
+
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     const numberFields = ["price", "discount_price", "cost_price", "stock", "length", "width", "height", "weight"];
@@ -297,7 +342,6 @@ const ProductForm = ({ data, onClose, onSuccess }) => {
       return;
     }
 
-    // Merge with existing variants - preserve existing data
     const mergedVariants = generated.map(newVariant => {
       const existingVariant = existingVariants.find(ev => ev.sku === newVariant.sku);
       if (existingVariant) {
@@ -389,210 +433,277 @@ const ProductForm = ({ data, onClose, onSuccess }) => {
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-4 sm:p-6">
           {currentStep === 1 && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
-              <div className="sm:col-span-2">
-                <label className="block text-sm font-medium mb-1">Product Name *</label>
+            <div className="space-y-4">
+              {/* Product Name */}
+              <div>
+                <label className="block text-sm font-medium mb-1 text-gray-700">
+                  Product Name <span className="text-red-500">*</span>
+                </label>
                 <input
                   name="name"
                   value={form.name}
                   onChange={handleChange}
                   placeholder="Enter product name"
-                  className="w-full border rounded-lg p-2 sm:p-3 focus:ring-2 focus:ring-[#7a1c3d] text-sm sm:text-base"
+                  className="w-full border border-gray-300 rounded-lg p-2.5 sm:p-3 focus:ring-2 focus:ring-[#7a1c3d] focus:border-transparent transition text-sm sm:text-base"
                 />
               </div>
 
-              <div className="sm:col-span-2">
-                <label className="block text-sm font-medium mb-1">Short Description</label>
+              {/* Short Description */}
+              <div>
+                <label className="block text-sm font-medium mb-1 text-gray-700">Short Description</label>
                 <input
                   name="short_description"
                   value={form.short_description}
                   onChange={handleChange}
-                  placeholder="Brief description"
-                  className="w-full border rounded-lg p-2 sm:p-3 text-sm sm:text-base"
+                  placeholder="Brief description (max 150 characters)"
+                  maxLength={150}
+                  className="w-full border border-gray-300 rounded-lg p-2.5 sm:p-3 focus:ring-2 focus:ring-[#7a1c3d] focus:border-transparent transition text-sm sm:text-base"
                 />
               </div>
 
-              <div className="sm:col-span-2">
-                <label className="block text-sm font-medium mb-1">Full Description</label>
+              {/* Full Description */}
+              <div>
+                <label className="block text-sm font-medium mb-1 text-gray-700">Full Description</label>
                 <textarea
                   name="description"
                   value={form.description}
                   onChange={handleChange}
                   rows="4"
                   placeholder="Detailed product description"
-                  className="w-full border rounded-lg p-2 sm:p-3 text-sm sm:text-base"
+                  className="w-full border border-gray-300 rounded-lg p-2.5 sm:p-3 focus:ring-2 focus:ring-[#7a1c3d] focus:border-transparent transition text-sm sm:text-base"
                 />
               </div>
 
-              <div>
-                <label className="block text-sm font-medium mb-1">Category *</label>
-                <select
-                  value={parentCategory}
-                  onChange={handleCategoryChange}
-                  className="w-full border rounded-lg p-2 sm:p-3 text-sm sm:text-base"
-                >
-                  <option value="">Select Category</option>
-                  {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-1">Subcategory</label>
-                <select
-                  name="category_id"
-                  value={form.category_id}
-                  onChange={handleChange}
-                  disabled={!parentCategory || subcategories.length === 0}
-                  className="w-full border rounded-lg p-2 sm:p-3 text-sm sm:text-base"
-                >
-                  <option value="">
-                    {subcategories.length
-                      ? "Select Subcategory"
-                      : "No subcategories available"}
-                  </option>
-
-                  {subcategories.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {s.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-1">
-                  Brand {loadingActiveBrands && <span className="text-xs text-gray-500 ml-1">(Loading...)</span>}
-                </label>
-                <select
-                  name="brand_id"
-                  value={form.brand_id}
-                  onChange={handleChange}
-                  className="w-full border rounded-lg p-2 sm:p-3 text-sm sm:text-base"
-                  disabled={loadingActiveBrands}
-                >
-                  <option value="">Select Brand</option>
-                  {activeBrands.length === 0 && !loadingActiveBrands && (
-                    <option value="" disabled>No active brands available</option>
-                  )}
-                  {activeBrands.map(b => (
-                    <option key={b.id} value={b.id}>{b.name}</option>
-                  ))}
-                </select>
-                {!loadingActiveBrands && activeBrands.length === 0 && (
-                  <p className="text-xs text-amber-600 mt-1">
-                    ⚠️ No active brands found
-                  </p>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-1">Price *</label>
-                <input
-                  name="price"
-                  type="number"
-                  step="0.01"
-                  value={form.price}
-                  onChange={handleChange}
-                  placeholder="0.00"
-                  className="w-full border rounded-lg p-2 sm:p-3"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-1">Discount Price</label>
-                <input
-                  name="discount_price"
-                  type="number"
-                  step="0.01"
-                  value={form.discount_price}
-                  onChange={handleChange}
-                  placeholder="0.00"
-                  className="w-full border rounded-lg p-2 sm:p-3"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-1">Cost Price</label>
-                <input
-                  name="cost_price"
-                  type="number"
-                  step="0.01"
-                  value={form.cost_price}
-                  onChange={handleChange}
-                  placeholder="0.00"
-                  className="w-full border rounded-lg p-2 sm:p-3"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-1">Stock Quantity</label>
-                <input
-                  name="stock"
-                  type="number"
-                  value={form.stock}
-                  onChange={handleChange}
-                  placeholder="0"
-                  className="w-full border rounded-lg p-2 sm:p-3"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3 sm:col-span-2">
+              {/* Category & Subcategory Row */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Category */}
                 <div>
-                  <label className="block text-sm font-medium mb-1">Length (cm)</label>
+                  <label className="block text-sm font-medium mb-1 text-gray-700">
+                    Category <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    value={parentCategory}
+                    onChange={handleCategoryChange}
+                    className="w-full border border-gray-300 rounded-lg p-2.5 sm:p-3 focus:ring-2 focus:ring-[#7a1c3d] focus:border-transparent bg-white text-sm sm:text-base"
+                  >
+                    <option value="">Select Category</option>
+                    {categories.map(c => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Subcategory */}
+                <div>
+                  <label className="block text-sm font-medium mb-1 text-gray-700">
+                    Subcategory
+                    {subcategories.length > 0 && (
+                      <span className="text-xs text-gray-500 ml-1">(Optional)</span>
+                    )}
+                  </label>
+                  <select
+                    value={form.category_id}
+                    onChange={handleSubcategoryChange}
+                    disabled={!parentCategory || subcategories.length === 0}
+                    className="w-full border border-gray-300 rounded-lg p-2.5 sm:p-3 focus:ring-2 focus:ring-[#7a1c3d] focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed bg-white text-sm sm:text-base"
+                  >
+                    <option value="">
+                      {!parentCategory 
+                        ? "Select category first" 
+                        : subcategories.length 
+                          ? "Select Subcategory (Optional)" 
+                          : "No subcategories available"
+                      }
+                    </option>
+                    {subcategories.map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.name}
+                      </option>
+                    ))}
+                  </select>
+                  {parentCategory && subcategories.length === 0 && (
+                    <p className="text-xs text-blue-600 mt-1">
+                      ℹ️ This category has no subcategories
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* Brand Row */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Brand */}
+                <div>
+                  <label className="block text-sm font-medium mb-1 text-gray-700">
+                    Brand <span className="text-xs text-gray-500">(Optional)</span>
+                  </label>
+                  <select
+                    name="brand_id"
+                    value={form.brand_id}
+                    onChange={handleChange}
+                    className="w-full border border-gray-300 rounded-lg p-2.5 sm:p-3 focus:ring-2 focus:ring-[#7a1c3d] focus:border-transparent disabled:bg-gray-100 bg-white text-sm sm:text-base"
+                    disabled={loadingBrands || !form.category_id}
+                  >
+                    <option value="">
+                      {!form.category_id 
+                        ? "Select category first" 
+                        : loadingBrands 
+                          ? "Loading brands..." 
+                          : "Select Brand (Optional)"
+                      }
+                    </option>
+                    {brands.map(b => (
+                      <option key={b.id} value={b.id}>
+                        {b.name}
+                      </option>
+                    ))}
+                  </select>
+                  {form.category_id && brands.length === 0 && !loadingBrands && (
+                    <p className="text-xs text-amber-600 mt-1">
+                      ⚠️ No brands available for this category
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* Pricing Row */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1 text-gray-700">
+                    Price <span className="text-red-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">$</span>
+                    <input
+                      name="price"
+                      type="number"
+                      step="0.01"
+                      value={form.price}
+                      onChange={handleChange}
+                      placeholder="0.00"
+                      className="w-full border border-gray-300 rounded-lg p-2.5 pl-7 sm:p-3 focus:ring-2 focus:ring-[#7a1c3d] focus:border-transparent text-sm sm:text-base"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1 text-gray-700">
+                    Discounted Price
+                    <span className="text-xs text-gray-500 ml-1">(Optional)</span>
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">$</span>
+                    <input
+                      name="discount_price"
+                      type="number"
+                      step="0.01"
+                      value={form.discount_price}
+                      onChange={handleChange}
+                      placeholder="0.00"
+                      className="w-full border border-gray-300 rounded-lg p-2.5 pl-7 sm:p-3 focus:ring-2 focus:ring-[#7a1c3d] focus:border-transparent text-sm sm:text-base"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1 text-gray-700">
+                    Cost Price
+                    <span className="text-xs text-gray-500 ml-1">(Optional)</span>
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">$</span>
+                    <input
+                      name="cost_price"
+                      type="number"
+                      step="0.01"
+                      value={form.cost_price}
+                      onChange={handleChange}
+                      placeholder="0.00"
+                      className="w-full border border-gray-300 rounded-lg p-2.5 pl-7 sm:p-3 focus:ring-2 focus:ring-[#7a1c3d] focus:border-transparent text-sm sm:text-base"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Stock & Dimensions */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1 text-gray-700">Stock Quantity</label>
+                  <input
+                    name="stock"
+                    type="number"
+                    value={form.stock}
+                    onChange={handleChange}
+                    placeholder="0"
+                    className="w-full border border-gray-300 rounded-lg p-2.5 sm:p-3 focus:ring-2 focus:ring-[#7a1c3d] focus:border-transparent text-sm sm:text-base"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1 text-gray-700">Length (cm)</label>
                   <input
                     name="length"
                     type="number"
                     step="0.01"
                     value={form.length}
                     onChange={handleChange}
-                    className="w-full border rounded-lg p-2 sm:p-3"
+                    placeholder="0.00"
+                    className="w-full border border-gray-300 rounded-lg p-2.5 sm:p-3 focus:ring-2 focus:ring-[#7a1c3d] focus:border-transparent text-sm sm:text-base"
                   />
                 </div>
+
                 <div>
-                  <label className="block text-sm font-medium mb-1">Width (cm)</label>
+                  <label className="block text-sm font-medium mb-1 text-gray-700">Width (cm)</label>
                   <input
                     name="width"
                     type="number"
                     step="0.01"
                     value={form.width}
                     onChange={handleChange}
-                    className="w-full border rounded-lg p-2 sm:p-3"
+                    placeholder="0.00"
+                    className="w-full border border-gray-300 rounded-lg p-2.5 sm:p-3 focus:ring-2 focus:ring-[#7a1c3d] focus:border-transparent text-sm sm:text-base"
                   />
                 </div>
+
                 <div>
-                  <label className="block text-sm font-medium mb-1">Height (cm)</label>
+                  <label className="block text-sm font-medium mb-1 text-gray-700">Height (cm)</label>
                   <input
                     name="height"
                     type="number"
                     step="0.01"
                     value={form.height}
                     onChange={handleChange}
-                    className="w-full border rounded-lg p-2 sm:p-3"
+                    placeholder="0.00"
+                    className="w-full border border-gray-300 rounded-lg p-2.5 sm:p-3 focus:ring-2 focus:ring-[#7a1c3d] focus:border-transparent text-sm sm:text-base"
                   />
                 </div>
+
                 <div>
-                  <label className="block text-sm font-medium mb-1">Weight (kg)</label>
+                  <label className="block text-sm font-medium mb-1 text-gray-700">Weight (kg)</label>
                   <input
                     name="weight"
                     type="number"
                     step="0.01"
                     value={form.weight}
                     onChange={handleChange}
-                    className="w-full border rounded-lg p-2 sm:p-3"
+                    placeholder="0.00"
+                    className="w-full border border-gray-300 rounded-lg p-2.5 sm:p-3 focus:ring-2 focus:ring-[#7a1c3d] focus:border-transparent text-sm sm:text-base"
                   />
                 </div>
               </div>
 
-              <div className="sm:col-span-2">
+              {/* Featured Product */}
+              <div className="border-t pt-4">
                 <label className="flex items-center gap-3 cursor-pointer">
                   <input
                     type="checkbox"
                     name="is_featured"
                     checked={form.is_featured}
                     onChange={handleChange}
-                    className="w-4 h-4 sm:w-5 sm:h-5"
+                    className="w-4 h-4 sm:w-5 sm:h-5 text-[#7a1c3d] focus:ring-[#7a1c3d]"
                   />
-                  <span className="font-medium text-sm sm:text-base">⭐ Feature this product</span>
+                  <span className="font-medium text-sm sm:text-base text-gray-700">
+                    ⭐ Feature this product
+                  </span>
                 </label>
               </div>
             </div>
@@ -601,7 +712,7 @@ const ProductForm = ({ data, onClose, onSuccess }) => {
           {currentStep === 2 && (
             <div>
               <div
-                className="border-2 border-dashed rounded-xl p-6 sm:p-8 text-center hover:border-[#7a1c3d] transition cursor-pointer"
+                className="border-2 border-dashed border-gray-300 rounded-xl p-6 sm:p-8 text-center hover:border-[#7a1c3d] transition cursor-pointer bg-gray-50 hover:bg-gray-100"
                 onClick={() => document.getElementById('imageUpload')?.click()}
               >
                 <input
@@ -614,25 +725,27 @@ const ProductForm = ({ data, onClose, onSuccess }) => {
                 />
                 <div className="flex flex-col items-center">
                   <Upload size={32} className="sm:w-12 sm:h-12 text-gray-400 mb-3" />
-                  <p className="text-sm sm:text-base text-gray-600">Click to upload product images</p>
+                  <p className="text-sm sm:text-base text-gray-600 font-medium">Click to upload product images</p>
                   <p className="text-xs text-gray-400 mt-1">PNG, JPG, GIF up to 10MB</p>
                 </div>
               </div>
 
               {preview.length > 0 && (
-                <div className="mt-4">
-                  <h3 className="font-semibold mb-3 text-sm sm:text-base">Images to Upload ({preview.length})</h3>
+                <div className="mt-6">
+                  <h3 className="font-semibold mb-3 text-sm sm:text-base text-gray-700">
+                    Images to Upload ({preview.length})
+                  </h3>
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4">
                     {preview.map((img, i) => (
                       <div key={i} className="relative group">
                         <img
                           src={img}
-                          className="h-24 sm:h-32 w-full object-cover rounded-lg"
+                          className="h-24 sm:h-32 w-full object-cover rounded-lg shadow-md"
                           alt={`Preview ${i}`}
                         />
                         <button
                           onClick={() => removeImage(i)}
-                          className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition"
+                          className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition shadow-lg"
                         >
                           <X size={12} className="sm:w-4 sm:h-4" />
                         </button>
@@ -674,7 +787,7 @@ const ProductForm = ({ data, onClose, onSuccess }) => {
         <div className="border-t px-4 sm:px-6 py-4 bg-gray-50 flex flex-col sm:flex-row justify-between gap-3 flex-shrink-0">
           <button
             onClick={() => currentStep > 1 && setCurrentStep(currentStep - 1)}
-            className={`px-4 sm:px-6 py-2 border rounded-lg transition flex items-center justify-center gap-2 text-sm sm:text-base
+            className={`px-4 sm:px-6 py-2 border border-gray-300 rounded-lg transition flex items-center justify-center gap-2 text-sm sm:text-base font-medium
               ${currentStep === 1 ? 'invisible' : 'hover:bg-gray-100'}`}
           >
             <ChevronLeft size={16} /> Previous
@@ -683,7 +796,7 @@ const ProductForm = ({ data, onClose, onSuccess }) => {
           <div className="flex flex-col sm:flex-row gap-3">
             <button
               onClick={onClose}
-              className="px-4 sm:px-6 py-2 border rounded-lg hover:bg-gray-100 transition text-sm sm:text-base"
+              className="px-4 sm:px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 transition text-sm sm:text-base font-medium"
             >
               Cancel
             </button>
@@ -698,7 +811,7 @@ const ProductForm = ({ data, onClose, onSuccess }) => {
                   (currentStep === 4 &&
                     !(form.category_id || parentCategory))
                 }
-                className="bg-[#7a1c3d] text-white px-6 sm:px-8 py-2 rounded-lg hover:bg-[#5e132f] disabled:opacity-50 transition flex items-center justify-center gap-2 text-sm sm:text-base"
+                className="bg-[#7a1c3d] text-white px-6 sm:px-8 py-2 rounded-lg hover:bg-[#5e132f] disabled:opacity-50 disabled:cursor-not-allowed transition flex items-center justify-center gap-2 text-sm sm:text-base font-medium"
               >
                 {currentStep === 1 && !isProductSaved && !isEdit ? (submitting ? "Creating..." : "Create Product")
                   : currentStep === 2 ? (uploadingImages ? "Uploading..." : "Upload Images")
@@ -708,7 +821,7 @@ const ProductForm = ({ data, onClose, onSuccess }) => {
             ) : (
               <button
                 onClick={handleFinalSubmit}
-                className="bg-green-600 text-white px-6 sm:px-8 py-2 rounded-lg hover:bg-green-700 transition flex items-center justify-center gap-2 text-sm sm:text-base"
+                className="bg-green-600 text-white px-6 sm:px-8 py-2 rounded-lg hover:bg-green-700 transition flex items-center justify-center gap-2 text-sm sm:text-base font-medium"
               >
                 <CheckCircle size={16} /> Complete Setup
               </button>

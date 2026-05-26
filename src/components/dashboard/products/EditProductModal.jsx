@@ -13,7 +13,6 @@ const EditProductModal = ({ productId, onClose, onSuccess }) => {
   const { putData, loading: updating } = usePut();
   const { data: categoryData } = useGet("/categories");
   const { data: attributeData } = useGet("/admin/attributes-with-values");
-  const { data: activeBrandsData, loading: loadingActiveBrands } = useGet("/brands/active");
   const { refetch: fetchSubcategories } = useGet("/categories/placeholder", { autoFetch: false });
 
   const product = data?.data;
@@ -31,13 +30,37 @@ const EditProductModal = ({ productId, onClose, onSuccess }) => {
   const [existingVariants, setExistingVariants] = useState([]);
   const [pendingVariants, setPendingVariants] = useState([]);
   const [productImages, setProductImages] = useState([]);
+  const [brands, setBrands] = useState([]);
+  const [loadingBrands, setLoadingBrands] = useState(false);
 
-  // Get active brands from API
-  const activeBrands = activeBrandsData?.data || activeBrandsData || [];
+  const fetchBrandsByCategory = async (categoryId) => {
+    if (!categoryId) {
+      setBrands([]);
+      return;
+    }
+
+    setLoadingBrands(true);
+
+    try {
+      const res = await fetch(
+        `${import.meta.env.VITE_API_URL}/brands/category/${categoryId}`
+      );
+
+      const data = await res.json();
+      setBrands(data?.data || []);
+    } catch (err) {
+      console.error("Brand fetch error:", err);
+      setBrands([]);
+    } finally {
+      setLoadingBrands(false);
+    }
+  };
 
   // Load product data and populate form
   useEffect(() => {
     if (!product) return;
+
+    console.log("Loading product data:", product);
 
     setForm({
       name: product.name || "",
@@ -56,27 +79,85 @@ const EditProductModal = ({ productId, onClose, onSuccess }) => {
       is_featured: !!product.is_featured,
     });
 
-    setSpecifications(product.specifications || []);
-    setProductImages(product.images || []);
-    setExistingVariants(product.variants || []);
+    // Set specifications
+    if (product.specifications && product.specifications.length > 0) {
+      setSpecifications(product.specifications);
+    }
+
+    // Filter product images (only product images, not variant images)
+    const onlyProductImages = product.images?.filter(img => 
+      img.image_url.includes('/products/') && !img.image_url.includes('/variants/')
+    ) || [];
+    setProductImages(onlyProductImages);
+
+    // Set existing variants with their images
+    if (product.variants && product.variants.length > 0) {
+      const formattedVariants = product.variants.map(variant => {
+        // Transform variant images to the format expected by VariantSection
+        const variantImages = variant.images?.map(img => ({
+          id: img.id,
+          url: img.image_url,
+          is_primary: img.is_primary,
+          image_url: img.image_url // Keep original field for compatibility
+        })) || [];
+        
+        // Get the primary image URL if exists
+        const primaryImage = variantImages.find(img => img.is_primary);
+        
+        return {
+          id: variant.id,
+          sku: variant.sku,
+          price: variant.price,
+          stock: variant.stock,
+          weight: variant.weight,
+          barcode: variant.barcode,
+          discount_price: variant.discount_price,
+          attribute_value_ids: variant.attribute_value_ids,
+          attributes: variant.attributes,
+          // Important: Pass the images to existingImages
+          existingImages: variantImages,
+          // Also provide previews for existing images
+          previews: variantImages.map(img => img.url),
+          // For backward compatibility
+          image: primaryImage?.url || null,
+          images: variantImages,
+          isSaved: true,
+          isNew: false,
+          isModified: false,
+        };
+      });
+      
+      console.log("Formatted variants with images:", formattedVariants);
+      setExistingVariants(formattedVariants);
+      
+      // If VariantSection ref is available, pass variants to it
+      if (variantRef.current && variantRef.current.setVariants) {
+        variantRef.current.setVariants(formattedVariants);
+      }
+    }
 
     // Handle category hierarchy
     if (product.category?.parent_id) {
       setParentCategory(product.category.parent_id);
-      // Fetch subcategories for this parent
       fetchSubcategories({ url: `/categories/${product.category.parent_id}/children`, force: true })
         .then(res => {
           const children = res?.data || [];
           setSubcategories(children);
           setForm(prev => ({ ...prev, category_id: product.category_id }));
+          if (product.category_id) {
+            fetchBrandsByCategory(product.category_id);
+          }
         });
     } else {
       setParentCategory(product.category?.id || "");
       setForm(prev => ({ ...prev, category_id: product.category_id || "" }));
+      if (product.category_id) {
+        fetchBrandsByCategory(product.category_id);
+      }
     }
   }, [product]);
 
-  // Map variant attributes to selected values
+  // Map variant attributes to selected values for AttributeSelector
   useEffect(() => {
     if (!product?.variants?.length) return;
 
@@ -111,6 +192,7 @@ const EditProductModal = ({ productId, onClose, onSuccess }) => {
       category_id: "",
       brand_id: "",
     }));
+    setBrands([]);
 
     if (!id) {
       setSubcategories([]);
@@ -130,6 +212,7 @@ const EditProductModal = ({ productId, onClose, onSuccess }) => {
           ...prev,
           category_id: id
         }));
+        await fetchBrandsByCategory(id);
       }
     } catch (err) {
       console.error(err);
@@ -138,7 +221,18 @@ const EditProductModal = ({ productId, onClose, onSuccess }) => {
         ...prev,
         category_id: id
       }));
+      await fetchBrandsByCategory(id);
     }
+  };
+
+  const handleSubcategoryChange = async (e) => {
+    const subId = e.target.value;
+    setForm(prev => ({
+      ...prev,
+      category_id: subId,
+      brand_id: "",
+    }));
+    await fetchBrandsByCategory(subId);
   };
 
   const handleChange = (e) => {
@@ -176,6 +270,7 @@ const EditProductModal = ({ productId, onClose, onSuccess }) => {
       barcode: "",
       newImages: [],
       previews: [],
+      existingImages: [],
       isSaved: false,
       isNew: true,
       isModified: false,
@@ -186,7 +281,7 @@ const EditProductModal = ({ productId, onClose, onSuccess }) => {
     const attributes = attributeData?.data || [];
     const generated = generateVariants(selected, attributes);
 
-    // Merge with existing variants - preserve existing data
+    // Merge with existing variants - preserve existing data including images
     const mergedVariants = generated.map(newVariant => {
       const existingVariant = existingVariants.find(ev => ev.sku === newVariant.sku);
       if (existingVariant) {
@@ -346,177 +441,264 @@ const EditProductModal = ({ productId, onClose, onSuccess }) => {
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-4 sm:p-6">
           {activeTab === "basic" && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
-              <div className="sm:col-span-2">
-                <label className="block text-sm font-medium mb-1">Product Name *</label>
+            <div className="space-y-4">
+              {/* Product Name */}
+              <div>
+                <label className="block text-sm font-medium mb-1 text-gray-700">
+                  Product Name <span className="text-red-500">*</span>
+                </label>
                 <input 
                   name="name" 
                   value={form.name} 
                   onChange={handleChange} 
                   placeholder="Enter product name"
-                  className="w-full border rounded-lg p-2 sm:p-3 text-sm sm:text-base focus:ring-2 focus:ring-[#7a1c3d]" 
+                  className="w-full border border-gray-300 rounded-lg p-2.5 sm:p-3 focus:ring-2 focus:ring-[#7a1c3d] focus:border-transparent transition text-sm sm:text-base" 
                 />
               </div>
 
-              <div className="sm:col-span-2">
-                <label className="block text-sm font-medium mb-1">Short Description</label>
+              {/* Short Description */}
+              <div>
+                <label className="block text-sm font-medium mb-1 text-gray-700">Short Description</label>
                 <input 
                   name="short_description" 
                   value={form.short_description} 
                   onChange={handleChange} 
-                  placeholder="Brief description"
-                  className="w-full border rounded-lg p-2 sm:p-3 text-sm sm:text-base" 
+                  placeholder="Brief description (max 150 characters)"
+                  maxLength={150}
+                  className="w-full border border-gray-300 rounded-lg p-2.5 sm:p-3 focus:ring-2 focus:ring-[#7a1c3d] focus:border-transparent transition text-sm sm:text-base" 
                 />
               </div>
 
-              <div className="sm:col-span-2">
-                <label className="block text-sm font-medium mb-1">Full Description</label>
+              {/* Full Description */}
+              <div>
+                <label className="block text-sm font-medium mb-1 text-gray-700">Full Description</label>
                 <textarea 
                   name="description" 
                   value={form.description} 
                   onChange={handleChange} 
                   rows="4" 
                   placeholder="Detailed product description"
-                  className="w-full border rounded-lg p-2 sm:p-3 text-sm sm:text-base" 
+                  className="w-full border border-gray-300 rounded-lg p-2.5 sm:p-3 focus:ring-2 focus:ring-[#7a1c3d] focus:border-transparent transition text-sm sm:text-base" 
                 />
               </div>
 
-              <div>
-                <label className="block text-sm font-medium mb-1">Category *</label>
-                <select 
-                  value={parentCategory} 
-                  onChange={handleCategoryChange} 
-                  className="w-full border rounded-lg p-2 sm:p-3 text-sm sm:text-base"
-                >
-                  <option value="">Select Category</option>
-                  {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                </select>
+              {/* Category & Subcategory Row */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Category */}
+                <div>
+                  <label className="block text-sm font-medium mb-1 text-gray-700">
+                    Category <span className="text-red-500">*</span>
+                  </label>
+                  <select 
+                    value={parentCategory} 
+                    onChange={handleCategoryChange} 
+                    className="w-full border border-gray-300 rounded-lg p-2.5 sm:p-3 focus:ring-2 focus:ring-[#7a1c3d] focus:border-transparent bg-white text-sm sm:text-base"
+                  >
+                    <option value="">Select Category</option>
+                    {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  </select>
+                </div>
+
+                {/* Subcategory */}
+                <div>
+                  <label className="block text-sm font-medium mb-1 text-gray-700">
+                    Subcategory
+                    {subcategories.length > 0 && (
+                      <span className="text-xs text-gray-500 ml-1">(Optional)</span>
+                    )}
+                  </label>
+                  <select 
+                    value={form.category_id} 
+                    onChange={handleSubcategoryChange} 
+                    disabled={!parentCategory || subcategories.length === 0}
+                    className="w-full border border-gray-300 rounded-lg p-2.5 sm:p-3 focus:ring-2 focus:ring-[#7a1c3d] focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed bg-white text-sm sm:text-base"
+                  >
+                    <option value="">
+                      {!parentCategory 
+                        ? "Select category first" 
+                        : subcategories.length 
+                          ? "Select Subcategory (Optional)" 
+                          : "No subcategories available"
+                      }
+                    </option>
+                    {subcategories.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                  </select>
+                  {parentCategory && subcategories.length === 0 && (
+                    <p className="text-xs text-blue-600 mt-1">
+                      ℹ️ This category has no subcategories
+                    </p>
+                  )}
+                </div>
               </div>
 
+              {/* Brand */}
               <div>
-                <label className="block text-sm font-medium mb-1">Subcategory</label>
-                <select 
-                  name="category_id" 
-                  value={form.category_id} 
-                  onChange={handleChange} 
-                  disabled={!parentCategory || subcategories.length === 0}
-                  className="w-full border rounded-lg p-2 sm:p-3 text-sm sm:text-base"
-                >
-                  <option value="">
-                    {subcategories.length
-                      ? "Select Subcategory"
-                      : "No subcategories available"}
-                  </option>
-                  {subcategories.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-1">
-                  Brand {loadingActiveBrands && <span className="text-xs text-gray-500 ml-1">(Loading...)</span>}
+                <label className="block text-sm font-medium mb-1 text-gray-700">
+                  Brand <span className="text-xs text-gray-500">(Optional)</span>
                 </label>
                 <select
                   name="brand_id"
                   value={form.brand_id}
                   onChange={handleChange}
-                  className="w-full border rounded-lg p-2 sm:p-3 text-sm sm:text-base"
-                  disabled={loadingActiveBrands}
+                  className="w-full border border-gray-300 rounded-lg p-2.5 sm:p-3 focus:ring-2 focus:ring-[#7a1c3d] focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed bg-white text-sm sm:text-base"
+                  disabled={loadingBrands || !form.category_id}
                 >
-                  <option value="">Select Brand</option>
-                  {activeBrands.length === 0 && !loadingActiveBrands && (
-                    <option value="" disabled>No active brands available</option>
-                  )}
-                  {activeBrands.map(b => (
+                  <option value="">
+                    {!form.category_id 
+                      ? "Select category first" 
+                      : loadingBrands 
+                        ? "Loading brands..." 
+                        : "Select Brand (Optional)"
+                    }
+                  </option>
+                  {brands.map(b => (
                     <option key={b.id} value={b.id}>{b.name}</option>
                   ))}
                 </select>
-                {!loadingActiveBrands && activeBrands.length === 0 && (
+                {form.category_id && brands.length === 0 && !loadingBrands && (
                   <p className="text-xs text-amber-600 mt-1">
-                    ⚠️ No active brands found
+                    ⚠️ No brands available for this category
                   </p>
                 )}
               </div>
 
-              <div>
-                <label className="block text-sm font-medium mb-1">Price *</label>
-                <input 
-                  name="price" 
-                  type="number" 
-                  step="0.01" 
-                  value={form.price} 
-                  onChange={handleChange} 
-                  placeholder="0.00"
-                  className="w-full border rounded-lg p-2 sm:p-3 text-sm sm:text-base" 
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-1">Discount Price</label>
-                <input 
-                  name="discount_price" 
-                  type="number" 
-                  step="0.01" 
-                  value={form.discount_price} 
-                  onChange={handleChange} 
-                  placeholder="0.00"
-                  className="w-full border rounded-lg p-2 sm:p-3 text-sm sm:text-base" 
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-1">Cost Price</label>
-                <input 
-                  name="cost_price" 
-                  type="number" 
-                  step="0.01" 
-                  value={form.cost_price} 
-                  onChange={handleChange} 
-                  placeholder="0.00"
-                  className="w-full border rounded-lg p-2 sm:p-3 text-sm sm:text-base" 
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-1">Stock Quantity</label>
-                <input 
-                  name="stock" 
-                  type="number" 
-                  value={form.stock} 
-                  onChange={handleChange} 
-                  placeholder="0"
-                  className="w-full border rounded-lg p-2 sm:p-3 text-sm sm:text-base" 
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3 sm:col-span-2">
+              {/* Pricing Row */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-sm font-medium mb-1">Length (cm)</label>
-                  <input name="length" type="number" step="0.01" value={form.length} onChange={handleChange} className="w-full border rounded-lg p-2 sm:p-3" />
+                  <label className="block text-sm font-medium mb-1 text-gray-700">
+                    Price <span className="text-red-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">$</span>
+                    <input 
+                      name="price" 
+                      type="number" 
+                      step="0.01" 
+                      value={form.price} 
+                      onChange={handleChange} 
+                      placeholder="0.00"
+                      className="w-full border border-gray-300 rounded-lg p-2.5 pl-7 sm:p-3 focus:ring-2 focus:ring-[#7a1c3d] focus:border-transparent text-sm sm:text-base" 
+                    />
+                  </div>
                 </div>
+
                 <div>
-                  <label className="block text-sm font-medium mb-1">Width (cm)</label>
-                  <input name="width" type="number" step="0.01" value={form.width} onChange={handleChange} className="w-full border rounded-lg p-2 sm:p-3" />
+                  <label className="block text-sm font-medium mb-1 text-gray-700">
+                    Discounted Price
+                    <span className="text-xs text-gray-500 ml-1">(Optional)</span>
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">$</span>
+                    <input 
+                      name="discount_price" 
+                      type="number" 
+                      step="0.01" 
+                      value={form.discount_price} 
+                      onChange={handleChange} 
+                      placeholder="0.00"
+                      className="w-full border border-gray-300 rounded-lg p-2.5 pl-7 sm:p-3 focus:ring-2 focus:ring-[#7a1c3d] focus:border-transparent text-sm sm:text-base" 
+                    />
+                  </div>
                 </div>
+
                 <div>
-                  <label className="block text-sm font-medium mb-1">Height (cm)</label>
-                  <input name="height" type="number" step="0.01" value={form.height} onChange={handleChange} className="w-full border rounded-lg p-2 sm:p-3" />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">Weight (kg)</label>
-                  <input name="weight" type="number" step="0.01" value={form.weight} onChange={handleChange} className="w-full border rounded-lg p-2 sm:p-3" />
+                  <label className="block text-sm font-medium mb-1 text-gray-700">
+                    Cost Price
+                    <span className="text-xs text-gray-500 ml-1">(Optional)</span>
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">$</span>
+                    <input 
+                      name="cost_price" 
+                      type="number" 
+                      step="0.01" 
+                      value={form.cost_price} 
+                      onChange={handleChange} 
+                      placeholder="0.00"
+                      className="w-full border border-gray-300 rounded-lg p-2.5 pl-7 sm:p-3 focus:ring-2 focus:ring-[#7a1c3d] focus:border-transparent text-sm sm:text-base" 
+                    />
+                  </div>
                 </div>
               </div>
 
-              <div className="sm:col-span-2">
-                <label className="flex items-center gap-2 cursor-pointer">
+              {/* Stock & Dimensions */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1 text-gray-700">Stock Quantity</label>
+                  <input 
+                    name="stock" 
+                    type="number" 
+                    value={form.stock} 
+                    onChange={handleChange} 
+                    placeholder="0"
+                    className="w-full border border-gray-300 rounded-lg p-2.5 sm:p-3 focus:ring-2 focus:ring-[#7a1c3d] focus:border-transparent text-sm sm:text-base" 
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1 text-gray-700">Length (cm)</label>
+                  <input 
+                    name="length" 
+                    type="number" 
+                    step="0.01" 
+                    value={form.length} 
+                    onChange={handleChange} 
+                    placeholder="0.00"
+                    className="w-full border border-gray-300 rounded-lg p-2.5 sm:p-3 focus:ring-2 focus:ring-[#7a1c3d] focus:border-transparent text-sm sm:text-base" 
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1 text-gray-700">Width (cm)</label>
+                  <input 
+                    name="width" 
+                    type="number" 
+                    step="0.01" 
+                    value={form.width} 
+                    onChange={handleChange} 
+                    placeholder="0.00"
+                    className="w-full border border-gray-300 rounded-lg p-2.5 sm:p-3 focus:ring-2 focus:ring-[#7a1c3d] focus:border-transparent text-sm sm:text-base" 
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1 text-gray-700">Height (cm)</label>
+                  <input 
+                    name="height" 
+                    type="number" 
+                    step="0.01" 
+                    value={form.height} 
+                    onChange={handleChange} 
+                    placeholder="0.00"
+                    className="w-full border border-gray-300 rounded-lg p-2.5 sm:p-3 focus:ring-2 focus:ring-[#7a1c3d] focus:border-transparent text-sm sm:text-base" 
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1 text-gray-700">Weight (kg)</label>
+                  <input 
+                    name="weight" 
+                    type="number" 
+                    step="0.01" 
+                    value={form.weight} 
+                    onChange={handleChange} 
+                    placeholder="0.00"
+                    className="w-full border border-gray-300 rounded-lg p-2.5 sm:p-3 focus:ring-2 focus:ring-[#7a1c3d] focus:border-transparent text-sm sm:text-base" 
+                  />
+                </div>
+              </div>
+
+              {/* Featured Product */}
+              <div className="border-t pt-4">
+                <label className="flex items-center gap-3 cursor-pointer">
                   <input 
                     type="checkbox" 
                     name="is_featured" 
                     checked={form.is_featured} 
                     onChange={handleChange} 
-                    className="w-4 h-4 sm:w-5 sm:h-5" 
+                    className="w-4 h-4 sm:w-5 sm:h-5 text-[#7a1c3d] focus:ring-[#7a1c3d]" 
                   />
-                  <span className="text-sm sm:text-base">⭐ Feature this product</span>
+                  <span className="text-sm sm:text-base text-gray-700">⭐ Feature this product</span>
                 </label>
               </div>
             </div>
@@ -527,8 +709,7 @@ const EditProductModal = ({ productId, onClose, onSuccess }) => {
               productId={productId}
               images={productImages}
               onRefresh={() => {
-                refetch({ force: true });
-                if (data?.data?.images) setProductImages(data.data.images);
+                refetch();
               }}
             />
           )}
@@ -556,7 +737,10 @@ const EditProductModal = ({ productId, onClose, onSuccess }) => {
               <VariantSection
                 ref={variantRef}
                 productId={productId}
-                onVariantsLoaded={setExistingVariants}
+                onVariantsLoaded={(variants) => {
+                  console.log("Variants loaded in VariantSection:", variants);
+                  setExistingVariants(variants);
+                }}
               />
             </div>
           )}
@@ -566,13 +750,13 @@ const EditProductModal = ({ productId, onClose, onSuccess }) => {
         <div className="border-t px-4 sm:px-6 py-3 sm:py-4 bg-gray-50 flex flex-col sm:flex-row justify-end gap-2 sm:gap-3 flex-shrink-0">
           <button 
             onClick={onClose} 
-            className="px-4 sm:px-6 py-2 border rounded-lg hover:bg-gray-100 transition text-sm sm:text-base order-2 sm:order-1"
+            className="px-4 sm:px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 transition text-sm sm:text-base font-medium order-2 sm:order-1"
           >
             Cancel
           </button>
           <button 
             onClick={handleUpdate} 
-            className="bg-[#7a1c3d] text-white px-4 sm:px-6 py-2 rounded-lg hover:bg-[#5e132f] transition flex items-center justify-center gap-2 text-sm sm:text-base order-1 sm:order-2" 
+            className="bg-[#7a1c3d] text-white px-4 sm:px-6 py-2 rounded-lg hover:bg-[#5e132f] transition flex items-center justify-center gap-2 text-sm sm:text-base font-medium order-1 sm:order-2 disabled:opacity-50 disabled:cursor-not-allowed" 
             disabled={updating}
           >
             <Save size={16} className="sm:w-[18px] sm:h-[18px]" />

@@ -19,9 +19,19 @@ const Cart = () => {
     (state) => state.cart,
   );
 
-  const handleQtyChange = (id, qty) => {
+  const getStock = (item) => item.product?.stock ?? 0;
+
+  const handleQtyChange = (id, qty, item) => {
     if (qty < 1) return;
     if (updatingItemId || removingItemId) return;
+
+    const stock = getStock(item);
+
+    if (qty > stock) {
+      alert(`Only ${stock} items available in stock`);
+      return;
+    }
+
     dispatch(updateCartItem({ itemId: id, quantity: qty }));
   };
 
@@ -90,9 +100,8 @@ const Cart = () => {
                   initial={{ opacity: 0, y: 30 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: i * 0.05 }}
-                  className={`group relative flex gap-5 p-5 rounded-2xl bg-white/70 backdrop-blur-xl border border-[#f1d6dd] shadow-sm hover:shadow-md transition ${
-                    isRemoving ? "opacity-50" : ""
-                  }`}
+                  className={`group relative flex gap-5 p-5 rounded-2xl bg-white/70 backdrop-blur-xl border border-[#f1d6dd] shadow-sm hover:shadow-md transition ${isRemoving ? "opacity-50" : ""
+                    }`}
                 >
                   {/* IMAGE */}
                   <div className="w-28 h-28 rounded-xl overflow-hidden">
@@ -108,12 +117,16 @@ const Cart = () => {
 
                     <p className="text-sm text-gray-500 mt-1">₹{item.price}</p>
 
+                    {item.quantity >= getStock(item) && (
+                      <p className="text-red-600 text-xs mt-2">
+                        Only {getStock(item)} items left in stock
+                      </p>
+                    )}
+
                     {/* QTY */}
                     <div className="flex items-center gap-2 mt-4">
                       <button
-                        onClick={() =>
-                          handleQtyChange(item.id, item.quantity - 1)
-                        }
+                        onClick={() => handleQtyChange(item.id, item.quantity - 1, item)}
                         className="p-2 rounded-full border hover:bg-[#8B0D3A] hover:text-white transition"
                       >
                         <Minus size={14} />
@@ -124,10 +137,9 @@ const Cart = () => {
                       </span>
 
                       <button
-                        onClick={() =>
-                          handleQtyChange(item.id, item.quantity + 1)
-                        }
-                        className="p-2 rounded-full border hover:bg-[#8B0D3A] hover:text-white transition"
+                        onClick={() => handleQtyChange(item.id, item.quantity + 1, item)}
+                        disabled={item.quantity >= getStock(item)}
+                        className="p-2 rounded-full border disabled:opacity-40 hover:bg-[#8B0D3A] hover:text-white transition"
                       >
                         <Plus size={14} />
                       </button>

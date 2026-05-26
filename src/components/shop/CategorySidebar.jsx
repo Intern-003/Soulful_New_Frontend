@@ -30,13 +30,15 @@ const CategorySidebar = ({
     }));
   };
 
-  const handleBrandToggle = (id) => {
-    const updated = selectedBrands.includes(id)
-      ? selectedBrands.filter((b) => b !== id)
-      : [...selectedBrands, id];
+ const handleBrandToggle = (id) => {
+  const numericId = Number(id);
 
-    onBrandChange(updated);
-  };
+  const updated = selectedBrands.includes(numericId)
+    ? selectedBrands.filter((b) => b !== numericId)
+    : [...selectedBrands, numericId];
+
+  onBrandChange(updated);
+};
 
   return (
     <div className="bg-[#F6F3F5] border border-[#e7e2e5] p-6 rounded-2xl text-sm text-gray-800">
