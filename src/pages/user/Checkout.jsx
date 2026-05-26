@@ -4,7 +4,7 @@ import { Check } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom"; // Add this import
 import { fetchCart } from "../../app/slices/cartSlice";
-import axiosInstance from "../../api/axiosInstance";
+import usePost from "../../api/hooks/usePost";
 import { getImageUrl } from "../../utils/getImageUrl";
 
 const steps = ["Info", "Shipping", "Payment", "Review"];
@@ -27,7 +27,7 @@ const Input = ({ name, value, onChange, placeholder }) => (
 export default function Checkout() {
   const navigate = useNavigate(); // Add this line
   const [step, setStep] = useState(1);
-  const [isPlacingOrder, setIsPlacingOrder] = useState(false); // Add loading state
+  const { postData, loading, error } = usePost();
 
   const [form, setForm] = useState({
     firstName: "",
@@ -44,6 +44,12 @@ export default function Checkout() {
 
   const dispatch = useDispatch();
   const { items, totals } = useSelector((state) => state.cart);
+  const [toast, setToast] = useState(null);
+
+  const showToast = (message, type = "error") => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3000);
+  };
 
   useEffect(() => {
     dispatch(fetchCart());
@@ -51,46 +57,79 @@ export default function Checkout() {
 
   const handleChange = (e) =>
     setForm({ ...form, [e.target.name]: e.target.value });
-
   const handlePlaceOrder = async () => {
+    const check = validateStock();
+
+    if (!check.valid) {
+      showToast(
+        `Not enough stock for "${check.product}". Only ${check.available} left.`
+      );
+      return;
+    }
+
+    // ❌ BLOCK NON COD
+    if (form.payment !== "cod") {
+      showToast("Online payments (UPI/Card) are temporarily unavailable. Please select Cash on Delivery");
+      return;
+    }
+
     try {
-      setIsPlacingOrder(true); // Set loading state
-      
-      const response = await axiosInstance.post("/order/create", {
-        customer: form,
-        items,
-        totals,
-        payment_method: form.payment,
+      const response = await postData({
+        url: "/orders",
+        data: {
+          address_id: null,
+          name: `${form.firstName} ${form.lastName}`,
+          phone: form.phone,
+          address: form.address,
+          city: form.city,
+          state: form.state,
+          zip: form.zip,
+          country: form.country,
+          payment_method: "cod",
+        },
       });
 
-      // Store order details in localStorage or state management
-      const orderData = {
-        orderId: response.data.order_id || response.data.id,
-        orderDetails: response.data,
-        timestamp: new Date().toISOString(),
-      };
-      
-      // Navigate to order complete page with order data
-      navigate("/order-complete", { 
-        state: { 
-          orderData: orderData,
+      const order = response.data;
+
+      navigate("/order-complete", {
+        state: {
+          orderData: {
+            orderId: order.id,
+            orderNumber: order.order_number,
+          },
           orderSummary: {
             items,
             totals,
             shippingAddress: form,
-            paymentMethod: form.payment
-          }
-        } 
+            paymentMethod: "cod",
+          },
+        },
       });
-      
-    } catch (error) {
-      console.error("Order placement failed:", error);
-      alert("Failed to place order. Please try again.");
-    } finally {
-      setIsPlacingOrder(false);
+    } catch (err) {
+      showToast(err?.message || "Failed to place order");
     }
   };
 
+  const validateStock = () => {
+    for (const item of items) {
+      const stock = item.product?.stock;
+
+      if (stock === undefined) continue;
+
+      if (item.quantity > stock) {
+        return {
+          valid: false,
+          product: item.product?.name,
+          available: stock,
+        };
+      }
+    }
+
+    return { valid: true };
+  };
+  const hasStockIssue = items.some(
+    (item) => item.quantity > item.product?.stock
+  );
   return (
     <div className="relative min-h-screen bg-gradient-to-br from-[#fff9fb] via-white to-[#fff3f6] overflow-hidden">
       {/* GLOW */}
@@ -108,13 +147,12 @@ export default function Checkout() {
             return (
               <div
                 key={i}
-                className={`px-4 py-1 rounded-full text-xs transition ${
-                  step === current
-                    ? "bg-[#8B0D3A] text-white"
-                    : step > current
-                      ? "bg-green-100 text-green-600"
-                      : "bg-gray-100 text-gray-400"
-                }`}
+                className={`px-4 py-1 rounded-full text-xs transition ${step === current
+                  ? "bg-[#8B0D3A] text-white"
+                  : step > current
+                    ? "bg-green-100 text-green-600"
+                    : "bg-gray-100 text-gray-400"
+                  }`}
               >
                 {step > current ? <Check size={12} /> : s}
               </div>
@@ -145,11 +183,14 @@ export default function Checkout() {
                     <div className="grid md:grid-cols-2 gap-4">
                       <Input
                         name="firstName"
+                        value={form.firstName}
                         onChange={handleChange}
                         placeholder="First Name"
                       />
+
                       <Input
                         name="lastName"
+                        value={form.lastName}
                         onChange={handleChange}
                         placeholder="Last Name"
                       />
@@ -158,6 +199,7 @@ export default function Checkout() {
                     <div className="mt-4">
                       <Input
                         name="email"
+                        value={form.email}
                         onChange={handleChange}
                         placeholder="Email"
                       />
@@ -166,6 +208,7 @@ export default function Checkout() {
                     <div className="mt-4">
                       <Input
                         name="phone"
+                        value={form.phone}
                         onChange={handleChange}
                         placeholder="Phone"
                       />
@@ -182,6 +225,7 @@ export default function Checkout() {
 
                     <Input
                       name="address"
+                      value={form.address}
                       onChange={handleChange}
                       placeholder="Street Address"
                     />
@@ -189,16 +233,19 @@ export default function Checkout() {
                     <div className="grid md:grid-cols-3 gap-4 mt-4">
                       <Input
                         name="city"
+                        value={form.city}
                         onChange={handleChange}
                         placeholder="City"
                       />
                       <Input
                         name="state"
+                        value={form.state}
                         onChange={handleChange}
                         placeholder="State"
                       />
                       <Input
                         name="zip"
+                        value={form.zip}
                         onChange={handleChange}
                         placeholder="ZIP"
                       />
@@ -207,6 +254,7 @@ export default function Checkout() {
                     <div className="mt-4">
                       <Input
                         name="country"
+                        value={form.country}
                         onChange={handleChange}
                         placeholder="Country"
                       />
@@ -222,19 +270,33 @@ export default function Checkout() {
                     </h2>
 
                     <div className="space-y-3">
-                      {["card", "upi", "cod"].map((p) => (
+
+                      {[
+                        { key: "card", label: "Card (Not available)", disabled: true },
+                        { key: "upi", label: "UPI (Not available)", disabled: true },
+                        { key: "cod", label: "Cash on Delivery", disabled: false },
+                      ].map((p) => (
                         <div
-                          key={p}
-                          onClick={() => setForm({ ...form, payment: p })}
-                          className={`p-4 rounded-xl border cursor-pointer transition ${
-                            form.payment === p
+                          key={p.key}
+                          onClick={() => {
+                            if (p.disabled) {
+                              showToast(`${p.label} is currently unavailable`);
+                              return;
+                            }
+                            setForm({ ...form, payment: p.key });
+                          }}
+                          className={`p-4 rounded-xl border transition ${p.disabled
+                            ? "opacity-50 cursor-not-allowed bg-gray-50"
+                            : "cursor-pointer"
+                            } ${form.payment === p.key
                               ? "border-[#8B0D3A] bg-[#8B0D3A]/5"
                               : "border-gray-200"
-                          }`}
+                            }`}
                         >
-                          {p.toUpperCase()}
+                          {p.label}
                         </div>
                       ))}
+
                     </div>
                   </>
                 )}
@@ -278,31 +340,62 @@ export default function Checkout() {
 
               {step < 4 ? (
                 <button
-                  onClick={() => setStep(step + 1)}
-                  className="px-6 py-3 bg-[#8B0D3A] text-white rounded-xl"
+                  onClick={() => {
+                    if (step === 3 && form.payment !== "cod") {
+                      showToast("Please select Cash on Delivery to continue");
+                      return;
+                    }
+
+                    setStep((prev) => prev + 1);
+                  }}
+                  disabled={hasStockIssue}
+                  className="px-6 py-3 bg-[#8B0D3A] text-white rounded-xl disabled:opacity-50"
                 >
                   Continue →
                 </button>
+
               ) : (
-                <button
-                  onClick={handlePlaceOrder}
-                  disabled={isPlacingOrder}
-                  className="px-6 py-3 bg-green-600 text-white rounded-xl shadow disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isPlacingOrder ? (
-                    <span className="flex items-center gap-2">
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      Processing...
-                    </span>
-                  ) : (
-                    "Place Order"
+                <div className="flex flex-col items-end gap-2">
+                  <button
+                    onClick={handlePlaceOrder}
+                    disabled={loading}
+                    className="px-6 py-3 bg-green-600 text-white rounded-xl shadow disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {loading ? (
+                      <span className="flex items-center gap-2">
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        Processing...
+                      </span>
+                    ) : (
+                      "Place Order"
+                    )}
+                  </button>
+
+                  {error && (
+                    <p className="text-sm text-red-600">
+                      {typeof error === "string"
+                        ? error
+                        : error?.message || "Something went wrong"}
+                    </p>
                   )}
-                </button>
+                </div>
               )}
             </div>
           </div>
         </div>
-
+        <AnimatePresence>
+          {toast && (
+            <motion.div
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              className={`fixed top-5 right-5 px-4 py-3 rounded-xl shadow-lg text-white z-50 ${toast.type === "error" ? "bg-red-500" : "bg-green-500"
+                }`}
+            >
+              {toast.message}
+            </motion.div>
+          )}
+        </AnimatePresence>
         {/* RIGHT SUMMARY */}
         <div className="sticky top-24 h-fit">
           <div className="bg-white/80 backdrop-blur-xl border border-[#f1d6dd] rounded-3xl p-6 shadow-xl">
@@ -312,7 +405,10 @@ export default function Checkout() {
 
             <div className="space-y-4 max-h-[250px] overflow-y-auto pr-2">
               {items.map((item) => {
-                const img = item.product?.images?.[0]?.image_url;
+
+                const img =
+                  item.product?.images?.find(i => i.is_primary)?.image_url ||
+                  item.product?.images?.[0]?.image_url;
 
                 return (
                   <div key={item.id} className="flex gap-3">

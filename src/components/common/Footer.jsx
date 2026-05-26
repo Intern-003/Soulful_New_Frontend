@@ -2,6 +2,7 @@ import React from "react";
 import { useNavigate } from "react-router-dom";
 import { MapPin, Phone, Mail, Clock } from "lucide-react";
 import { FaFacebookF, FaInstagram, FaTwitter, FaYoutube } from "react-icons/fa";
+import "../../styles/footer.css";
 
 const Footer = () => {
   const navigate = useNavigate();
@@ -13,11 +14,12 @@ const Footer = () => {
     { icon: FaYoutube, link: "#", label: "Youtube" },
   ];
 
+
   const shopLinks = [
-    { label: "New Arrivals", path: "/fresharrivals" },
+    { label: "Fresh Arrivals", path: "/fresh-arrivals" },
     { label: "Bestsellers", path: "/bestsellers" },
     { label: "Shop All", path: "/shop" },
-    { label: "Essentials", path: "/category/essentials" },
+    { label: "Essentials", path: "/essentials" },
   ];
 
   const supportLinks = [
@@ -33,7 +35,7 @@ const Footer = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 sm:py-6 md:py-8">
         {/* 2 columns on mobile & tablet, 4 columns on desktop */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-5 sm:gap-6 md:gap-8">
-          
+
           {/* Part 1 - Brand & Social */}
           <div>
             <h2 className="text-sm sm:text-base md:text-lg font-bold text-[#7a1c3d] mb-1.5 sm:mb-2">
@@ -49,7 +51,7 @@ const Footer = () => {
                   href={social.link}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 flex items-center justify-center bg-white rounded-full hover:bg-[#7a1c3d] hover:text-white transition-all duration-300 shadow-sm"
+                  className="footer-social-icon w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 flex items-center justify-center bg-white rounded-full shadow-sm"
                   aria-label={social.label}
                 >
                   <social.icon size={11} className="sm:text-xs md:text-sm" />
@@ -68,7 +70,7 @@ const Footer = () => {
                 <li
                   key={item.path}
                   onClick={() => navigate(item.path)}
-                  className="text-[10px] sm:text-xs text-gray-600 hover:text-[#7a1c3d] cursor-pointer transition-all duration-200 hover:translate-x-0.5"
+                  className="footer-link text-[10px] sm:text-xs text-gray-600 cursor-pointer"
                 >
                   {item.label}
                 </li>
@@ -86,7 +88,7 @@ const Footer = () => {
                 <li
                   key={item.path}
                   onClick={() => navigate(item.path)}
-                  className="text-[10px] sm:text-xs text-gray-600 hover:text-[#7a1c3d] cursor-pointer transition-all duration-200 hover:translate-x-0.5"
+                  className="footer-link text-[10px] sm:text-xs text-gray-600 cursor-pointer"
                 >
                   {item.label}
                 </li>

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import useGet from "../../../api/hooks/useGet";
+import { getImageUrl } from "../../../utils/getImageUrl";
 
 const statusStyles = {
   delivered: "bg-green-100 text-green-600",
@@ -18,6 +19,8 @@ export default function Orders() {
 
   if (loading) return <OrdersSkeleton />;
   if (error) return <p className="text-red-500">Failed to load orders</p>;
+
+
 
   return (
     <div className="relative">
@@ -71,10 +74,9 @@ export default function Orders() {
               {/* STATUS */}
               <div>
                 <span
-                  className={`px-3 py-1 text-xs rounded-full font-medium capitalize ${
-                    statusStyles[order.order_status] ||
+                  className={`px-3 py-1 text-xs rounded-full font-medium capitalize ${statusStyles[order.order_status] ||
                     "bg-gray-100 text-gray-500"
-                  }`}
+                    }`}
                 >
                   {order.order_status}
                 </span>
@@ -106,29 +108,34 @@ export default function Orders() {
                 >
                   {/* ITEMS */}
                   {order.items.length > 0 ? (
-                    order.items.map((item, i) => (
-                      <div
-                        key={i}
-                        className="flex items-center justify-between mb-4"
-                      >
-                        <div className="flex items-center gap-4">
-                          <img
-                            src={item.image || "/placeholder.png"}
-                            className="w-12 h-12 rounded-xl object-cover"
-                          />
-                          <div>
-                            <p className="text-sm font-medium">{item.name}</p>
-                            <p className="text-xs text-gray-500">
-                              Qty: {item.quantity}
-                            </p>
-                          </div>
-                        </div>
+                    order.items.map((item, i) => {
+                      const product = item.product;
 
-                        <p className="text-sm font-semibold text-[#7A1C3D]">
-                          ₹{item.price}
-                        </p>
-                      </div>
-                    ))
+                      const img =
+                        product?.images?.find((i) => i.is_primary)?.image_url ||
+                        product?.images?.[0]?.image_url;
+
+                      return (
+                        <div key={i} className="flex items-center justify-between mb-4">
+                          <div className="flex items-center gap-4">
+                            <img
+                              src={getImageUrl(img || "/placeholder.png")}
+                              className="w-12 h-12 rounded-xl object-cover"
+                            />
+
+                            <div>
+                              <p className="text-sm font-medium">{product?.name}</p>
+                              <p className="text-xs text-gray-500">
+                                Qty: {item.quantity}
+                              </p>
+                            </div>
+                          </div>
+
+                          <p className="text-sm font-semibold text-[#7A1C3D]">
+                            ₹{item.price}
+                          </p>
+                        </div>)
+                    })
                   ) : (
                     <p className="text-sm text-gray-500">
                       No items found for this order

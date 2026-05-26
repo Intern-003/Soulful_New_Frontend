@@ -6,12 +6,10 @@
 .shimmer {
   position: absolute;
   inset: 0;
-  background: linear-gradient(
-    110deg,
-    rgba(255, 255, 255, 0) 0%,
-    rgba(255, 255, 255, 0.6) 50%,
-    rgba(255, 255, 255, 0) 100%
-  );
+  background: linear-gradient(110deg,
+      rgba(255, 255, 255, 0) 0%,
+      rgba(255, 255, 255, 0.6) 50%,
+      rgba(255, 255, 255, 0) 100%);
   animation: shimmerMove 1.4s infinite;
 }
 
@@ -19,6 +17,7 @@
   0% {
     transform: translateX(-100%);
   }
+
   100% {
     transform: translateX(100%);
   }
@@ -26,12 +25,10 @@
 
 /* Shimmer sweep */
 .shimmer-main {
-  background: linear-gradient(
-    120deg,
-    transparent 0%,
-    rgba(255, 255, 255, 0.1) 50%,
-    transparent 100%
-  );
+  background: linear-gradient(120deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0.1) 50%,
+      transparent 100%);
   animation: shimmerMove 2s infinite;
 }
 
@@ -47,12 +44,10 @@
   content: "";
   position: absolute;
   inset: 0;
-  background: linear-gradient(
-    110deg,
-    transparent 0%,
-    rgba(255, 255, 255, 0.9) 50%,
-    transparent 100%
-  );
+  background: linear-gradient(110deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0.9) 50%,
+      transparent 100%);
   animation: shimmerMove 1.2s infinite;
 }
 
@@ -79,6 +74,7 @@ table tr:hover {
     opacity: 0;
     transform: translateY(30px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -89,10 +85,21 @@ table tr:hover {
   animation: fadeInUp 0.6s ease-out forwards;
 }
 
-.delay-0 { animation-delay: 0s; }
-.delay-100 { animation-delay: 0.1s; }
-.delay-200 { animation-delay: 0.2s; }
-.delay-300 { animation-delay: 0.3s; }
+.delay-0 {
+  animation-delay: 0s;
+}
+
+.delay-100 {
+  animation-delay: 0.1s;
+}
+
+.delay-200 {
+  animation-delay: 0.2s;
+}
+
+.delay-300 {
+  animation-delay: 0.3s;
+}
 
 /* Hide scrollbar for Chrome, Safari and Opera */
 .scrollbar-hide::-webkit-scrollbar {
@@ -109,9 +116,11 @@ table tr:hover {
 .line-clamp-1 {
   display: -webkit-box;
   -webkit-line-clamp: 1;
-  line-clamp: 1; /* Standard property added for compatibility */
+  line-clamp: 1;
+  /* Standard property added for compatibility */
   -webkit-box-orient: vertical;
-  box-orient: vertical; /* Standard property */
+  box-orient: vertical;
+  /* Standard property */
   overflow: hidden;
 }
 
@@ -133,15 +142,7 @@ table tr:hover {
   overflow: hidden;
 }
 
-/* Shimmer animation for admin button */
-@keyframes shineMove {
-  0% {
-    transform: translateX(-100%);
-  }
-  100% {
-    transform: translateX(100%);
-  }
-}
+
 
 /* ============================================
    RESPONSIVE TOUCH TARGET OPTIMIZATIONS
@@ -149,17 +150,18 @@ table tr:hover {
 
 /* Base touch target sizing for mobile */
 @media (max-width: 768px) {
-  button, 
-  [onClick], 
+
+  button,
+  [onClick],
   .cursor-pointer:not(input, select, textarea) {
     min-height: 44px;
     min-width: 44px;
   }
-  
+
   /* Override for specific small elements that shouldn't be 44px */
-  .w-7.h-7, 
-  .w-8.h-8, 
-  .w-9.h-9, 
+  .w-7.h-7,
+  .w-8.h-8,
+  .w-9.h-9,
   .w-10.h-10,
   [class*="w-7"][class*="h-7"],
   [class*="w-8"][class*="h-8"],
@@ -167,13 +169,13 @@ table tr:hover {
     min-width: auto;
     min-height: auto;
   }
-  
+
   /* Better spacing for touch targets in flex layouts */
-  .gap-1, 
+  .gap-1,
   .gap-2 {
     gap: 0.75rem;
   }
-  
+
   .gap-3 {
     gap: 1rem;
   }
@@ -181,18 +183,19 @@ table tr:hover {
 
 /* Extra small devices (below 480px) */
 @media (max-width: 480px) {
-  .gap-1, 
+
+  .gap-1,
   .gap-2 {
     gap: 0.5rem;
   }
-  
+
   .gap-3 {
     gap: 0.75rem;
   }
-  
+
   /* Smaller touch targets for very small screens */
-  button, 
-  [onClick], 
+  button,
+  [onClick],
   .cursor-pointer:not(input, select, textarea) {
     min-height: 40px;
     min-width: 40px;
@@ -200,8 +203,8 @@ table tr:hover {
 }
 
 /* Smooth transitions for all interactive elements */
-a, 
-button, 
+a,
+button,
 [onClick] {
   transition: all 0.2s ease;
 }
@@ -225,23 +228,7 @@ button,
   }
 }
 
-/* ============================================
-   HEADER & FOOTER SPECIFIC STYLES
-   ============================================ */
 
-/* Mobile Menu Animation */
-@keyframes slideIn {
-  from {
-    transform: translateX(-100%);
-  }
-  to {
-    transform: translateX(0);
-  }
-}
-
-.animate-slide-in {
-  animation: slideIn 0.3s ease-out;
-}
 
 /* Ensure body takes full height for sticky footer */
 body {
@@ -257,53 +244,22 @@ body {
   flex: 1;
 }
 
-/* Hide scrollbar for desktop navigation on mobile */
-@media (max-width: 1023px) {
-  .overflow-x-auto {
-    scrollbar-width: none;
-    -ms-overflow-style: none;
-  }
-  .overflow-x-auto::-webkit-scrollbar {
-    display: none;
-  }
-}
 
-/* Footer specific responsive styles */
-@media (max-width: 768px) {
-  footer .grid {
-    gap: 1.5rem;
-  }
-  
-  footer li {
-    padding: 4px 0;
-  }
-}
-
-/* Prevent text overflow on very small screens */
-@media (max-width: 360px) {
-  .break-all {
-    word-break: break-all;
-  }
-  
-  footer span {
-    font-size: 11px;
-  }
-}
 
 /* Safe area insets for modern mobile devices */
 @supports (padding: max(0px)) {
   .safe-top {
     padding-top: max(0px, env(safe-area-inset-top));
   }
-  
+
   .safe-bottom {
     padding-bottom: max(0px, env(safe-area-inset-bottom));
   }
-  
+
   .safe-left {
     padding-left: max(0px, env(safe-area-inset-left));
   }
-  
+
   .safe-right {
     padding-right: max(0px, env(safe-area-inset-right));
   }
@@ -318,6 +274,7 @@ body {
 
 /* Reduce motion preference */
 @media (prefers-reduced-motion: reduce) {
+
   *,
   *::before,
   *::after {
@@ -465,12 +422,10 @@ html {
 
 /* Loading state shimmer for product cards */
 .product-skeleton {
-  background: linear-gradient(
-    90deg,
-    #f0f0f0 25%,
-    #e0e0e0 50%,
-    #f0f0f0 75%
-  );
+  background: linear-gradient(90deg,
+      #f0f0f0 25%,
+      #e0e0e0 50%,
+      #f0f0f0 75%);
   background-size: 200% 100%;
   animation: loading 1.5s infinite;
 }
@@ -479,6 +434,7 @@ html {
   0% {
     background-position: 200% 0;
   }
+
   100% {
     background-position: -200% 0;
   }
@@ -486,13 +442,20 @@ html {
 
 /* Responsive font sizes for consistent typography */
 :root {
-  --font-size-xs: 0.75rem;    /* 12px */
-  --font-size-sm: 0.875rem;   /* 14px */
-  --font-size-base: 1rem;     /* 16px */
-  --font-size-lg: 1.125rem;   /* 18px */
-  --font-size-xl: 1.25rem;    /* 20px */
-  --font-size-2xl: 1.5rem;    /* 24px */
-  --font-size-3xl: 1.875rem;  /* 30px */
+  --font-size-xs: 0.75rem;
+  /* 12px */
+  --font-size-sm: 0.875rem;
+  /* 14px */
+  --font-size-base: 1rem;
+  /* 16px */
+  --font-size-lg: 1.125rem;
+  /* 18px */
+  --font-size-xl: 1.25rem;
+  /* 20px */
+  --font-size-2xl: 1.5rem;
+  /* 24px */
+  --font-size-3xl: 1.875rem;
+  /* 30px */
 }
 
 @media (max-width: 640px) {
@@ -533,6 +496,7 @@ html {
   from {
     transform: translateY(100%);
   }
+
   to {
     transform: translateY(0);
   }
@@ -546,6 +510,7 @@ html {
   from {
     transform: translateY(0);
   }
+
   to {
     transform: translateY(100%);
   }
@@ -583,7 +548,7 @@ img:not([width]) {
   .card-hover-effect {
     transition: all 0.3s ease;
   }
-  
+
   .card-hover-effect:hover {
     transform: translateY(-8px);
     box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.02);
@@ -601,12 +566,10 @@ img:not([width]) {
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(255, 255, 255, 0.4),
-    transparent
-  );
+  background: linear-gradient(90deg,
+      transparent,
+      rgba(255, 255, 255, 0.4),
+      transparent);
   animation: shimmerMove 1.5s infinite;
 }
 
@@ -626,12 +589,17 @@ img:not([width]) {
 
 /* Better form inputs on mobile */
 @media (max-width: 640px) {
-  input, textarea, select, button {
-    font-size: 16px !important; /* Prevents zoom on iOS */
+
+  input,
+  textarea,
+  select,
+  button {
+    font-size: 16px !important;
+    /* Prevents zoom on iOS */
   }
-  
+
   /* Improved spacing for touch targets */
-  button, 
+  button,
   [role="button"],
   .cursor-pointer {
     cursor: pointer;
@@ -662,14 +630,19 @@ img:not([width]) {
 }
 
 /* Prevent horizontal scroll on all devices */
-html, body {
+html,
+body {
   overflow-x: hidden;
   width: 100%;
   position: relative;
 }
 
 /* Ensure all images are responsive */
-img, picture, video, canvas, svg {
+img,
+picture,
+video,
+canvas,
+svg {
   display: block;
   max-width: 100%;
   height: auto;
@@ -684,6 +657,7 @@ img, picture, video, canvas, svg {
 
 /* Disable animations for users who prefer reduced motion */
 @media (prefers-reduced-motion: reduce) {
+
   *,
   *::before,
   *::after {
@@ -698,7 +672,7 @@ img, picture, video, canvas, svg {
   .hide-on-mobile {
     display: none;
   }
-  
+
   .show-on-mobile {
     display: block;
   }
@@ -719,6 +693,7 @@ img, picture, video, canvas, svg {
   0% {
     transform: translateX(-100%);
   }
+
   100% {
     transform: translateX(100%);
   }
@@ -732,7 +707,8 @@ img, picture, video, canvas, svg {
 /* Optional: Add horizontal scroll prevention for very small screens */
 @media (max-width: 480px) {
   .grid-cols-3 {
-    gap: 0.5rem; /* Smaller gap on very small screens */
+    gap: 0.5rem;
+    /* Smaller gap on very small screens */
   }
 }
 
@@ -768,7 +744,7 @@ img, picture, video, canvas, svg {
 }
 
 /* Ensure all cards have equal height in the grid */
-.grid > div {
+.grid>div {
   height: auto;
   display: flex;
 }
@@ -786,7 +762,7 @@ img, picture, video, canvas, svg {
   .grid-cols-2 {
     gap: 0.5rem;
   }
-  
+
   /* Smaller button text on extremely small screens */
   .rounded-full {
     font-size: 0.65rem;
@@ -804,7 +780,3 @@ img, picture, video, canvas, svg {
 .whitespace-nowrap {
   white-space: nowrap;
 }
-
-
-
-

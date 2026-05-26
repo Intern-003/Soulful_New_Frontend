@@ -6,8 +6,7 @@ const selectCategoriesState = (state) => state.categories;
 // Memoized parent categories
 export const selectParentCategories = createSelector(
   [selectCategoriesState],
-  (categoriesState) =>
-    categoriesState.all.filter((cat) => cat.parent_id === null)
+  (categoriesState) => categoriesState.tree
 );
 
 // Memoized children by parent (with proper memoization)
