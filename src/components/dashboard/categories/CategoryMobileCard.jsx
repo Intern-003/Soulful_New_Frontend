@@ -58,18 +58,14 @@ const CategoryMobileCard = ({
       {/* IMAGE HEADER */}
       <div className="relative h-40 overflow-hidden bg-slate-100">
         <img
-          src={image}
-          alt={
-            item?.name
-          }
-          className="h-full w-full object-cover"
-          onError={(
-            e
-          ) =>
-            (e.currentTarget.src =
-              "/no-image.png")
-          }
-        />
+  src={image}
+  alt={item?.name}
+  className="h-full w-full object-cover"
+  onError={(e) => {
+    e.currentTarget.onerror = null;
+    e.currentTarget.src = "/no-image.png";
+  }}
+/>
 
         <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/10 to-transparent" />
 
