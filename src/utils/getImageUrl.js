@@ -21,5 +21,5 @@ export const getImageUrl = (path) => {
   }
 
   return `${BASE_URL}/uploads/${cleanPath}`;
-  //return `${BASE_URL}/public/uploads/${cleanPath}`;
+
 };

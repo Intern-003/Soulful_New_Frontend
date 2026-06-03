@@ -1,13 +1,14 @@
 import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
 import useGet from "../../../api/hooks/useGet";
 import usePut from "../../../api/hooks/usePut";
+import usePost from "../../../api/hooks/usePost";
+import { getImageUrl } from "../../../utils/getImageUrl";
 
 export default function PersonalInfo() {
-  const { data, loading, error } = useGet("/profile");
+  const { data, loading, error, refetch } = useGet("/profile");
   const { putData, loading: updating } = usePut("/profile/update");
+  const { postData } = usePost();
 
-  // ✅ FIX: form state (missing tha)
   const [form, setForm] = useState({
     firstName: "",
     lastName: "",
@@ -15,124 +16,177 @@ export default function PersonalInfo() {
     phone: "",
     dob: "",
     gender: "",
-    avatar: null,
   });
 
-  const [preview, setPreview] = useState("https://i.pravatar.cc/150");
+  const [preview, setPreview] = useState("/placeholder.jpg");
   const [editing, setEditing] = useState(false);
 
-  // ✅ API DATA SET
+  // ----------------------------
+  // LOAD PROFILE
+  // ----------------------------
   useEffect(() => {
-    if (data?.user) {
-      const user = data.user;
+    if (!data?.user) return;
 
-      const nameParts = user.name ? user.name.split(" ") : [];
+    const user = data.user;
+    const nameParts = user.name ? user.name.split(" ") : [];
 
-      setForm({
-        firstName: nameParts[0] || "",
-        lastName: nameParts.slice(1).join(" ") || "",
-        email: user.email || "",
-        phone: user.phone || "",
-        dob: user.profile?.dob || "",
-        gender: user.profile?.gender || "",
-        avatar: null,
-      });
+    setForm({
+      firstName: nameParts[0] || "",
+      lastName: nameParts.slice(1).join(" ") || "",
+      email: user.email || "",
+      phone: user.phone || "",
+      dob: user.profile?.date_of_birth
+        ? user.profile.date_of_birth.slice(0, 10)
+        : "",
+      gender: user.profile?.gender || "",
+    });
 
-      setPreview(user.profile?.avatar || "https://i.pravatar.cc/150");
-    }
+   
+    setPreview(
+  user.profile?.avatar_url ||
+  getImageUrl(user.profile?.avatar)
+);
   }, [data]);
 
+  // ----------------------------
+  // FORM CHANGE
+  // ----------------------------
   const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+    setForm((prev) => ({
+      ...prev,
+      [e.target.name]: e.target.value,
+    }));
   };
 
-  const handleImage = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
+  const handleImage = async (e) => {
+  const file = e.target.files?.[0];
+  if (!file) return;
 
-    setForm({ ...form, avatar: file });
-    setPreview(URL.createObjectURL(file));
-  };
+  const tempPreview = URL.createObjectURL(file);
+  setPreview(tempPreview);
 
+  try {
+    const fd = new FormData();
+    fd.append("avatar", file);
+
+    const res = await postData({
+      url: "/profile/avatar",
+      data: fd,
+    });
+
+    // IMPORTANT: trust backend response first
+    if (res?.avatar_url) {
+      
+      setPreview(getImageUrl(res.avatar_url));
+    }
+
+    // refresh profile after slight delay
+    setTimeout(() => {
+      refetch?.();
+    }, 300);
+
+  } catch (err) {
+    console.error("Avatar Upload Error:", err);
+
+    // rollback to old image
+    setPreview("/placeholder.jpg");
+  }
+};
+
+  // ----------------------------
+  // PROFILE UPDATE
+  // ----------------------------
   const handleSave = async () => {
     try {
-      const formData = new FormData();
+      await putData({
+        url: "/profile/update",
+        data: {
+          name: `${form.firstName} ${form.lastName}`.trim(),
+          phone: form.phone || null,
+          gender: form.gender || null,
+          date_of_birth: form.dob || null,
+        },
+      });
 
-      // 👇 merge name
-      formData.append("name", `${form.firstName} ${form.lastName}`);
-      formData.append("email", form.email);
-      formData.append("phone", form.phone);
-      formData.append("dob", form.dob);
-      formData.append("gender", form.gender);
-
-      if (form.avatar) {
-        formData.append("avatar", form.avatar);
-      }
-
-      await putData(formData);
-
-      alert("Profile updated successfully ✅");
-
+      await refetch?.({force:true});
       setEditing(false);
     } catch (err) {
-      console.error(err);
-      alert("Failed to update profile ❌");
+      console.error("Profile Update Error:", err);
     }
   };
 
-  if (loading) return <PersonalInfoSkeleton />;
-
-  if (error) {
-    return <p className="text-red-500">Failed to load profile</p>;
+  // ----------------------------
+  // LOADING / ERROR
+  // ----------------------------
+  if (loading) {
+    return (
+      <div className="max-w-5xl mx-auto p-6 animate-pulse">
+        <div className="h-6 w-40 bg-gray-200 rounded mb-6"></div>
+        <div className="h-24 w-24 bg-gray-200 rounded-full mb-6"></div>
+        <div className="grid grid-cols-2 gap-4">
+          {Array(6)
+            .fill(0)
+            .map((_, i) => (
+              <div key={i} className="h-10 bg-gray-200 rounded"></div>
+            ))}
+        </div>
+      </div>
+    );
   }
 
-  return (
-    <div className="relative max-w-4xl mx-auto">
-      {/* 🔥 Background Glow */}
-      <div className="absolute top-0 right-0 w-72 h-72 bg-[#7A1C3D]/10 blur-3xl rounded-full -z-10"></div>
+  if (error)
+    return (
+      <p className="text-red-500 text-sm">Failed to load profile</p>
+    );
 
-      {/* 💎 Card */}
-      <div className="bg-white/80 backdrop-blur-xl border border-[#ead9e0] rounded-2xl p-6 md:p-8 shadow-sm">
+  // ----------------------------
+  // UI
+  // ----------------------------
+  return (
+    <div className="relative max-w-5xl mx-auto px-3 sm:px-6">
+      {/* glow */}
+      <div className="absolute top-0 right-0 w-60 sm:w-72 h-60 sm:h-72 bg-[#7A1C3D]/10 blur-3xl rounded-full -z-10"></div>
+
+      <div className="bg-white/80 backdrop-blur-xl border border-[#ead9e0] rounded-2xl p-4 sm:p-6 md:p-8 shadow-sm">
+
         {/* HEADER */}
-        <div className="flex justify-between items-center mb-8">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
           <div>
-            <h2 className="text-2xl font-semibold text-[#2d0f1f]">
+            <h2 className="text-xl sm:text-2xl font-semibold text-[#2d0f1f]">
               Personal Info
             </h2>
-            <p className="text-sm text-gray-500">
+            <p className="text-xs sm:text-sm text-gray-500">
               Manage your personal details
             </p>
           </div>
 
-          {!editing ? (
-            <button
-              onClick={() => setEditing(true)}
-              className="px-5 py-2 rounded-lg border border-[#e7d3dc] text-sm hover:bg-[#f9f3f6] transition"
-            >
-              Edit Profile
-            </button>
-          ) : (
-            <button
-              onClick={handleSave}
-              disabled={updating}
-              className="bg-[#7A1C3D] text-white px-5 py-2 rounded-lg text-sm shadow-md hover:shadow-lg transition disabled:opacity-50"
-            >
-              {updating ? "Saving..." : "Save Changes"}
-            </button>
-          )}
+          <button
+            onClick={() => (editing ? handleSave() : setEditing(true))}
+            disabled={updating}
+            className={`w-full sm:w-auto px-5 py-2 rounded-lg text-sm transition
+              ${
+                editing
+                  ? "bg-[#7A1C3D] text-white"
+                  : "border border-[#e7d3dc] hover:bg-[#f9f3f6]"
+              }`}
+          >
+            {editing ? (updating ? "Saving..." : "Save Changes") : "Edit Profile"}
+          </button>
         </div>
 
         {/* PROFILE */}
-        <div className="flex items-center gap-6 mb-10">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-4 mb-10">
+
           <div className="relative">
             <img
               src={preview}
               alt="avatar"
-              className="w-20 h-20 rounded-full object-cover border"
+              className="w-20 h-20 sm:w-24 sm:h-24 rounded-full object-cover border"
+              onError={(e) => (e.target.src = "/placeholder.jpg")}
             />
 
             {editing && (
-              <label className="absolute bottom-0 right-0 bg-[#7A1C3D] text-white p-2 rounded-full cursor-pointer text-xs">
+              <label className="absolute bottom-0 right-0 bg-[#7A1C3D] text-white p-1.5 rounded-full cursor-pointer text-xs">
                 ✎
                 <input
                   type="file"
@@ -144,16 +198,19 @@ export default function PersonalInfo() {
             )}
           </div>
 
-          <div>
-            <h3 className="text-base font-medium text-[#2d0f1f]">
+          <div className="text-center sm:text-left">
+            <h3 className="text-base sm:text-lg font-medium text-[#2d0f1f]">
               {form.firstName} {form.lastName}
             </h3>
-            <p className="text-sm text-gray-500">{form.email}</p>
+            <p className="text-xs sm:text-sm text-gray-500 break-all">
+              {form.email}
+            </p>
           </div>
         </div>
 
         {/* FORM */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
+
           {[
             { label: "First Name", name: "firstName", type: "text" },
             { label: "Last Name", name: "lastName", type: "text" },
@@ -161,7 +218,7 @@ export default function PersonalInfo() {
             { label: "Phone", name: "phone", type: "text" },
             { label: "Date of Birth", name: "dob", type: "date" },
           ].map((field, i) => (
-            <motion.div key={i}>
+            <div key={i}>
               <label className="text-xs text-gray-500 block mb-1">
                 {field.label}
               </label>
@@ -171,21 +228,22 @@ export default function PersonalInfo() {
                 name={field.name}
                 value={form[field.name]}
                 onChange={handleChange}
-                disabled={!editing}
+                disabled={field.name === "email" || !editing}
                 className={`w-full px-3 py-2.5 text-sm rounded-lg border
                   ${
                     editing
                       ? "border-[#e7d3dc] focus:ring-1 focus:ring-[#7A1C3D]/30"
-                      : "bg-[#f8f5f7] border-transparent text-gray-500"
-                  }
-                `}
+                      : "bg-[#f8f5f7] text-gray-500 cursor-not-allowed"
+                  }`}
               />
-            </motion.div>
+            </div>
           ))}
 
           {/* GENDER */}
           <div>
-            <label className="text-xs text-gray-500 block mb-1">Gender</label>
+            <label className="text-xs text-gray-500 block mb-1">
+              Gender
+            </label>
 
             <select
               name="gender"
@@ -196,9 +254,8 @@ export default function PersonalInfo() {
                 ${
                   editing
                     ? "border-[#e7d3dc] focus:ring-1 focus:ring-[#7A1C3D]/30"
-                    : "bg-[#f8f5f7] border-transparent text-gray-500"
-                }
-              `}
+                    : "bg-[#f8f5f7] text-gray-500 cursor-not-allowed"
+                }`}
             >
               <option value="">Select</option>
               <option value="male">Male</option>
@@ -206,44 +263,7 @@ export default function PersonalInfo() {
               <option value="other">Other</option>
             </select>
           </div>
-        </div>
-      </div>
-    </div>
-  );
-}
 
-function PersonalInfoSkeleton() {
-  return (
-    <div className="relative max-w-4xl mx-auto animate-pulse">
-      <div className="bg-white/80 border border-gray-200 rounded-2xl p-6 md:p-8 shadow-sm">
-        {/* HEADER */}
-        <div className="flex justify-between items-center mb-8">
-          <div className="space-y-2">
-            <div className="h-6 w-40 bg-gray-200 rounded"></div>
-            <div className="h-3 w-56 bg-gray-200 rounded"></div>
-          </div>
-
-          <div className="h-9 w-28 bg-gray-200 rounded-lg"></div>
-        </div>
-
-        {/* PROFILE */}
-        <div className="flex items-center gap-6 mb-10">
-          <div className="w-20 h-20 rounded-full bg-gray-200"></div>
-
-          <div className="space-y-2">
-            <div className="h-4 w-32 bg-gray-200 rounded"></div>
-            <div className="h-3 w-40 bg-gray-200 rounded"></div>
-          </div>
-        </div>
-
-        {/* FORM */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="space-y-2">
-              <div className="h-3 w-24 bg-gray-200 rounded"></div>
-              <div className="h-10 w-full bg-gray-200 rounded-lg"></div>
-            </div>
-          ))}
         </div>
       </div>
     </div>

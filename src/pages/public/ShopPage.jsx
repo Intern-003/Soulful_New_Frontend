@@ -1,18 +1,12 @@
 import React, { useEffect, useState, useMemo } from "react";
-
 import { useDispatch, useSelector } from "react-redux";
-
 import { fetchCategories } from "../../app/slices/categorySlice";
-
 import { selectParentCategories } from "../../app/selectors/categorySelectors";
-
 import Sidebar from "../../components/shop/Sidebar";
-
 import ShopHeader from "../../components/shop/ShopHeader";
-
 import ProductGrid from "../../components/dashboard/products/ProductGrid";
-
 import useGet from "../../api/hooks/useGet";
+import { Link } from "react-router-dom";
 
 const ShopPage = () => {
   const dispatch = useDispatch();
@@ -251,17 +245,22 @@ const ShopPage = () => {
       <div className="bg-gradient-to-r from-[#fdf7f9] to-[#f6f1f3] border-b border-gray-200">
         <div className="max-w-[1600px] mx-auto px-4 md:px-8 py-6">
           {/* BREADCRUMB */}
-          <div className="flex items-center gap-2 text-sm text-gray-500">
-            <span className="hover:text-[#7a1c3d] cursor-pointer transition">
-              Home
-            </span>
+        
 
-            <span>/</span>
+<div className="flex items-center gap-2 text-sm text-gray-500">
+  <Link
+    to="/"
+    className="hover:text-[#7a1c3d] transition"
+  >
+    Home
+  </Link>
 
-            <span className="text-[#2d0f1f] font-medium">
-              Shop Products
-            </span>
-          </div>
+  <span>/</span>
+
+  <span className="text-[#2d0f1f] font-medium">
+    Shop Products
+  </span>
+</div>
 
           {/* TITLE */}
           <div className="flex flex-col md:flex-row md:items-end md:justify-between mt-3 gap-3">
