@@ -1,5 +1,6 @@
 // src/pages/dashboard/Products.jsx
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import { useSelector } from "react-redux";
 import useGet from "../../api/hooks/useGet";
 import usePost from "../../api/hooks/usePost";
 import usePut from "../../api/hooks/usePut";
@@ -8,71 +9,144 @@ import { getImageUrl } from "../../utils/getImageUrl";
 import ProductForm from "../../components/dashboard/products/ProductForm";
 import EditProductModal from "../../components/dashboard/products/EditProductModal";
 import AttributeManager from "../../components/dashboard/products/AttributeManager";
-import { Settings, CheckCircle, XCircle, Power, PowerOff, RefreshCw, CheckSquare, Square } from "lucide-react";
+import usePermissions from "../../api/hooks/usePermissions";
+import {
+  Settings,
+  CheckCircle,
+  XCircle,
+  Power,
+  PowerOff,
+  RefreshCw,
+  CheckSquare,
+  Square,
+  Pencil  // 👈 Replace DollarSign with Percent
+} from "lucide-react";
 import toast from "react-hot-toast";
 
+// Constants
+const APPROVAL_STATUS = {
+  PENDING: 'pending',
+  APPROVED: 'approved',
+  REJECTED: 'rejected'
+};
+
+const COMMISSION_TYPES = {
+  PERCENTAGE: 'percentage',
+  FIXED: 'fixed'
+};
+
 const Products = () => {
-  const { data, loading, error, refetch } = useGet("/admin/products");
+  // ========================================
+  // PERMISSIONS & AUTH
+  // ========================================
+  const { can, canAny } = usePermissions();
+  const user = useSelector((state) => state.auth.user);
+  const role = useSelector((state) => state.auth.role);
+  const isAdmin = role === 'admin' || role === 'Admin';
+
+  // Permission checks
+  const permissions = useMemo(() => ({
+    canViewAllProducts: can('product', 'view_all') || isAdmin,
+    canApproveProducts: can('product', 'approve') || isAdmin,
+    canUpdateProducts: can('product', 'update') || isAdmin,
+    canDeleteProducts: can('product', 'delete') || isAdmin,
+    canManageCommission: can('commission', 'update') || isAdmin,
+    canViewCommission: can('commission', 'view') || isAdmin,
+    canViewVendorEarnings: can('vendor', 'earnings_view') || isAdmin,
+    canBulkApprove: can('product', 'bulk_approve') || isAdmin,
+    canViewVendors: can('vendor', 'view') || isAdmin,
+  }), [can, isAdmin]);
+
+  // ========================================
+  // API HOOKS
+  // ========================================
+  const apiEndpoint = isAdmin ? "/admin/products" : "/vendor/products";
+  const { data, loading, error, refetch } = useGet(apiEndpoint);
   const { postData } = usePost();
   const { putData } = usePut();
-  const { deleteData } = useDelete("");
+  const { deleteData } = useDelete();
+  const { data: vendorsData, loading: vendorsLoading } = useGet("/admin/vendors");
 
+  // ========================================
+  // STATE
+  // ========================================
   const [showModal, setShowModal] = useState(false);
   const [editId, setEditId] = useState(null);
   const [showAttributeManager, setShowAttributeManager] = useState(false);
   const [actionLoading, setActionLoading] = useState(null);
   const [localProducts, setLocalProducts] = useState([]);
-
-  // Bulk selection states
   const [selectedProducts, setSelectedProducts] = useState(new Set());
   const [bulkActionLoading, setBulkActionLoading] = useState(false);
 
   // Modal states
-  const [approvalModal, setApprovalModal] = useState({
-    open: false,
-    product: null,
-    action: null,
-  });
-  
-  const [bulkModal, setBulkModal] = useState({
-    open: false,
-    action: null,
+  const [approvalModal, setApprovalModal] = useState({ open: false, product: null, action: null });
+  const [bulkModal, setBulkModal] = useState({ open: false, action: null });
+  const [commissionModal, setCommissionModal] = useState({ open: false, product: null });
+
+  // Filters
+  const [filters, setFilters] = useState({
+    search: "",
+    stockFilter: "",
+    approvalFilter: "",
+    statusFilter: "",
+    vendorFilter: ""
   });
 
-  // Use ref to track initial load
+  const [page, setPage] = useState(1);
   const isInitialLoad = useRef(true);
 
-  // Search + Filter
-  const [search, setSearch] = useState("");
-  const [stockFilter, setStockFilter] = useState("");
-  const [approvalFilter, setApprovalFilter] = useState("");
-  const [statusFilter, setStatusFilter] = useState("");
+  // ========================================
+  // DATA EXTRACTION
+  // ========================================
+  const products = data?.data?.data || [];
+  const meta = data?.data;
+  const vendors = vendorsData?.data || [];
+  const currencySymbol = '₹';
 
-  // Pagination
-  const [page, setPage] = useState(1);
+  // ========================================
+  // UTILITY FUNCTIONS
+  // ========================================
+  const formatCurrency = useCallback((amount) => {
+    if (amount === null || amount === undefined) return `${currencySymbol}0`;
+    return `${currencySymbol}${parseFloat(amount).toFixed(2)}`;
+  }, [currencySymbol]);
 
-  const products = data?.data || [];
-  const meta = data;
-
-  // Helper function to get vendor/creator name
-  const getVendorCreatorName = (product) => {
-    if (product.vendor && product.vendor.store_name) {
-      return product.vendor.store_name;
-    }
-    if (product.user && product.user.name) {
-      return product.user.name;
-    }
+  const getVendorCreatorName = useCallback((product) => {
+    if (product.vendor?.store_name) return product.vendor.store_name;
+    if (product.user?.name) return product.user.name;
     return "N/A";
-  };
+  }, []);
 
-  // Helper function to calculate price after commission
-  const calculatePriceAfterCommission = (price, commission) => {
-    if (!price || !commission) return price;
+  const getVendorCreatorId = useCallback((product) => {
+    return product.vendor?.id || null;
+  }, []);
+
+  const calculatePriceAfterCommission = useCallback((price, commission, commissionType = 'percentage') => {
+    if (!price || price === 0) return 0;
+    if (!commission || commission === 0) return parseFloat(price);
+
+    if (commissionType === 'fixed') {
+      const result = parseFloat(price) - parseFloat(commission);
+      return result > 0 ? result : 0;
+    }
     const commissionAmount = (parseFloat(price) * parseFloat(commission)) / 100;
-    return commissionAmount.toFixed(2);
-  };
+    const result = parseFloat(price) - commissionAmount;
+    return result > 0 ? result : 0;
+  }, []);
 
-  // Update local products only when products reference changes
+  const calculateCommissionAmount = useCallback((price, commission, commissionType = 'percentage') => {
+    if (!price || price === 0) return 0;
+    if (!commission || commission === 0) return 0;
+
+    if (commissionType === 'fixed') {
+      return parseFloat(commission);
+    }
+    return (parseFloat(price) * parseFloat(commission)) / 100;
+  }, []);
+
+  // ========================================
+  // EFFECTS
+  // ========================================
   useEffect(() => {
     if (isInitialLoad.current) {
       setLocalProducts(products);
@@ -80,77 +154,117 @@ const Products = () => {
     } else if (JSON.stringify(localProducts) !== JSON.stringify(products)) {
       setLocalProducts(products);
     }
-  }, [products]);
+  }, [products, localProducts]);
 
-  // Filter logic (using localProducts for instant updates)
-  const filteredProducts = localProducts.filter((p) => {
-    const matchesSearch = p.name?.toLowerCase().includes(search.toLowerCase());
-    const matchesStock =
-      stockFilter === "in" ? p.stock > 0 : stockFilter === "out" ? p.stock === 0 : true;
-    const matchesApproval =
-      approvalFilter === "approved"
-        ? p.approval_status === "approved"
-        : approvalFilter === "pending"
-          ? p.approval_status === "pending"
-          : approvalFilter === "rejected"
-            ? p.approval_status === "rejected"
+  // ========================================
+  // FILTERED PRODUCTS
+  // ========================================
+  const filteredProducts = useMemo(() => {
+    if (!Array.isArray(localProducts)) return [];
+
+    return localProducts.filter((p) => {
+      // Permission check - only show own products if not admin
+      if (!isAdmin && !permissions.canViewAllProducts) {
+        const vendorId = p.vendor?.id || p.vendor_id;
+        const userId = p.user?.id || p.user_id;
+        const currentUserId = user?.id;
+        const currentVendorId = user?.vendor?.id;
+
+        if (vendorId && vendorId !== currentVendorId) return false;
+        if (userId && userId !== currentUserId) return false;
+      }
+
+      const matchesSearch = p.name?.toLowerCase().includes(filters.search.toLowerCase());
+      const matchesStock = filters.stockFilter === "in" ? p.stock > 0
+        : filters.stockFilter === "out" ? p.stock === 0
+          : true;
+      const matchesApproval = filters.approvalFilter === "approved" ? p.approval_status === "approved"
+        : filters.approvalFilter === "pending" ? p.approval_status === "pending"
+          : filters.approvalFilter === "rejected" ? p.approval_status === "rejected"
             : true;
-    const matchesStatus =
-      statusFilter === "active" ? p.status === 1 : statusFilter === "inactive" ? p.status === 0 : true;
-    return matchesSearch && matchesStock && matchesApproval && matchesStatus;
-  });
+      const matchesStatus = filters.statusFilter === "active" ? p.status === 1
+        : filters.statusFilter === "inactive" ? p.status === 0
+          : true;
+      const matchesVendor = filters.vendorFilter ? getVendorCreatorId(p) == filters.vendorFilter : true;
 
-  // Bulk selection handlers
-  const toggleSelectAll = () => {
+      return matchesSearch && matchesStock && matchesApproval && matchesStatus && matchesVendor;
+    });
+  }, [localProducts, filters, isAdmin, permissions.canViewAllProducts, user, getVendorCreatorId]);
+
+  // ========================================
+  // COLUMN CONFIGURATION
+  // ========================================
+  const showBulkActions = permissions.canBulkApprove || isAdmin;
+  const showCommissionColumn = permissions.canViewCommission || isAdmin;
+  const showAdminEarnsColumn = permissions.canViewCommission || isAdmin;
+  const showVendorEarnsColumn = permissions.canViewVendorEarnings || isAdmin;
+  const showApprovalColumn = permissions.canApproveProducts || isAdmin;
+  const showStatusColumn = permissions.canUpdateProducts || isAdmin;
+  const showDeleteAction = permissions.canDeleteProducts || isAdmin;
+  const showEditAction = permissions.canUpdateProducts || isAdmin;
+  const showCommissionAction = permissions.canManageCommission || isAdmin;
+
+  const columnCount = useMemo(() => {
+    let count = 4; // Image, Name, Price, Vendor/Creator
+    if (showBulkActions) count++;
+    if (showCommissionColumn) count++;
+    if (showAdminEarnsColumn) count++;
+    if (showVendorEarnsColumn) count++;
+    if (showApprovalColumn) count++;
+    if (showStatusColumn) count++;
+    count++; // Actions column
+    count++; // Stock column
+    return count;
+  }, [showBulkActions, showCommissionColumn, showAdminEarnsColumn, showVendorEarnsColumn, showApprovalColumn, showStatusColumn]);
+
+  // ========================================
+  // BULK SELECTION HANDLERS
+  // ========================================
+  const toggleSelectAll = useCallback(() => {
     if (selectedProducts.size === filteredProducts.length) {
       setSelectedProducts(new Set());
     } else {
       setSelectedProducts(new Set(filteredProducts.map(p => p.id)));
     }
-  };
+  }, [selectedProducts, filteredProducts]);
 
-  const toggleSelectProduct = (id) => {
-    const newSelected = new Set(selectedProducts);
-    if (newSelected.has(id)) {
-      newSelected.delete(id);
-    } else {
-      newSelected.add(id);
-    }
-    setSelectedProducts(newSelected);
-  };
+  const toggleSelectProduct = useCallback((id) => {
+    setSelectedProducts(prev => {
+      const newSelected = new Set(prev);
+      if (newSelected.has(id)) {
+        newSelected.delete(id);
+      } else {
+        newSelected.add(id);
+      }
+      return newSelected;
+    });
+  }, []);
 
-  // Bulk Approve/Reject handler - Opens modal instead of confirm
-  const handleBulkAction = (action) => {
+  const handleBulkAction = useCallback((action) => {
     if (selectedProducts.size === 0) {
-      toast.error("Please select products to " + action);
+      toast.error(`Please select products to ${action}`);
       return;
     }
-    
-    // Open bulk modal
-    setBulkModal({
-      open: true,
-      action: action
-    });
-  };
+    setBulkModal({ open: true, action });
+  }, [selectedProducts]);
 
-  // Handle bulk modal submit
-  const handleBulkSubmit = async ({ action, commission, rejection_reason }) => {
+  const handleBulkSubmit = useCallback(async ({ action, commission, commission_type, rejection_reason }) => {
     setBulkActionLoading(true);
     setBulkModal({ open: false, action: null });
 
-    // Optimistic update - Update all selected products in UI
     const isApprove = action === 'approve';
-    setLocalProducts(prev => prev.map(p =>
-      selectedProducts.has(p.id)
-        ? {
-          ...p,
-          approval_status: isApprove ? "approved" : "rejected",
-          status: isApprove ? 1 : 0,
-          commission: commission || p.commission,
-          rejection_reason: rejection_reason || p.rejection_reason,
-        }
-        : p
-    ));
+
+    // Optimistic update
+    setLocalProducts(prev => Array.isArray(prev) ? prev.map(p =>
+      selectedProducts.has(p.id) ? {
+        ...p,
+        approval_status: isApprove ? "approved" : "rejected",
+        status: isApprove ? 1 : 0,
+        commission: commission || p.commission,
+        commission_type: commission_type || p.commission_type,
+        rejection_reason: rejection_reason || p.rejection_reason,
+      } : p
+    ) : []);
 
     try {
       await postData({
@@ -159,6 +273,7 @@ const Products = () => {
           ids: Array.from(selectedProducts),
           action: action,
           commission: commission,
+          commission_type: commission_type,
           rejection_reason: rejection_reason,
         }
       });
@@ -167,47 +282,221 @@ const Products = () => {
       setSelectedProducts(new Set());
       await refetch({ force: true });
     } catch (err) {
-      // Revert on error
       await refetch({ force: true });
-      toast.error(err?.response?.data?.message || `Failed to ${action} products`);
+      const errorMessage = err?.response?.data?.message || err.message || `Failed to ${action} products`;
+      toast.error(errorMessage);
     } finally {
       setBulkActionLoading(false);
     }
-  };
+  }, [selectedProducts, postData, refetch]);
 
-  // Handle dropdown approval change
-  const handleApprovalChange = (productId, newStatus) => {
-    // Don't do anything if status is the same
-    const product = localProducts.find(p => p.id === productId);
-    if (product.approval_status === newStatus) return;
-
-    // Open modal for approve/reject actions
-    if (newStatus === 'approved') {
-      setApprovalModal({
-        open: true,
-        product: product,
-        action: 'approve'
-      });
-    } else if (newStatus === 'rejected') {
-      setApprovalModal({
-        open: true,
-        product: product,
-        action: 'reject'
-      });
+  // ========================================
+  // APPROVAL HANDLERS
+  // ========================================
+  const handleApprovalChange = useCallback((productId, newStatus) => {
+    if (!permissions.canApproveProducts && !isAdmin) {
+      toast.error("You don't have permission to change approval status");
+      return;
     }
-  };
 
-  // Single Product Approval Modal Component
+    const product = Array.isArray(localProducts) ? localProducts.find(p => p.id === productId) : null;
+    if (!product || product.approval_status === newStatus) return;
+
+    if (newStatus === 'approved') {
+      setApprovalModal({ open: true, product, action: 'approve' });
+    } else if (newStatus === 'rejected') {
+      setApprovalModal({ open: true, product, action: 'reject' });
+    }
+  }, [permissions.canApproveProducts, isAdmin, localProducts]);
+
+  const handleApprovalSubmit = useCallback(async ({ product, action, commission, commission_type, rejection_reason }) => {
+    setActionLoading(`approval-${product.id}`);
+
+    try {
+      await postData({
+        url: `/admin/products/${product.id}/toggle-approval`,
+        data: {
+          action,
+          commission,
+          commission_type,
+          rejection_reason,
+        },
+      });
+
+      setLocalProducts(prev => Array.isArray(prev) ? prev.map(p =>
+        p.id === product.id ? {
+          ...p,
+          approval_status: action === "approve" ? "approved" : "rejected",
+          status: action === "approve" ? 1 : 0,
+          commission: commission || p.commission,
+          commission_type: commission_type || p.commission_type,
+          rejection_reason: rejection_reason || p.rejection_reason,
+        } : p
+      ) : []);
+
+      toast.success(`Product ${action}d successfully`);
+      await refetch({ force: true });
+    } catch (err) {
+      await refetch({ force: true });
+      const errorMessage = err?.response?.data?.message || err.message || "Failed to update approval status";
+      toast.error(errorMessage);
+    } finally {
+      setApprovalModal({ open: false, product: null, action: null });
+      setActionLoading(null);
+    }
+  }, [postData, refetch]);
+
+  // ========================================
+  // COMMISSION HANDLERS
+  // ========================================
+  const handleCommissionUpdate = useCallback(async (productId, commission, commissionType) => {
+    if (!permissions.canManageCommission && !isAdmin) {
+      toast.error("You don't have permission to update commission");
+      return;
+    }
+
+    setActionLoading(`commission-${productId}`);
+    try {
+      await putData({
+        url: `/admin/products/${productId}/commission`,
+        data: {
+          commission: commission,
+          commission_type: commissionType
+        }
+      });
+
+      setLocalProducts(prev => Array.isArray(prev) ? prev.map(p =>
+        p.id === productId ? { ...p, commission, commission_type: commissionType } : p
+      ) : []);
+
+      toast.success("Commission updated successfully");
+      setCommissionModal({ open: false, product: null });
+      await refetch({ force: true });
+    } catch (err) {
+      await refetch({ force: true });
+      const errorMessage = err?.response?.data?.message || err.message || "Failed to update commission";
+      toast.error(errorMessage);
+    } finally {
+      setActionLoading(null);
+    }
+  }, [permissions.canManageCommission, isAdmin, putData, refetch]);
+
+  // ========================================
+  // STATUS HANDLERS
+  // ========================================
+  const handleToggleStatus = useCallback(async (id, currentStatus) => {
+    if (!permissions.canUpdateProducts && !isAdmin) {
+      toast.error("You don't have permission to update product status");
+      return;
+    }
+
+    setLocalProducts(prev => Array.isArray(prev) ? prev.map(p =>
+      p.id === id ? { ...p, status: currentStatus === 1 ? 0 : 1 } : p
+    ) : []);
+
+    setActionLoading(`status-${id}`);
+    try {
+      await postData({
+        url: `/admin/products/${id}/toggle-status`,
+        data: {}
+      });
+      toast.success(currentStatus === 1 ? "Product deactivated" : "Product activated");
+      await refetch({ force: true });
+    } catch (err) {
+      await refetch({ force: true });
+      const errorMessage = err?.response?.data?.message || err.message || "Failed to update status";
+      toast.error(errorMessage);
+    } finally {
+      setActionLoading(null);
+    }
+  }, [permissions.canUpdateProducts, isAdmin, postData, refetch]);
+
+  // ========================================
+  // DELETE HANDLER
+  // ========================================
+  // In Products.jsx - Update the handleDelete function
+
+  const handleDelete = useCallback(async (id) => {
+    if (!permissions.canDeleteProducts && !isAdmin) {
+      toast.error("You don't have permission to delete products");
+      return;
+    }
+
+    if (!window.confirm("Are you sure you want to delete this product?")) return;
+
+    // Optimistic update
+    setLocalProducts(prev => Array.isArray(prev) ? prev.filter(p => p.id !== id) : []);
+    setSelectedProducts(prev => {
+      const newSet = new Set(prev);
+      newSet.delete(id);
+      return newSet;
+    });
+
+    try {
+      // ✅ Use admin endpoint for admin, vendor endpoint for vendors
+      const endpoint = isAdmin ? `/admin/products/${id}` : `/vendor/products/${id}`;
+      await deleteData({ url: endpoint });
+      toast.success("Product deleted successfully");
+      await refetch({ force: true });
+    } catch (err) {
+      // Revert optimistic update on error
+      await refetch({ force: true });
+      const errorMessage = err?.response?.data?.message || err.message || "Failed to delete product";
+      toast.error(errorMessage);
+    }
+  }, [permissions.canDeleteProducts, isAdmin, deleteData, refetch]);
+  // ========================================
+  // PAGINATION
+  // ========================================
+  const handlePageChange = useCallback((newPage) => {
+    setPage(newPage);
+    setSelectedProducts(new Set());
+    refetch({ url: `${apiEndpoint}?page=${newPage}`, force: true });
+  }, [apiEndpoint, refetch]);
+
+  // ========================================
+  // FILTER HANDLERS
+  // ========================================
+  const handleFilterChange = useCallback((key, value) => {
+    setFilters(prev => ({ ...prev, [key]: value }));
+    setPage(1);
+  }, []);
+
+  // ========================================
+  // RENDER HELPER - Loading & Error States
+  // ========================================
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#7a1c3d]"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-6 text-center text-red-500">
+        Error loading products: {error}
+      </div>
+    );
+  }
+
+  // ========================================
+  // MODAL COMPONENTS
+  // ========================================
+
+  // Approval Modal
   const ApprovalModal = ({ product, action, onClose, onSubmit }) => {
-    const [commission, setCommission] = useState("");
+    const [commission, setCommission] = useState(product?.commission || "");
+    const [commissionType, setCommissionType] = useState(product?.commission_type || "percentage");
     const [reason, setReason] = useState("");
 
     const handleSubmit = () => {
-      if (action === "approve" && !commission) {
-        toast.error("Please enter commission percentage");
+      if (action === "approve" && (!commission && commission !== 0)) {
+        toast.error("Please enter commission");
         return;
       }
-      if (action === "reject" && !reason) {
+      if (action === "reject" && !reason.trim()) {
         toast.error("Please enter rejection reason");
         return;
       }
@@ -215,8 +504,9 @@ const Products = () => {
       onSubmit({
         product,
         action,
-        commission,
-        rejection_reason: reason,
+        commission: parseFloat(commission) || 0,
+        commission_type: commissionType,
+        rejection_reason: reason.trim(),
       });
     };
 
@@ -228,24 +518,40 @@ const Products = () => {
               {action === "approve" ? "Approve Product" : "Reject Product"}
             </h2>
             <p className="text-sm text-gray-600 mb-4 break-words">
-              {action === "approve" ? "Approve:" : "Reject:"} {product.name}
+              {action === "approve" ? "Approve:" : "Reject:"} {product?.name}
             </p>
 
             {action === "approve" && (
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Commission Percentage <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="number"
-                  step="0.01"
-                  placeholder="Enter commission percentage"
-                  value={commission}
-                  onChange={(e) => setCommission(e.target.value)}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#7a1c3d] focus:border-transparent outline-none transition"
-                  autoFocus
-                />
-              </div>
+              <>
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Commission {commissionType === 'fixed' ? `(${currencySymbol})` : '(%)'} <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    placeholder={commissionType === 'fixed' ? `Enter commission amount in ${currencySymbol}` : "Enter commission percentage"}
+                    value={commission}
+                    onChange={(e) => setCommission(e.target.value)}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#7a1c3d] focus:border-transparent outline-none transition"
+                    autoFocus
+                  />
+                </div>
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Commission Type <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    value={commissionType}
+                    onChange={(e) => setCommissionType(e.target.value)}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#7a1c3d] focus:border-transparent outline-none transition"
+                  >
+                    <option value="percentage">Percentage (%)</option>
+                    <option value="fixed">Fixed Amount ({currencySymbol})</option>
+                  </select>
+                </div>
+              </>
             )}
 
             {action === "reject" && (
@@ -284,18 +590,19 @@ const Products = () => {
     );
   };
 
-  // Bulk Approval Modal Component
+  // Bulk Approval Modal
   const BulkApprovalModal = ({ action, selectedCount, onClose, onSubmit }) => {
     const [commission, setCommission] = useState("");
+    const [commissionType, setCommissionType] = useState("percentage");
     const [reason, setReason] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     const handleSubmit = async () => {
-      if (action === "approve" && !commission) {
-        toast.error("Please enter commission percentage");
+      if (action === "approve" && (!commission && commission !== 0)) {
+        toast.error("Please enter commission");
         return;
       }
-      if (action === "reject" && !reason) {
+      if (action === "reject" && !reason.trim()) {
         toast.error("Please enter rejection reason");
         return;
       }
@@ -303,8 +610,9 @@ const Products = () => {
       setIsSubmitting(true);
       await onSubmit({
         action,
-        commission,
-        rejection_reason: reason,
+        commission: parseFloat(commission) || 0,
+        commission_type: commissionType,
+        rejection_reason: reason.trim(),
       });
       setIsSubmitting(false);
     };
@@ -321,23 +629,39 @@ const Products = () => {
             </p>
 
             {action === "approve" && (
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Commission Percentage <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="number"
-                  step="0.01"
-                  placeholder="Enter commission percentage for all products"
-                  value={commission}
-                  onChange={(e) => setCommission(e.target.value)}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#7a1c3d] focus:border-transparent outline-none transition"
-                  autoFocus
-                />
+              <>
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Commission {commissionType === 'fixed' ? `(${currencySymbol})` : '(%)'} <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    placeholder={commissionType === 'fixed' ? `Enter commission amount in ${currencySymbol}` : "Enter commission percentage for all products"}
+                    value={commission}
+                    onChange={(e) => setCommission(e.target.value)}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#7a1c3d] focus:border-transparent outline-none transition"
+                    autoFocus
+                  />
+                </div>
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Commission Type <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    value={commissionType}
+                    onChange={(e) => setCommissionType(e.target.value)}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#7a1c3d] focus:border-transparent outline-none transition"
+                  >
+                    <option value="percentage">Percentage (%)</option>
+                    <option value="fixed">Fixed Amount ({currencySymbol})</option>
+                  </select>
+                </div>
                 <p className="text-xs text-gray-500 mt-1">
                   This commission will apply to all selected products
                 </p>
-              </div>
+              </>
             )}
 
             {action === "reject" && (
@@ -370,7 +694,7 @@ const Products = () => {
               <button
                 onClick={handleSubmit}
                 disabled={isSubmitting}
-                className="px-4 py-2 bg-[#7a1c3d] text-white rounded-lg hover:bg-[#5e132f] transition font-medium disabled:opacity-50 flex items-center gap-2"
+                className="px-4 py-2 bg-[#7a1c3d] text-white rounded-lg hover:bg-[#5e132f] transition font-medium flex items-center gap-2"
               >
                 {isSubmitting && <RefreshCw size={16} className="animate-spin" />}
                 {action === "approve" ? "Approve All" : "Reject All"}
@@ -382,97 +706,106 @@ const Products = () => {
     );
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this product?")) return;
+  // Commission Edit Modal
+  const CommissionModal = ({ product, onClose, onSubmit }) => {
+    const [commission, setCommission] = useState(product?.commission || "");
+    const [commissionType, setCommissionType] = useState(product?.commission_type || "percentage");
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
-    setLocalProducts(prev => prev.filter(p => p.id !== id));
+    const sellingPrice = product?.discount_price || product?.price || 0;
+    const vendorEarns = calculatePriceAfterCommission(sellingPrice, commission, commissionType);
+    const adminEarns = calculateCommissionAmount(sellingPrice, commission, commissionType);
 
-    try {
-      await deleteData({ url: `/vendor/products/${id}` });
-      toast.success("Product deleted successfully");
-      // Remove from selected set if present
-      setSelectedProducts(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(id);
-        return newSet;
-      });
-    } catch (err) {
-      await refetch({ force: true });
-      toast.error("Failed to delete product");
-    }
+    const handleSubmit = async () => {
+      if (!commission && commission !== 0) {
+        toast.error("Please enter commission");
+        return;
+      }
+      setIsSubmitting(true);
+      await onSubmit(product.id, parseFloat(commission) || 0, commissionType);
+      setIsSubmitting(false);
+    };
+
+    return (
+      <div className="fixed inset-0 bg-black/50 flex justify-center items-center z-50 p-4">
+        <div className="bg-white rounded-xl w-full max-w-md">
+          <div className="p-6">
+            <h2 className="text-xl font-bold text-gray-800 mb-4">Update Commission</h2>
+            <p className="text-sm text-gray-600 mb-4">Product: {product?.name}</p>
+            <p className="text-sm text-gray-600 mb-4">Selling Price: {formatCurrency(sellingPrice)}</p>
+
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Commission {commissionType === 'fixed' ? `(${currencySymbol})` : '(%)'} <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                placeholder={commissionType === 'fixed' ? `Enter commission amount in ${currencySymbol}` : "Enter commission percentage"}
+                value={commission}
+                onChange={(e) => setCommission(e.target.value)}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#7a1c3d] focus:border-transparent outline-none transition"
+                autoFocus
+              />
+            </div>
+
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Commission Type <span className="text-red-500">*</span>
+              </label>
+              <select
+                value={commissionType}
+                onChange={(e) => setCommissionType(e.target.value)}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#7a1c3d] focus:border-transparent outline-none transition"
+              >
+                <option value="percentage">Percentage (%)</option>
+                <option value="fixed">Fixed Amount ({currencySymbol})</option>
+              </select>
+            </div>
+
+            {commission && (
+              <div className="mb-4 p-3 bg-gray-50 rounded-lg">
+                <p className="text-sm font-medium text-gray-700 mb-2">Preview:</p>
+                <div className="space-y-1 text-sm">
+                  <p className="flex justify-between">
+                    <span className="text-gray-600">Admin Earns:</span>
+                    <span className="font-medium text-green-600">{formatCurrency(adminEarns)}</span>
+                  </p>
+                  <p className="flex justify-between">
+                    <span className="text-gray-600">Vendor Earns:</span>
+                    <span className="font-medium text-blue-600">{formatCurrency(vendorEarns)}</span>
+                  </p>
+                </div>
+              </div>
+            )}
+
+            <div className="flex justify-end gap-3 mt-6">
+              <button
+                onClick={onClose}
+                disabled={isSubmitting}
+                className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition font-medium"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSubmit}
+                disabled={isSubmitting}
+                className="px-4 py-2 bg-[#7a1c3d] text-white rounded-lg hover:bg-[#5e132f] transition font-medium flex items-center gap-2"
+              >
+                {isSubmitting && <RefreshCw size={16} className="animate-spin" />}
+                Update Commission
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
   };
 
-  const handleApprovalSubmit = async ({ product, action, commission, rejection_reason }) => {
-    setActionLoading(`approval-${product.id}`);
-
-    try {
-      await postData({
-        url: `/admin/products/${product.id}/toggle-approval`,
-        data: {
-          action,
-          commission,
-          rejection_reason,
-        },
-      });
-
-      // Update UI AFTER success
-      setLocalProducts(prev =>
-        prev.map(p =>
-          p.id === product.id
-            ? {
-              ...p,
-              approval_status: action === "approve" ? "approved" : "rejected",
-              status: action === "approve" ? 1 : 0,
-              commission: commission || p.commission,
-              rejection_reason: rejection_reason || p.rejection_reason,
-            }
-            : p
-        )
-      );
-
-      toast.success(`Product ${action}d successfully`);
-    } catch (err) {
-      await refetch({ force: true });
-      toast.error(err?.response?.data?.message || "Failed to update approval status");
-    } finally {
-      setApprovalModal({ open: false, product: null, action: null });
-      setActionLoading(null);
-    }
-  };
-
-  const handleToggleStatus = async (id, currentStatus) => {
-    setLocalProducts(prev => prev.map(p =>
-      p.id === id ? { ...p, status: currentStatus === 1 ? 0 : 1 } : p
-    ));
-
-    setActionLoading(`status-${id}`);
-    try {
-      await putData({ url: `/admin/products/${id}/toggle-status` });
-      toast.success(currentStatus === 1 ? "Product deactivated" : "Product activated");
-    } catch (err) {
-      await refetch({ force: true });
-      toast.error(err?.response?.data?.message || "Failed to update status");
-    } finally {
-      setActionLoading(null);
-    }
-  };
-
-  const handlePageChange = (newPage) => {
-    setPage(newPage);
-    setSelectedProducts(new Set()); // Clear selections on page change
-    refetch({ url: `/admin/products?page=${newPage}`, force: true });
-  };
-
-  if (loading) return (
-    <div className="flex justify-center items-center h-64">
-      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#7a1c3d]"></div>
-    </div>
-  );
-
-  if (error) return (
-    <div className="p-6 text-center text-red-500">Error loading products: {error}</div>
-  );
-
+  // ========================================
+  // MAIN RENDER
+  // ========================================
   return (
     <div className="p-4 sm:p-6">
       {/* HEADER */}
@@ -480,13 +813,15 @@ const Products = () => {
         <h1 className="text-2xl font-bold text-[#7a1c3d]">Products</h1>
 
         <div className="flex flex-wrap gap-3">
-          <button
-            onClick={() => setShowAttributeManager(true)}
-            className="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition flex items-center gap-2 text-sm sm:text-base"
-          >
-            <Settings size={18} />
-            Manage Attributes
-          </button>
+          {(isAdmin || canAny('attribute')) && (
+            <button
+              onClick={() => setShowAttributeManager(true)}
+              className="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition flex items-center gap-2 text-sm sm:text-base"
+            >
+              <Settings size={18} />
+              Manage Attributes
+            </button>
+          )}
 
           <button
             onClick={() => setShowModal(true)}
@@ -498,7 +833,7 @@ const Products = () => {
       </div>
 
       {/* Bulk Actions Bar */}
-      {selectedProducts.size > 0 && (
+      {showBulkActions && selectedProducts.size > 0 && (
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4 flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <span className="text-sm font-medium text-blue-800">
@@ -533,17 +868,17 @@ const Products = () => {
       )}
 
       {/* Filters */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 mb-4">
         <input
           type="text"
           placeholder="Search product..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          value={filters.search}
+          onChange={(e) => handleFilterChange('search', e.target.value)}
           className="border px-3 py-2 rounded-lg text-sm focus:ring-2 focus:ring-[#7a1c3d] outline-none"
         />
         <select
-          value={stockFilter}
-          onChange={(e) => setStockFilter(e.target.value)}
+          value={filters.stockFilter}
+          onChange={(e) => handleFilterChange('stockFilter', e.target.value)}
           className="border px-3 py-2 rounded-lg text-sm focus:ring-2 focus:ring-[#7a1c3d] outline-none"
         >
           <option value="">All Stock</option>
@@ -552,8 +887,8 @@ const Products = () => {
         </select>
 
         <select
-          value={approvalFilter}
-          onChange={(e) => setApprovalFilter(e.target.value)}
+          value={filters.approvalFilter}
+          onChange={(e) => handleFilterChange('approvalFilter', e.target.value)}
           className="border px-3 py-2 rounded-lg text-sm focus:ring-2 focus:ring-[#7a1c3d] outline-none"
         >
           <option value="">All Approval</option>
@@ -563,75 +898,107 @@ const Products = () => {
         </select>
 
         <select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
+          value={filters.statusFilter}
+          onChange={(e) => handleFilterChange('statusFilter', e.target.value)}
           className="border px-3 py-2 rounded-lg text-sm focus:ring-2 focus:ring-[#7a1c3d] outline-none"
         >
           <option value="">All Status</option>
           <option value="active">Active</option>
           <option value="inactive">Inactive</option>
         </select>
+
+        <select
+          value={filters.vendorFilter}
+          onChange={(e) => handleFilterChange('vendorFilter', e.target.value)}
+          className="border px-3 py-2 rounded-lg text-sm focus:ring-2 focus:ring-[#7a1c3d] outline-none"
+          disabled={vendorsLoading}
+        >
+          <option value="">All Vendors</option>
+          {Array.isArray(vendors) && vendors.map(vendor => (
+            <option key={vendor.id} value={vendor.id}>{vendor.store_name}</option>
+          ))}
+        </select>
       </div>
 
       {/* Table */}
       <div className="bg-white rounded-xl shadow overflow-x-auto">
-        <table className="w-full min-w-[1150px]">
+        <table className="w-full min-w-[800px]">
           <thead className="bg-gray-100 text-left">
             <tr>
-              <th className="p-3 sm:p-4 w-10">
-                <button
-                  onClick={toggleSelectAll}
-                  className="text-gray-600 hover:text-gray-800 transition"
-                >
-                  {selectedProducts.size === filteredProducts.length && filteredProducts.length > 0 ? (
-                    <CheckSquare size={18} />
-                  ) : (
-                    <Square size={18} />
-                  )}
-                </button>
-              </th>
+              {showBulkActions && (
+                <th className="p-3 sm:p-4 w-10">
+                  <button
+                    onClick={toggleSelectAll}
+                    className="text-gray-600 hover:text-gray-800 transition"
+                    aria-label={selectedProducts.size === filteredProducts.length && filteredProducts.length > 0
+                      ? "Deselect all products"
+                      : "Select all products"}
+                  >
+                    {selectedProducts.size === filteredProducts.length && filteredProducts.length > 0 ? (
+                      <CheckSquare size={18} />
+                    ) : (
+                      <Square size={18} />
+                    )}
+                  </button>
+                </th>
+              )}
               <th className="p-3 sm:p-4">Image</th>
               <th className="p-3 sm:p-4">Name</th>
               <th className="p-3 sm:p-4">Price</th>
-              <th className="p-3 sm:p-4">Commission</th>
-              <th className="p-3 sm:p-4">Commission Price</th>
-              <th className="p-3 sm:p-4">Vendor/Creator</th>
+              {showCommissionColumn && <th className="p-3 sm:p-4">Commission</th>}
+              {showAdminEarnsColumn && <th className="p-3 sm:p-4">Admin Earns</th>}
+              {showVendorEarnsColumn && <th className="p-3 sm:p-4">Vendor Earns</th>}
+              {permissions.canViewVendors && <th className="p-3 sm:p-4">Vendor/Creator</th>}
               <th className="p-3 sm:p-4">Stock</th>
-              <th className="p-3 sm:p-4">Approval</th>
-              <th className="p-3 sm:p-4">Status</th>
+              {showApprovalColumn && <th className="p-3 sm:p-4">Approval</th>}
+              {showStatusColumn && <th className="p-3 sm:p-4">Status</th>}
               <th className="p-3 sm:p-4 text-center">Actions</th>
             </tr>
           </thead>
           <tbody>
             {filteredProducts.length === 0 ? (
               <tr>
-                <td colSpan="11" className="text-center p-8 text-gray-400">
+                <td colSpan={columnCount} className="text-center p-8 text-gray-400">
                   No products found
                 </td>
               </tr>
             ) : (
               filteredProducts.map((product) => {
-                const image =
-                  product?.images?.find((img) => img.is_primary)?.image_url ||
+                const image = product?.images?.find((img) => img.is_primary)?.image_url ||
                   product?.images?.[0]?.image_url;
-                
+
                 const sellingPrice = product.discount_price || product.price;
-                const priceAfterCommission = calculatePriceAfterCommission(sellingPrice, product.commission);
+                const adminEarns = calculateCommissionAmount(
+                  sellingPrice,
+                  product.commission,
+                  product.commission_type
+                );
+                const vendorEarns = calculatePriceAfterCommission(
+                  sellingPrice,
+                  product.commission,
+                  product.commission_type
+                );
+                const commissionDisplay = product.commission
+                  ? `${product.commission}${product.commission_type === 'percentage' ? '%' : currencySymbol}`
+                  : '-';
 
                 return (
                   <tr key={product.id} className="border-t hover:bg-gray-50 transition">
-                    <td className="p-3 sm:p-4">
-                      <button
-                        onClick={() => toggleSelectProduct(product.id)}
-                        className="text-gray-600 hover:text-gray-800 transition"
-                      >
-                        {selectedProducts.has(product.id) ? (
-                          <CheckSquare size={18} />
-                        ) : (
-                          <Square size={18} />
-                        )}
-                      </button>
-                    </td>
+                    {showBulkActions && (
+                      <td className="p-3 sm:p-4">
+                        <button
+                          onClick={() => toggleSelectProduct(product.id)}
+                          className="text-gray-600 hover:text-gray-800 transition"
+                          aria-label={selectedProducts.has(product.id) ? "Deselect product" : "Select product"}
+                        >
+                          {selectedProducts.has(product.id) ? (
+                            <CheckSquare size={18} />
+                          ) : (
+                            <Square size={18} />
+                          )}
+                        </button>
+                      </td>
+                    )}
                     <td className="p-3 sm:p-4">
                       {image ? (
                         <img
@@ -646,26 +1013,47 @@ const Products = () => {
                       )}
                     </td>
                     <td className="p-3 sm:p-4 font-medium">{product.name}</td>
-                    <td className="p-3 sm:p-4">₹{sellingPrice}</td>
-                    <td className="p-3 sm:p-4">
-                      {product.commission ? (
-                        <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
-                          {product.commission}%
+                    <td className="p-3 sm:p-4">{formatCurrency(sellingPrice)}</td>
+
+                    {showCommissionColumn && (
+                      <td className="p-3 sm:p-4">
+                        {showCommissionAction ? (
+                          <button
+                            onClick={() => setCommissionModal({ open: true, product })}
+                            className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700 hover:bg-blue-200 transition flex items-center gap-1"
+                          >
+                            {commissionDisplay}
+                            <Pencil size={12} />
+                          </button>
+                        ) : (
+                          <span className="text-sm">{commissionDisplay}</span>
+                        )}
+                      </td>
+                    )}
+
+                    {showAdminEarnsColumn && (
+                      <td className="p-3 sm:p-4">
+                        <span className="font-medium text-green-600">
+                          {formatCurrency(adminEarns)}
                         </span>
-                      ) : (
-                        <span className="text-gray-400 text-sm">-</span>
-                      )}
-                    </td>
-                    <td className="p-3 sm:p-4">
-                      <span className="font-medium text-green-600">
-                        ₹{priceAfterCommission}
-                      </span>
-                    </td>
-                    <td className="p-3 sm:p-4">
-                      <span className="text-sm font-medium">
-                        {getVendorCreatorName(product)}
-                      </span>
-                    </td>
+                      </td>
+                    )}
+
+                    {showVendorEarnsColumn && (
+                      <td className="p-3 sm:p-4">
+                        <span className="font-medium text-blue-600">
+                          {formatCurrency(vendorEarns)}
+                        </span>
+                      </td>
+                    )}
+
+                    {permissions.canViewVendors && (
+                      <td className="p-3 sm:p-4">
+                        <span className="text-sm font-medium">
+                          {getVendorCreatorName(product)}
+                        </span>
+                      </td>
+                    )}
                     <td className="p-3 sm:p-4">
                       <span className={`px-2 py-1 rounded-full text-xs font-medium ${product.stock > 0 ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
                         }`}>
@@ -673,72 +1061,77 @@ const Products = () => {
                       </span>
                     </td>
 
-                    {/* Approval Status Dropdown */}
-                    <td className="p-3 sm:p-4">
-                      <select
-                        value={product.approval_status}
-                        onChange={(e) => handleApprovalChange(product.id, e.target.value)}
-                        disabled={actionLoading === `approval-${product.id}`}
-                        className={`px-3 py-1.5 rounded-lg text-sm font-medium border focus:ring-2 focus:ring-[#7a1c3d] outline-none transition ${
-                          product.approval_status === "approved"
+                    {showApprovalColumn && (
+                      <td className="p-3 sm:p-4">
+                        <select
+                          value={product.approval_status}
+                          onChange={(e) => handleApprovalChange(product.id, e.target.value)}
+                          disabled={actionLoading === `approval-${product.id}`}
+                          className={`px-3 py-1.5 rounded-lg text-sm font-medium border focus:ring-2 focus:ring-[#7a1c3d] outline-none transition ${product.approval_status === "approved"
                             ? "bg-green-100 text-green-700 border-green-300"
                             : product.approval_status === "rejected"
-                            ? "bg-red-100 text-red-700 border-red-300"
-                            : "bg-yellow-100 text-yellow-700 border-yellow-300"
-                        } disabled:opacity-50 cursor-pointer`}
-                      >
-                        <option value="pending" className="bg-white text-yellow-700">
-                          ⏳ Pending
-                        </option>
-                        <option value="approved" className="bg-white text-green-700">
-                          ✓ Approved
-                        </option>
-                        <option value="rejected" className="bg-white text-red-700">
-                          ✗ Rejected
-                        </option>
-                      </select>
-                    </td>
+                              ? "bg-red-100 text-red-700 border-red-300"
+                              : "bg-yellow-100 text-yellow-700 border-yellow-300"
+                            } disabled:opacity-50 cursor-pointer`}
+                        >
+                          <option value="pending" className="bg-white text-yellow-700">
+                            ⏳ Pending
+                          </option>
+                          <option value="approved" className="bg-white text-green-700">
+                            ✓ Approved
+                          </option>
+                          <option value="rejected" className="bg-white text-red-700">
+                            ✗ Rejected
+                          </option>
+                        </select>
+                      </td>
+                    )}
 
-                    {/* Status Toggle */}
+                    {showStatusColumn && (
+                      <td className="p-3 sm:p-4">
+                        <button
+                          onClick={() => handleToggleStatus(product.id, product.status)}
+                          disabled={actionLoading === `status-${product.id}`}
+                          className={`flex items-center gap-2 px-3 py-1 rounded-lg text-sm font-medium transition ${product.status === 1
+                            ? "bg-green-100 text-green-700 hover:bg-green-200"
+                            : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                            } disabled:opacity-50`}
+                        >
+                          {actionLoading === `status-${product.id}` ? (
+                            <RefreshCw size={14} className="animate-spin" />
+                          ) : product.status === 1 ? (
+                            <>
+                              <Power size={14} />
+                              Active
+                            </>
+                          ) : (
+                            <>
+                              <PowerOff size={14} />
+                              Inactive
+                            </>
+                          )}
+                        </button>
+                      </td>
+                    )}
+
                     <td className="p-3 sm:p-4">
-                      <button
-                        onClick={() => handleToggleStatus(product.id, product.status)}
-                        disabled={actionLoading === `status-${product.id}`}
-                        className={`flex items-center gap-2 px-3 py-1 rounded-lg text-sm font-medium transition ${product.status === 1
-                          ? "bg-green-100 text-green-700 hover:bg-green-200"
-                          : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                          } disabled:opacity-50`}
-                      >
-                        {actionLoading === `status-${product.id}` ? (
-                          <RefreshCw size={14} className="animate-spin" />
-                        ) : product.status === 1 ? (
-                          <>
-                            <Power size={14} />
-                            Active
-                          </>
-                        ) : (
-                          <>
-                            <PowerOff size={14} />
-                            Inactive
-                          </>
+                      <div className="flex justify-center gap-2 flex-wrap">
+                        {showEditAction && (
+                          <button
+                            onClick={() => setEditId(product.id)}
+                            className="px-3 py-1 bg-blue-500 text-white rounded-lg text-sm hover:bg-blue-600 transition"
+                          >
+                            Edit
+                          </button>
                         )}
-                      </button>
-                    </td>
-
-                    <td className="p-3 sm:p-4">
-                      <div className="flex justify-center gap-2">
-                        <button
-                          onClick={() => setEditId(product.id)}
-                          className="px-3 py-1 bg-blue-500 text-white rounded-lg text-sm hover:bg-blue-600 transition"
-                        >
-                          Edit
-                        </button>
-                        <button
-                          onClick={() => handleDelete(product.id)}
-                          className="px-3 py-1 bg-red-500 text-white rounded-lg text-sm hover:bg-red-600 transition"
-                        >
-                          Delete
-                        </button>
+                        {showDeleteAction && (
+                          <button
+                            onClick={() => handleDelete(product.id)}
+                            className="px-3 py-1 bg-red-500 text-white rounded-lg text-sm hover:bg-red-600 transition"
+                          >
+                            Delete
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -765,6 +1158,14 @@ const Products = () => {
           selectedCount={selectedProducts.size}
           onClose={() => setBulkModal({ open: false, action: null })}
           onSubmit={handleBulkSubmit}
+        />
+      )}
+
+      {commissionModal.open && (
+        <CommissionModal
+          product={commissionModal.product}
+          onClose={() => setCommissionModal({ open: false, product: null })}
+          onSubmit={handleCommissionUpdate}
         />
       )}
 

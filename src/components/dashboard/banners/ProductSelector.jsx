@@ -33,15 +33,23 @@ const ProductSelector = ({ selectedProducts = [], onChange }) => {
   // Fetch products with pagination
   const { data, loading } = useGet(apiUrl, { autoFetch: isOpen });
 
+  // ✅ FIXED: Extract products from nested data structure
+  // The API returns: { success: true, data: { current_page: 1, data: [...], ... } }
+  const responseData = data?.data || {};
+  
+  // ✅ Safely extract the products array - handle both paginated and non-paginated responses
+  const products = Array.isArray(responseData.data) 
+    ? responseData.data 
+    : Array.isArray(data?.data) 
+      ? data.data 
+      : [];
 
-
-  // Extract products and pagination from response
-  const products = data?.data || [];
+  // ✅ Extract pagination from the response
   const pagination = {
-    current_page: data?.current_page || 1,
-    last_page: data?.last_page || 1,
-    total: data?.total || 0,
-    per_page: data?.per_page || perPage
+    current_page: responseData.current_page || data?.current_page || 1,
+    last_page: responseData.last_page || data?.last_page || 1,
+    total: responseData.total || data?.total || 0,
+    per_page: responseData.per_page || data?.per_page || perPage
   };
 
   // Get product image using the utility function
@@ -129,7 +137,7 @@ const ProductSelector = ({ selectedProducts = [], onChange }) => {
           : `${selectedProducts.length} product(s) selected`}
       </button>
 
-      {/* Modal - Fixed positioning with proper z-index and responsiveness */}
+      {/* Modal */}
       {isOpen && (
         <>
           {/* Backdrop */}
@@ -176,7 +184,7 @@ const ProductSelector = ({ selectedProducts = [], onChange }) => {
                   <div className="flex justify-center py-12">
                     <Loader2 className="w-8 h-8 animate-spin text-[#7a1c3d]" />
                   </div>
-                ) : products.length === 0 ? (
+                ) : !Array.isArray(products) || products.length === 0 ? (
                   <div className="text-center py-12 text-gray-500">
                     <ImageOff className="w-12 h-12 mx-auto mb-3 text-gray-300" />
                     <p>No products found</p>
@@ -196,10 +204,11 @@ const ProductSelector = ({ selectedProducts = [], onChange }) => {
                       <div
                         key={product.id}
                         onClick={() => toggleProduct(product)}
-                        className={`cursor-pointer border rounded-lg p-3 transition-all ${isSelected(product.id)
+                        className={`cursor-pointer border rounded-lg p-3 transition-all ${
+                          isSelected(product.id)
                             ? 'border-[#7a1c3d] bg-[#7a1c3d]/5 ring-2 ring-[#7a1c3d]/30'
                             : 'border-gray-200 hover:border-gray-300 hover:shadow-md'
-                          }`}
+                        }`}
                       >
                         <div className="aspect-square mb-2 bg-gray-100 rounded-lg overflow-hidden">
                           <img
@@ -231,7 +240,7 @@ const ProductSelector = ({ selectedProducts = [], onChange }) => {
               </div>
 
               {/* Pagination */}
-              {!loading && pagination.last_page > 1 && (
+              {!loading && pagination.last_page > 1 && products.length > 0 && (
                 <div className="border-t p-4 flex flex-col sm:flex-row justify-between items-center gap-3 bg-white rounded-b-xl">
                   <div className="text-sm text-gray-500 order-2 sm:order-1">
                     Page {pagination.current_page} of {pagination.last_page} ({pagination.total} products)

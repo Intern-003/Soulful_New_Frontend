@@ -5,7 +5,7 @@ import { Plus, Edit2, Trash2, Save, X, Check } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const ProductSpecifications = ({ productId, isLocked = false, onSpecificationsChange }) => {
-  const { data, refetch, loading: fetching } = useGet(`/vendor/products/${productId}`);
+  const { data, refetch, loading: fetching } = useGet(`/vendor/products/${productId}/view`);
   const { putData, loading: updating } = usePut();
 
   const [specifications, setSpecifications] = useState([]);

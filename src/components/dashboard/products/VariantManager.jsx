@@ -8,7 +8,7 @@ import { getImageUrl } from "../../../utils/getImageUrl";
 
 const VariantManager = ({ productId }) => {
   const { data, loading, refetch } = useGet(
-    `/vendor/products/${productId}`
+    `/vendor/products/${productId}/view`
   );
 
   const { deleteData } = useDelete();
@@ -111,7 +111,7 @@ const VariantManager = ({ productId }) => {
                         className="h-12 w-12 object-cover rounded border"
                         onError={(e) => {
                           e.currentTarget.src =
-                            "/no-image.png";
+                            "/placeholder.png";
                         }}
                       />
                     ) : (

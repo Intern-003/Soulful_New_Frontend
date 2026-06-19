@@ -1,3 +1,4 @@
+// pages/public/About.jsx
 import AboutHeader from "../../components/about/AboutHeader";
 import AboutIntro from "../../components/about/AboutIntro";
 import AboutFeatures from "../../components/about/AboutFeatures";
@@ -6,7 +7,7 @@ import AboutTestimonial from "../../components/about/AboutTestimonial";
 
 const About = () => {
   return (
-    <div>
+    <div className="bg-gradient-to-b from-[#fff9fb] via-white to-[#fff3f6]">
       <AboutHeader />
       <AboutIntro />
       <AboutFeatures />
