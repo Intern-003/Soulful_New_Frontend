@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 
 import { getImageUrl } from "../../../utils/getImageUrl";
-
+import { useMemo } from "react";
 /* ==========================================================
    FILE NAME: CategoryMobileCard.jsx
 
@@ -26,24 +26,23 @@ import { getImageUrl } from "../../../utils/getImageUrl";
 
 const CategoryMobileCard = ({
   item,
-  onClick = () => {},
-  onEdit = () => {},
-  onDelete = () => {},
+  onClick = () => { },
+  onEdit = () => { },
+  onDelete = () => { },
 }) => {
   const active =
     item?.status ===
-      true ||
+    true ||
     item?.status ===
-      1 ||
+    1 ||
     item?.status ===
-      "1";
+    "1";
 
-  const image =
-    item?.image
-      ? getImageUrl(
-          item.image
-        )
-      : "/no-image.png";
+   const image = useMemo(() => {
+    return item?.image
+      ? getImageUrl(item.image)
+      : "/placeholder.png";
+  }, [item?.image]);
 
   const subCount =
     item?.children
@@ -58,25 +57,24 @@ const CategoryMobileCard = ({
       {/* IMAGE HEADER */}
       <div className="relative h-40 overflow-hidden bg-slate-100">
         <img
-  src={image}
-  alt={item?.name}
-  className="h-full w-full object-cover"
-  onError={(e) => {
-    e.currentTarget.onerror = null;
-    e.currentTarget.src = "/no-image.png";
-  }}
-/>
+          src={image}
+          alt={item?.name}
+          className="h-full w-full object-cover"
+          onError={(e) => {
+            e.currentTarget.onerror = null;
+            e.currentTarget.src = "/placeholder.png";
+          }}
+        />
 
         <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/10 to-transparent" />
 
         {/* Status */}
         <div className="absolute left-4 top-4">
           <span
-            className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold text-white ${
-              active
+            className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold text-white ${active
                 ? "bg-emerald-500"
                 : "bg-rose-500"
-            }`}
+              }`}
           >
             {active ? (
               <CheckCircle2

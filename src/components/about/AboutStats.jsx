@@ -39,7 +39,7 @@
 // };
 
 // export default AboutStats;
-// components/about/AboutStats.tsx
+// components/about/AboutStats.jsx
 const stats = [
   { number: "2,500+", label: "Active Sellers", suffix: "" },
   { number: "85k+", label: "Products Listed", suffix: "" },
@@ -49,35 +49,35 @@ const stats = [
 
 const AboutStats = () => {
   return (
-    <section className="bg-gradient-to-br from-amber-50 via-white to-pink-50 py-20 md:py-28">
-      <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8">
-
+    <section className="py-20 md:py-28 bg-white/50 backdrop-blur-sm">
+      <div className="max-w-7xl mx-auto px-4 md:px-8">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 text-center">
-
           {stats.map((item, index) => (
             <div
               key={index}
-              className="group bg-white rounded-2xl p-8 shadow-md hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 border border-gray-100"
+              className="group bg-white/80 backdrop-blur-sm rounded-2xl p-8 shadow-md hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 border border-gray-100"
             >
               {/* Number */}
-              <h3 className="text-4xl lg:text-5xl font-extrabold bg-gradient-to-r from-amber-700 to-pink-600 bg-clip-text text-transparent mb-2">
+              <h3 className="text-4xl lg:text-5xl font-extrabold bg-gradient-to-r from-[#7a1c3d] to-[#a52355] bg-clip-text text-transparent mb-2">
                 {item.number}
               </h3>
               {/* Label */}
               <p className="text-gray-600 text-base font-medium">
                 {item.label}
               </p>
-              {item.suffix && <span className="text-sm text-gray-400">{item.suffix}</span>}
+              {item.suffix && (
+                <span className="text-sm text-gray-400">{item.suffix}</span>
+              )}
             </div>
           ))}
-
         </div>
 
         {/* Divider */}
         <div className="mt-16 text-center">
-          <p className="text-gray-500 text-sm">*Live metrics as of this quarter</p>
+          <p className="text-gray-500 text-sm">
+            *Live metrics as of this quarter
+          </p>
         </div>
-
       </div>
     </section>
   );

@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 
 import { getImageUrl } from "../../../utils/getImageUrl";
+import { useMemo } from "react";
 
 /* ==========================================================
    FILE NAME: SubCategoryCard.jsx
@@ -48,12 +49,11 @@ const SubCategoryCard = ({
     item?.status ===
       "1";
 
-  const image =
-    item?.image
-      ? getImageUrl(
-          item.image
-        )
-      : "/no-image.png";
+  const image = useMemo(() => {
+    return item?.image
+      ? getImageUrl(item.image)
+      : "/placeholder.png";
+  }, [item?.image]);
 
   const products =
     item?.products_count ||
@@ -77,12 +77,11 @@ const SubCategoryCard = ({
           }
           className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
           loading="lazy"
-          onError={(
-            e
-          ) =>
-            (e.currentTarget.src =
-              "/no-image.png")
-          }
+          onError={(e) => {
+            // ✅ Prevent infinite loop
+            e.currentTarget.onerror = null;
+            e.currentTarget.src = "/placeholder.png";
+          }}
         />
 
         {/* Overlay */}

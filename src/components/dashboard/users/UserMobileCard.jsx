@@ -12,6 +12,7 @@ import {
   Mail,
   ChevronDown,
 } from "lucide-react";
+import toast from "react-hot-toast";
 
 import usePut from "../../../api/hooks/usePut";
 import usePost from "../../../api/hooks/usePost";
@@ -35,82 +36,62 @@ const UserMobileCard = ({
   onView = () => {},
   onDelete = () => {},
 }) => {
-  const { putData } =
-    usePut();
+  const { putData } = usePut();
+  const { postData } = usePost();
 
-  const { postData } =
-    usePost();
-
-  const [loadingStatus, setLoadingStatus] =
-    useState(false);
-
-  const [loadingRole, setLoadingRole] =
-    useState(false);
-
-  const [menuOpen, setMenuOpen] =
-    useState(false);
+  const [loadingStatus, setLoadingStatus] = useState(false);
+  const [loadingRole, setLoadingRole] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   /* =====================================
      TOGGLE STATUS
   ===================================== */
-  const toggleStatus =
-    async () => {
-      try {
-        setLoadingStatus(
-          true
-        );
+  const toggleStatus = async () => {
+    const newStatus = !isActive(user.status);
+    try {
+      setLoadingStatus(true);
 
-        await putData({
-          url: `/admin/users/${user.id}`,
-          data: {
-            status:
-              !isActive(
-                user.status
-              ),
-          },
-        });
+      await putData({
+        url: `/admin/users/${user.id}`,
+        data: {
+          status: newStatus,
+        },
+      });
 
-        onRefresh();
-      } catch (error) {
-        console.error(
-          error
-        );
-      } finally {
-        setLoadingStatus(
-          false
-        );
-      }
-    };
+      toast.success(`User "${user.name}" ${newStatus ? 'activated' : 'deactivated'} successfully`);
+      onRefresh();
+    } catch (error) {
+      console.error("Status update failed", error);
+      toast.error(error?.response?.data?.message || 'Failed to update status');
+    } finally {
+      setLoadingStatus(false);
+    }
+  };
 
   /* =====================================
      CHANGE ROLE
   ===================================== */
-  const handleRoleChange =
-    async (roleId) => {
-      try {
-        setLoadingRole(
-          true
-        );
+  const handleRoleChange = async (roleId) => {
+    try {
+      setLoadingRole(true);
 
-        await postData({
-          url: `/admin/users/${user.id}/assign-role`,
-          data: {
-            role_id:
-              roleId,
-          },
-        });
+      await postData({
+        url: `/admin/users/${user.id}/assign-role`,
+        data: {
+          role_id: roleId,
+        },
+      });
 
-        onRefresh();
-      } catch (error) {
-        console.error(
-          error
-        );
-      } finally {
-        setLoadingRole(
-          false
-        );
-      }
-    };
+      const roleName = roles.find(r => r.id === parseInt(roleId))?.name || 'Role';
+      toast.success(`Role changed to "${roleName}" for ${user.name}`);
+      onRefresh();
+    } catch (error) {
+      console.error("Role update failed", error);
+      toast.error(error?.response?.data?.message || 'Failed to update role');
+    } finally {
+      setLoadingRole(false);
+    }
+  };
 
   return (
     <div className="group rounded-3xl border border-slate-200 bg-white p-4 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl">
@@ -121,39 +102,24 @@ const UserMobileCard = ({
         {/* User Info */}
         <div className="flex min-w-0 gap-3">
           <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[#7b183f]/10 to-[#a52355]/10 text-[#7b183f]">
-            <UserCircle2
-              size={30}
-            />
+            <UserCircle2 size={30} />
           </div>
 
           <div className="min-w-0">
             <h3 className="truncate text-sm font-semibold text-slate-900">
-              {
-                user.name
-              }
+              {user.name}
             </h3>
 
             <div className="mt-1 flex items-center gap-1 text-xs text-slate-500">
-              <Mail
-                size={12}
-              />
+              <Mail size={12} />
               <span className="truncate">
-                {
-                  user.email
-                }
+                {user.email}
               </span>
             </div>
 
             <div className="mt-2 inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700">
-              <ShieldCheck
-                size={
-                  12
-                }
-              />
-
-              {getRoleName(
-                user
-              )}
+              <ShieldCheck size={12} />
+              {getRoleName(user)}
             </div>
           </div>
         </div>
@@ -161,51 +127,33 @@ const UserMobileCard = ({
         {/* Menu */}
         <div className="relative shrink-0">
           <button
-            onClick={() =>
-              setMenuOpen(
-                !menuOpen
-              )
-            }
+            onClick={() => setMenuOpen(!menuOpen)}
             className="rounded-xl p-2 transition hover:bg-slate-100"
           >
-            <MoreVertical
-              size={18}
-            />
+            <MoreVertical size={18} />
           </button>
 
           {menuOpen && (
             <div className="absolute right-0 top-10 z-20 w-40 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl">
               <button
                 onClick={() => {
-                  setMenuOpen(
-                    false
-                  );
-                  onView(
-                    user
-                  );
+                  setMenuOpen(false);
+                  onView(user);
                 }}
                 className="flex w-full items-center gap-2 px-4 py-3 text-sm text-slate-700 transition hover:bg-slate-50"
               >
-                <Eye
-                  size={16}
-                />
+                <Eye size={16} />
                 View
               </button>
 
               <button
                 onClick={() => {
-                  setMenuOpen(
-                    false
-                  );
-                  onDelete(
-                    user
-                  );
+                  setMenuOpen(false);
+                  onDelete(user);
                 }}
                 className="flex w-full items-center gap-2 px-4 py-3 text-sm text-rose-600 transition hover:bg-rose-50"
               >
-                <Trash2
-                  size={16}
-                />
+                <Trash2 size={16} />
                 Delete
               </button>
             </div>
@@ -220,61 +168,31 @@ const UserMobileCard = ({
         {/* STATUS */}
         <InfoCard label="Status">
           <button
-            onClick={
-              toggleStatus
-            }
-            disabled={
-              loadingStatus
-            }
+            onClick={toggleStatus}
+            disabled={loadingStatus}
             className={`inline-flex w-full items-center justify-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold transition ${
-              isActive(
-                user.status
-              )
+              isActive(user.status)
                 ? "bg-emerald-100 text-emerald-700"
                 : "bg-rose-100 text-rose-700"
-            }`}
+            } disabled:opacity-60`}
           >
             {loadingStatus ? (
-              <Loader2
-                size={
-                  14
-                }
-                className="animate-spin"
-              />
-            ) : isActive(
-                user.status
-              ) ? (
-              <CheckCircle2
-                size={
-                  14
-                }
-              />
+              <Loader2 size={14} className="animate-spin" />
+            ) : isActive(user.status) ? (
+              <CheckCircle2 size={14} />
             ) : (
-              <XCircle
-                size={
-                  14
-                }
-              />
+              <XCircle size={14} />
             )}
 
-            {isActive(
-              user.status
-            )
-              ? "Active"
-              : "Inactive"}
+            {isActive(user.status) ? "Active" : "Inactive"}
           </button>
         </InfoCard>
 
         {/* JOINED */}
         <InfoCard label="Joined">
           <div className="flex items-center gap-2 text-sm font-medium text-slate-700">
-            <CalendarDays
-              size={14}
-            />
-
-            {formatDate(
-              user.created_at
-            )}
+            <CalendarDays size={14} />
+            {formatDate(user.created_at)}
           </div>
         </InfoCard>
       </div>
@@ -289,47 +207,18 @@ const UserMobileCard = ({
 
         <div className="relative">
           <select
-            disabled={
-              loadingRole
-            }
-            value={
-              user.role
-                ?.id ||
-              user.role_id ||
-              ""
-            }
-            onChange={(
-              e
-            ) =>
-              handleRoleChange(
-                e.target
-                  .value
-              )
-            }
+            disabled={loadingRole}
+            value={user.role?.id || user.role_id || ""}
+            onChange={(e) => handleRoleChange(e.target.value)}
             className="h-11 w-full appearance-none rounded-2xl border border-slate-200 bg-white px-4 pr-10 text-sm outline-none transition focus:border-[#7b183f] focus:ring-4 focus:ring-[#7b183f]/10 disabled:opacity-60"
           >
-            <option value="">
-              Select Role
-            </option>
+            <option value="">Select Role</option>
 
-            {roles.map(
-              (
-                role
-              ) => (
-                <option
-                  key={
-                    role.id
-                  }
-                  value={
-                    role.id
-                  }
-                >
-                  {
-                    role.name
-                  }
-                </option>
-              )
-            )}
+            {roles.map((role) => (
+              <option key={role.id} value={role.id}>
+                {role.name}
+              </option>
+            ))}
           </select>
 
           <ChevronDown
@@ -351,22 +240,14 @@ const UserMobileCard = ({
       ===================================== */}
       <div className="mt-4 grid grid-cols-2 gap-3">
         <button
-          onClick={() =>
-            onView(
-              user
-            )
-          }
+          onClick={() => onView(user)}
           className="rounded-2xl border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
         >
           View
         </button>
 
         <button
-          onClick={() =>
-            onDelete(
-              user
-            )
-          }
+          onClick={() => onDelete(user)}
           className="rounded-2xl bg-[#7b183f] px-4 py-2.5 text-sm font-medium text-white transition hover:opacity-95"
         >
           Manage
@@ -382,18 +263,12 @@ export default UserMobileCard;
    SUB COMPONENT
 ========================================================== */
 
-const InfoCard = ({
-  label,
-  children,
-}) => (
+const InfoCard = ({ label, children }) => (
   <div className="rounded-2xl bg-slate-50 p-3">
     <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
       {label}
     </p>
-
-    <div className="mt-2">
-      {children}
-    </div>
+    <div className="mt-2">{children}</div>
   </div>
 );
 
@@ -401,47 +276,28 @@ const InfoCard = ({
    HELPERS
 ========================================================== */
 
-function isActive(
-  status
-) {
+function isActive(status) {
   return (
     status === true ||
     status === 1 ||
     status === "1" ||
-    status ===
-      "active"
+    status === "active"
   );
 }
 
-function getRoleName(
-  user
-) {
-  return (
-    user?.role
-      ?.name ||
-    user?.role ||
-    "No Role"
-  );
+function getRoleName(user) {
+  return user?.role?.name || user?.role || "No Role";
 }
 
-function formatDate(
-  date
-) {
-  if (!date)
-    return "--";
+function formatDate(date) {
+  if (!date) return "--";
 
   try {
-    return new Date(
-      date
-    ).toLocaleDateString(
-      "en-IN",
-      {
-        day: "2-digit",
-        month:
-          "short",
-        year: "numeric",
-      }
-    );
+    return new Date(date).toLocaleDateString("en-IN", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
   } catch {
     return "--";
   }

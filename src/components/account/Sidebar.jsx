@@ -5,8 +5,18 @@ import {
   Lock,
   LogOut,
 } from "lucide-react";
+import { useDispatch } from "react-redux";
+import { logout } from "../../app/slices/authSlice";
+import { useNavigate } from "react-router-dom";
+import toast from "react-hot-toast";
+import usePost from "../../api/hooks/usePost";
+import { AUTH } from "../../api/endpoints";
 
 export default function Sidebar({ active, setActive, user }) {
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+  const { postData, loading, error } = usePost();
+
   const name = user?.name || "Guest User";
   const firstLetter = name.charAt(0).toUpperCase();
 
@@ -16,6 +26,37 @@ export default function Sidebar({ active, setActive, user }) {
     { key: "addresses", label: "Addresses", icon: MapPin },
     { key: "password", label: "Change Password", icon: Lock },
   ];
+
+  // ✅ LOGOUT HANDLER USING usePost HOOK
+  const handleLogout = async () => {
+    try {
+      // Call logout API using usePost hook
+      await postData({ 
+        url: AUTH.LOGOUT,
+        data: {}
+      });
+      
+      // Dispatch logout action to clear Redux state and localStorage
+      dispatch(logout());
+      
+      toast.success("Logged out successfully");
+      
+      // Redirect to login page
+      navigate("/login");
+    } catch (error) {
+      // Even if API fails, still clear local data
+      console.error("Logout API error:", error);
+      
+      // Still clear local data and redirect
+      dispatch(logout());
+      
+      // Show appropriate error message
+      const errorMessage = error?.message || "Logged out successfully";
+      toast.success(errorMessage.includes("success") ? errorMessage : "Logged out successfully");
+      
+      navigate("/login");
+    }
+  };
 
   return (
     <div className="w-full lg:col-span-3">
@@ -63,9 +104,22 @@ export default function Sidebar({ active, setActive, user }) {
 
         {/* LOGOUT */}
         <div className="mt-6 pt-4 border-t">
-          <button className="w-full flex items-center gap-3 px-3 sm:px-4 py-3 text-red-500 hover:bg-red-50 rounded-xl text-sm">
-            <LogOut size={18} />
-            Log out
+          <button 
+            onClick={handleLogout}
+            disabled={loading}
+            className="w-full flex items-center gap-3 px-3 sm:px-4 py-3 text-red-500 hover:bg-red-50 rounded-xl text-sm transition disabled:opacity-50"
+          >
+            {loading ? (
+              <>
+                <div className="w-4 h-4 border-2 border-red-500 border-t-transparent rounded-full animate-spin" />
+                Logging out...
+              </>
+            ) : (
+              <>
+                <LogOut size={18} />
+                Log out
+              </>
+            )}
           </button>
         </div>
       </div>

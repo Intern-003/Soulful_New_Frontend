@@ -37,7 +37,7 @@ const CategoryCard = ({
         ? getImageUrl(
             item.image
           )
-        : "/no-image.png";
+        : "/placeholder.png";
     }, [
       item?.image,
     ]);
@@ -78,8 +78,8 @@ const CategoryCard = ({
           onError={(
             e
           ) => {
-            e.currentTarget.src =
-              "/no-image.png";
+             e.currentTarget.onerror = null;
+            e.currentTarget.src = "/placeholder.png";
           }}
           className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
         />

@@ -3,11 +3,12 @@ import usePost from "../../../api/hooks/usePost";
 import useDelete from "../../../api/hooks/useDelete";
 import useGet from "../../../api/hooks/useGet";
 import toast from "react-hot-toast";
-import { Save, Trash2, Upload, CheckCircle, AlertCircle, Package, RefreshCw, X } from "lucide-react";
+import { Save, Trash2, Upload, CheckCircle, AlertCircle, Package, RefreshCw, X, DollarSign } from "lucide-react";
 import { getImageUrl } from "../../../utils/getImageUrl";
 
 const VariantSection = forwardRef(({ productId, onVariantsLoaded }, ref) => {
-  const { data, refetch } = useGet(`/vendor/products/${productId}`);
+  // FIXED: Use correct endpoint for getting product details
+  const { data, refetch } = useGet(`/vendor/products/${productId}/view`);
   const { postData } = usePost();
   const { deleteData } = useDelete();
 
@@ -21,6 +22,12 @@ const VariantSection = forwardRef(({ productId, onVariantsLoaded }, ref) => {
   const blobUrlsRef = useRef({});
   const processingRef = useRef({});
 
+  // Get currency symbol
+  const getCurrencySymbol = () => {
+    return '₹'; // Indian Rupee
+  };
+  const currencySymbol = getCurrencySymbol();
+
   // Load existing variants from backend
   useEffect(() => {
     if (data?.data?.variants && !hasInitialized.current) {
@@ -31,7 +38,7 @@ const VariantSection = forwardRef(({ productId, onVariantsLoaded }, ref) => {
           id: img.id,
           image_url: img.image_url,
           is_primary: img.is_primary,
-          url: getImageUrl(img.image_url) // Use the utility function
+          url: getImageUrl(img.image_url)
         }));
         
         // Create previews from existing images
@@ -48,6 +55,9 @@ const VariantSection = forwardRef(({ productId, onVariantsLoaded }, ref) => {
           weight: v.weight || '',
           barcode: v.barcode || '',
           discount_price: v.discount_price || '',
+          cost_price: v.cost_price || '', // NEW
+          tax_rate: v.tax_rate || '', // NEW
+          shipping_charge: v.shipping_charge || '', // NEW
           attribute_value_ids: v.attribute_value_ids || v.attribute_values?.map(av => av.id) || [],
           newImages: [],
           existingImages: existingImages,
@@ -95,6 +105,9 @@ const VariantSection = forwardRef(({ productId, onVariantsLoaded }, ref) => {
                 stock: existingVariant.stock || newVariant.stock,
                 weight: existingVariant.weight || newVariant.weight,
                 barcode: existingVariant.barcode || newVariant.barcode,
+                cost_price: existingVariant.cost_price || newVariant.cost_price,
+                tax_rate: existingVariant.tax_rate || newVariant.tax_rate,
+                shipping_charge: existingVariant.shipping_charge || newVariant.shipping_charge,
               };
             }
           } else {
@@ -288,6 +301,19 @@ const VariantSection = forwardRef(({ productId, onVariantsLoaded }, ref) => {
         fd.append("discount_price", variant.discount_price || 0);
       }
 
+      // NEW: Add tax, shipping, and cost price fields
+      if (variant.cost_price) {
+        fd.append("cost_price", variant.cost_price || 0);
+      }
+
+      if (variant.tax_rate) {
+        fd.append("tax_rate", variant.tax_rate || 0);
+      }
+
+      if (variant.shipping_charge) {
+        fd.append("shipping_charge", variant.shipping_charge || 0);
+      }
+
       if (variant.attribute_value_ids && variant.attribute_value_ids.length) {
         variant.attribute_value_ids.forEach((id) => {
           fd.append("attribute_value_ids[]", id);
@@ -303,7 +329,7 @@ const VariantSection = forwardRef(({ productId, onVariantsLoaded }, ref) => {
       // Handle deletion of existing images
       if (variant.imagesToDelete && variant.imagesToDelete.length) {
         variant.imagesToDelete.forEach(imageId => {
-          fd.append("deleted_image_ids[]", imageId);
+          fd.append("delete_image_ids[]", imageId);
         });
       }
 
@@ -383,6 +409,18 @@ const VariantSection = forwardRef(({ productId, onVariantsLoaded }, ref) => {
           fd.append("discount_price", v.discount_price || 0);
         }
 
+        if (v.cost_price) {
+          fd.append("cost_price", v.cost_price || 0);
+        }
+
+        if (v.tax_rate) {
+          fd.append("tax_rate", v.tax_rate || 0);
+        }
+
+        if (v.shipping_charge) {
+          fd.append("shipping_charge", v.shipping_charge || 0);
+        }
+
         if (v.attribute_value_ids && v.attribute_value_ids.length) {
           v.attribute_value_ids.forEach((id) => {
             fd.append("attribute_value_ids[]", id);
@@ -397,7 +435,7 @@ const VariantSection = forwardRef(({ productId, onVariantsLoaded }, ref) => {
 
         if (v.imagesToDelete && v.imagesToDelete.length) {
           v.imagesToDelete.forEach(imageId => {
-            fd.append("deleted_image_ids[]", imageId);
+            fd.append("delete_image_ids[]", imageId);
           });
         }
 
@@ -532,17 +570,35 @@ const VariantSection = forwardRef(({ productId, onVariantsLoaded }, ref) => {
                   </button>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                   <div>
                     <label className="block text-xs text-gray-500 mb-1">Price *</label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      placeholder="Price"
-                      value={v.price || ''}
-                      onChange={(e) => handleChange(i, "price", parseFloat(e.target.value) || 0)}
-                      className="border rounded-lg p-2 text-sm w-full focus:ring-2 focus:ring-[#7a1c3d] focus:border-transparent"
-                    />
+                    <div className="relative">
+                      <span className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-500 text-xs">{currencySymbol}</span>
+                      <input
+                        type="number"
+                        step="0.01"
+                        placeholder="Price"
+                        value={v.price || ''}
+                        onChange={(e) => handleChange(i, "price", parseFloat(e.target.value) || 0)}
+                        className="border rounded-lg p-2 pl-6 text-sm w-full focus:ring-2 focus:ring-[#7a1c3d] focus:border-transparent"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1">Discounted Price</label>
+                    <div className="relative">
+                      <span className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-500 text-xs">{currencySymbol}</span>
+                      <input
+                        type="number"
+                        step="0.01"
+                        placeholder="Discounted Price"
+                        value={v.discount_price || ''}
+                        onChange={(e) => handleChange(i, "discount_price", parseFloat(e.target.value) || 0)}
+                        className="border rounded-lg p-2 pl-6 text-sm w-full focus:ring-2 focus:ring-[#7a1c3d] focus:border-transparent"
+                      />
+                    </div>
                   </div>
 
                   <div>
@@ -561,11 +617,55 @@ const VariantSection = forwardRef(({ productId, onVariantsLoaded }, ref) => {
                     <input
                       type="number"
                       step="0.01"
-                      placeholder="Weight (kg)"
+                      placeholder="Weight"
                       value={v.weight || ''}
                       onChange={(e) => handleChange(i, "weight", parseFloat(e.target.value) || 0)}
                       className="border rounded-lg p-2 text-sm w-full focus:ring-2 focus:ring-[#7a1c3d] focus:border-transparent"
                     />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1">Cost Price</label>
+                    <div className="relative">
+                      <span className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-500 text-xs">{currencySymbol}</span>
+                      <input
+                        type="number"
+                        step="0.01"
+                        placeholder="Cost Price"
+                        value={v.cost_price || ''}
+                        onChange={(e) => handleChange(i, "cost_price", parseFloat(e.target.value) || 0)}
+                        className="border rounded-lg p-2 pl-6 text-sm w-full focus:ring-2 focus:ring-[#7a1c3d] focus:border-transparent"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1">Tax Rate (%)</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      max="100"
+                      placeholder="Tax Rate"
+                      value={v.tax_rate || ''}
+                      onChange={(e) => handleChange(i, "tax_rate", parseFloat(e.target.value) || 0)}
+                      className="border rounded-lg p-2 text-sm w-full focus:ring-2 focus:ring-[#7a1c3d] focus:border-transparent"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1">Shipping Charge</label>
+                    <div className="relative">
+                      <span className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-500 text-xs">{currencySymbol}</span>
+                      <input
+                        type="number"
+                        step="0.01"
+                        placeholder="Shipping Charge"
+                        value={v.shipping_charge || ''}
+                        onChange={(e) => handleChange(i, "shipping_charge", parseFloat(e.target.value) || 0)}
+                        className="border rounded-lg p-2 pl-6 text-sm w-full focus:ring-2 focus:ring-[#7a1c3d] focus:border-transparent"
+                      />
+                    </div>
                   </div>
 
                   <div>
@@ -578,7 +678,7 @@ const VariantSection = forwardRef(({ productId, onVariantsLoaded }, ref) => {
                     />
                   </div>
 
-                  <div className="lg:col-span-2">
+                  <div className="lg:col-span-4">
                     <label className="block text-xs text-gray-500 mb-1">Variant Images</label>
                     <label className="cursor-pointer bg-gray-100 px-3 py-2 rounded-lg hover:bg-gray-200 transition flex items-center gap-2 text-sm w-fit">
                       <Upload size={12} />

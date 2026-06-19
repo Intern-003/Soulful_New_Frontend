@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import useGet from "../../api/hooks/useGet";
 import {
   ShoppingBag,
@@ -19,36 +19,100 @@ const Dashboard = () => {
   const [timeRange, setTimeRange] = useState("weekly");
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [chartReady, setChartReady] = useState(false);
+  
+  // ✅ Cache for API responses
+  const dataCache = useRef(new Map());
+  const isFirstRender = useRef(true);
 
-  // ONLY EXISTING APIS - No backend changes needed
-  const { data: salesRes, loading: salesLoading, refetch: refetchSales } = useGet(
-    `/admin/analytics/sales?range=${timeRange}`
+  // ✅ Build cache key
+  const buildCacheKey = useCallback((endpoint, params) => {
+    return `${endpoint}?${new URLSearchParams(params).toString()}`;
+  }, []);
+
+  // ✅ Get cached data
+  const getCachedData = useCallback((key) => {
+    const cached = dataCache.current.get(key);
+    if (cached && (Date.now() - cached.timestamp < 300000)) { // 5 minutes cache
+      return cached.data;
+    }
+    return null;
+  }, []);
+
+  // ✅ Set cached data
+  const setCachedData = useCallback((key, data) => {
+    if (dataCache.current.size > 50) {
+      const firstKey = dataCache.current.keys().next().value;
+      dataCache.current.delete(firstKey);
+    }
+    dataCache.current.set(key, {
+      data,
+      timestamp: Date.now()
+    });
+  }, []);
+
+  // ✅ Clear cache on refresh
+  const clearCache = useCallback(() => {
+    dataCache.current.clear();
+  }, []);
+
+  // ✅ API calls with caching
+  const salesCacheKey = buildCacheKey('/admin/analytics/sales', { range: timeRange });
+  const ordersCacheKey = buildCacheKey('/admin/analytics/orders', { range: timeRange });
+  
+  const cachedSales = getCachedData(salesCacheKey);
+  const cachedOrders = getCachedData(ordersCacheKey);
+
+  const { data: salesRes, loading: salesLoading, refetch: refetchSales, error: salesError } = useGet(
+    `/admin/analytics/sales?range=${timeRange}`,
+    { enabled: !cachedSales }
   );
-  const { data: ordersRes, loading: ordersLoading, refetch: refetchOrders } = useGet(
-    `/admin/analytics/orders?range=${timeRange}`
+  
+  const { data: ordersRes, loading: ordersLoading, refetch: refetchOrders, error: ordersError } = useGet(
+    `/admin/analytics/orders?range=${timeRange}`,
+    { enabled: !cachedOrders }
   );
-  const { data: vendorsRes, loading: vendorsLoading } = useGet(
+  
+  const { data: vendorsRes, loading: vendorsLoading, error: vendorsError } = useGet(
     "/admin/analytics/vendors"
   );
-  const { data: productsRes, loading: productsLoading } = useGet(
+  
+  const { data: productsRes, loading: productsLoading, error: productsError } = useGet(
     "/admin/analytics/products"
   );
 
-  const sales = salesRes?.data;
-  const orders = ordersRes?.data;
-  const vendors = vendorsRes?.data;
-  const products = productsRes?.data;
+  // ✅ Store data in cache when it arrives
+  useEffect(() => {
+    if (salesRes) setCachedData(salesCacheKey, salesRes);
+  }, [salesRes, salesCacheKey, setCachedData]);
 
   useEffect(() => {
-    setChartReady(true);
+    if (ordersRes) setCachedData(ordersCacheKey, ordersRes);
+  }, [ordersRes, ordersCacheKey, setCachedData]);
+
+  // ✅ Use cached data if available
+  const sales = (cachedSales || salesRes)?.data || {};
+  const orders = (cachedOrders || ordersRes)?.data || {};
+  const vendors = vendorsRes?.data || {};
+  const products = productsRes?.data || {};
+
+  const hasApiError = salesError || ordersError || vendorsError || productsError;
+
+  // ✅ Only show loading if no cached data and API is loading
+  const isLoading = (!cachedSales && salesLoading) || (!cachedOrders && ordersLoading);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setChartReady(true);
+    }, 100);
+    return () => clearTimeout(timer);
   }, []);
 
-  // Generate chart data dynamically from existing API data
+  // ✅ Memoized chart data with better fallback
   const chartData = useMemo(() => {
     const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
     
-    const totalSales = sales?.total_sales || 100000;
-    const totalOrders = orders?.total_orders || 500;
+    const totalSales = sales?.summary?.total_sales || sales?.total_sales || 100000;
+    const totalOrders = orders?.summary?.total_orders || orders?.total_orders || 500;
     
     const distribution = [0.85, 0.9, 0.95, 1.0, 1.15, 1.3, 1.1];
     const sum = distribution.reduce((a, b) => a + b, 0);
@@ -64,9 +128,9 @@ const Dashboard = () => {
     }));
     
     return { sales: salesData, orders: ordersData };
-  }, [sales?.total_sales, orders?.total_orders]);
+  }, [sales?.summary?.total_sales, sales?.total_sales, orders?.summary?.total_orders, orders?.total_orders]);
 
-  // Define chart series
+  // ✅ Memoized chart series
   const areaChartSeries = useMemo(() => [
     {
       name: 'Sales',
@@ -81,7 +145,7 @@ const Dashboard = () => {
     },
   ], [chartData.orders]);
 
-  // Category data with dark pink theme colors
+  // ✅ Memoized category data
   const categoryData = useMemo(() => {
     return [
       { name: 'Electronics', percentage: 35, color: '#7b183f' },
@@ -93,19 +157,41 @@ const Dashboard = () => {
 
   const donutSeries = useMemo(() => categoryData.map(c => c.percentage), [categoryData]);
 
-  // Sample recent orders
+  // ✅ Memoized recent orders with better fallback
   const recentOrders = useMemo(() => {
+    if (orders?.recent_orders && orders.recent_orders.length > 0) {
+      return orders.recent_orders;
+    }
+    // Check if orders data has orders array
+    if (orders?.orders && Array.isArray(orders.orders) && orders.orders.length > 0) {
+      return orders.orders.slice(0, 5).map(o => ({
+        id: o.order_id || o.id,
+        customer: o.customer_name || o.user?.name || 'Guest',
+        amount: o.grand_total || o.total || 0,
+        status: o.order_status || 'pending'
+      }));
+    }
+    // Fallback data
     return [
-      { id: '#ORD-1001', customer: 'John Doe', amount: 2499, status: 'completed', date: '2024-01-15' },
-      { id: '#ORD-1002', customer: 'Jane Smith', amount: 1899, status: 'processing', date: '2024-01-15' },
-      { id: '#ORD-1003', customer: 'Mike Johnson', amount: 4599, status: 'completed', date: '2024-01-14' },
-      { id: '#ORD-1004', customer: 'Sarah Williams', amount: 3299, status: 'shipped', date: '2024-01-14' },
-      { id: '#ORD-1005', customer: 'David Brown', amount: 1299, status: 'pending', date: '2024-01-13' },
+      { id: '#ORD-1001', customer: 'John Doe', amount: 2499, status: 'delivered' },
+      { id: '#ORD-1002', customer: 'Jane Smith', amount: 1899, status: 'processing' },
+      { id: '#ORD-1003', customer: 'Mike Johnson', amount: 4599, status: 'shipped' },
+      { id: '#ORD-1004', customer: 'Sarah Williams', amount: 3299, status: 'delivered' },
+      { id: '#ORD-1005', customer: 'David Brown', amount: 1299, status: 'pending' },
     ];
-  }, []);
+  }, [orders]);
 
-  // Top products
+  // ✅ Memoized top products
   const topProducts = useMemo(() => {
+    if (products?.top_selling_products && products.top_selling_products.length > 0) {
+      return products.top_selling_products.map(p => ({
+        id: p.id,
+        name: p.name,
+        price: p.selling_price || p.price,
+        sales: p.total_sold || 0
+      }));
+    }
+    // Fallback data
     return [
       { id: 1, name: 'Wireless Headphones', price: 2999, sales: 245 },
       { id: 2, name: 'Smart Watch', price: 4999, sales: 189 },
@@ -113,16 +199,16 @@ const Dashboard = () => {
       { id: 4, name: 'USB-C Hub', price: 899, sales: 134 },
       { id: 5, name: 'Phone Case', price: 499, sales: 298 },
     ];
-  }, []);
+  }, [products]);
 
-  // Chart Configurations with Dark Pink Theme
+  // ✅ Memoized chart options
   const areaChartOptions = useMemo(() => ({
     chart: {
       type: 'area',
       height: 350,
       toolbar: { show: false },
       background: 'transparent',
-      animations: { enabled: true, easing: 'easeinout', speed: 800 },
+      animations: { enabled: !isLoading, easing: 'easeinout', speed: 800 },
     },
     dataLabels: { enabled: false },
     stroke: { curve: 'smooth', width: 2 },
@@ -148,14 +234,14 @@ const Dashboard = () => {
     },
     colors: ['#7b183f'],
     grid: { borderColor: '#E5E7EB' },
-  }), [chartData.sales]);
+  }), [chartData.sales, isLoading]);
 
   const barChartOptions = useMemo(() => ({
     chart: {
       type: 'bar',
       height: 350,
       toolbar: { show: false },
-      animations: { enabled: true, easing: 'easeinout', speed: 800 },
+      animations: { enabled: !isLoading, easing: 'easeinout', speed: 800 },
     },
     plotOptions: {
       bar: {
@@ -178,13 +264,13 @@ const Dashboard = () => {
     },
     colors: ['#a52355'],
     grid: { borderColor: '#E5E7EB' },
-  }), [chartData.orders]);
+  }), [chartData.orders, isLoading]);
 
   const donutOptions = useMemo(() => ({
     chart: {
       type: 'donut',
       height: 300,
-      animations: { enabled: true, easing: 'easeinout', speed: 800 },
+      animations: { enabled: !isLoading, easing: 'easeinout', speed: 800 },
     },
     labels: categoryData.map(c => c.name),
     colors: categoryData.map(c => c.color),
@@ -201,7 +287,7 @@ const Dashboard = () => {
             total: {
               show: true,
               label: 'Total Sales',
-              formatter: () => `₹${sales?.total_sales?.toLocaleString() || 0}`,
+              formatter: () => `₹${(sales?.summary?.total_sales || sales?.total_sales || 0).toLocaleString()}`,
             },
           },
         },
@@ -211,15 +297,30 @@ const Dashboard = () => {
       enabled: true,
       formatter: (value) => `${value.toFixed(1)}%`,
     },
-  }), [categoryData, sales?.total_sales]);
+  }), [categoryData, sales?.summary?.total_sales, sales?.total_sales, isLoading]);
 
-  const handleRefresh = async () => {
+  // ✅ Optimized refresh handler
+  const handleRefresh = useCallback(async () => {
+    if (isRefreshing) return;
+    
     setIsRefreshing(true);
-    await Promise.all([refetchSales(), refetchOrders()]);
-    setTimeout(() => setIsRefreshing(false), 1000);
-  };
+    try {
+      clearCache();
+      await Promise.all([
+        refetchSales(),
+        refetchOrders()
+      ]);
+      toast.success('Dashboard refreshed successfully');
+    } catch (err) {
+      console.error("Refresh failed:", err);
+      toast.error('Failed to refresh dashboard');
+    } finally {
+      setTimeout(() => setIsRefreshing(false), 500);
+    }
+  }, [isRefreshing, clearCache, refetchSales, refetchOrders]);
 
-  const formatCurrency = (value) => {
+  // ✅ Format currency helper
+  const formatCurrency = useCallback((value) => {
     if (!value && value !== 0) return "₹0";
     return new Intl.NumberFormat("en-IN", {
       style: "currency",
@@ -227,49 +328,55 @@ const Dashboard = () => {
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     }).format(value);
-  };
+  }, []);
 
-  const getStatusColor = (status) => {
+  // ✅ Get status color helper
+  const getStatusColor = useCallback((status) => {
     const colors = {
       'completed': 'bg-[#7b183f]/10 text-[#7b183f] dark:bg-[#7b183f]/30 dark:text-[#e06b99]',
-      'processing': 'bg-[#a52355]/10 text-[#a52355] dark:bg-[#a52355]/30 dark:text-[#c9366e]',
-      'shipped': 'bg-[#c9366e]/10 text-[#c9366e] dark:bg-[#c9366e]/30 dark:text-[#e06b99]',
+      'delivered': 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
+      'processing': 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400',
+      'shipped': 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400',
       'pending': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400',
       'cancelled': 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400',
     };
     return colors[status?.toLowerCase()] || colors.pending;
-  };
+  }, []);
 
-  const StatCardEnhanced = ({ title, value, change, icon: Icon, trend, subtext, loading }) => (
-    <div className="group bg-white dark:bg-gray-800 rounded-2xl p-4 sm:p-6 shadow-lg hover:shadow-2xl transition-all duration-300 border border-gray-100 dark:border-gray-700 hover:scale-105">
-      <div className="flex items-center justify-between mb-3 sm:mb-4">
-        <div className="p-2 sm:p-3 bg-gradient-to-br from-[#7b183f] to-[#a52355] rounded-xl shadow-lg group-hover:shadow-xl transition-all duration-300">
-          <Icon className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
-        </div>
-        {trend !== undefined && !loading && (
-          <div className={`flex items-center gap-1 px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full text-xs sm:text-sm font-medium ${
-            trend > 0 
-              ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" 
-              : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
-          }`}>
-            {trend > 0 ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
-            <span>{Math.abs(trend)}%</span>
+  // ✅ Stat Card Component with memoization
+  const StatCardEnhanced = useMemo(() => {
+    return ({ title, value, change, icon: Icon, trend, subtext, loading }) => (
+      <div className="group bg-white dark:bg-gray-800 rounded-2xl p-4 sm:p-6 shadow-lg hover:shadow-2xl transition-all duration-300 border border-gray-100 dark:border-gray-700 hover:scale-105">
+        <div className="flex items-center justify-between mb-3 sm:mb-4">
+          <div className="p-2 sm:p-3 bg-gradient-to-br from-[#7b183f] to-[#a52355] rounded-xl shadow-lg group-hover:shadow-xl transition-all duration-300">
+            <Icon className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
           </div>
-        )}
+          {trend !== undefined && !loading && (
+            <div className={`flex items-center gap-1 px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full text-xs sm:text-sm font-medium ${
+              trend > 0 
+                ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" 
+                : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+            }`}>
+              {trend > 0 ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
+              <span>{Math.abs(trend)}%</span>
+            </div>
+          )}
+        </div>
+        <h3 className="text-gray-500 dark:text-gray-400 text-xs sm:text-sm font-medium mb-1">{title}</h3>
+        <div className="text-xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-2">
+          {loading ? (
+            <div className="h-6 sm:h-8 w-24 sm:w-32 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+          ) : (
+            value
+          )}
+        </div>
+        {change && !loading && <p className="text-xs text-gray-400">{change}</p>}
+        {subtext && !loading && <p className="text-xs text-[#7b183f] dark:text-[#e06b99] mt-2 font-medium">{subtext}</p>}
       </div>
-      <h3 className="text-gray-500 dark:text-gray-400 text-xs sm:text-sm font-medium mb-1">{title}</h3>
-      <div className="text-xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-2">
-        {loading ? (
-          <div className="h-6 sm:h-8 w-24 sm:w-32 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
-        ) : (
-          value
-        )}
-      </div>
-      {change && !loading && <p className="text-xs text-gray-400">{change}</p>}
-      {subtext && !loading && <p className="text-xs text-[#7b183f] dark:text-[#e06b99] mt-2 font-medium">{subtext}</p>}
-    </div>
-  );
+    );
+  }, []);
 
+  // ✅ Loading state with cached data check
   if (!chartReady) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-[#7b183f]/5 to-[#a52355]/5 dark:from-gray-900 dark:to-gray-950 flex items-center justify-center">
@@ -293,13 +400,29 @@ const Dashboard = () => {
             <p className="text-sm sm:text-base text-gray-500 dark:text-gray-400 mt-1 sm:mt-2">
               Welcome back! Here's what's happening with your store today.
             </p>
+            {hasApiError && (
+              <div className="mt-2 text-xs text-amber-600 dark:text-amber-400">
+                Note: Some analytics data is temporarily unavailable. Showing cached/demo data.
+              </div>
+            )}
+            {/* ✅ Cache status indicator */}
+            {cachedSales && (
+              <div className="mt-1 text-xs text-green-600 dark:text-green-400">
+                ⚡ Using cached data (updated {new Date(dataCache.current.get(salesCacheKey)?.timestamp).toLocaleTimeString()})
+              </div>
+            )}
           </div>
           <div className="flex items-center gap-2 sm:gap-3 overflow-x-auto pb-2 sm:pb-0">
             <div className="flex bg-white dark:bg-gray-800 rounded-xl p-1 shadow-md border border-gray-200 dark:border-gray-700">
               {["daily", "weekly", "monthly", "yearly"].map((range) => (
                 <button
                   key={range}
-                  onClick={() => setTimeRange(range)}
+                  onClick={() => {
+                    setTimeRange(range);
+                    // Clear cache for this range when switching
+                    const cacheKey = buildCacheKey('/admin/analytics/sales', { range });
+                    dataCache.current.delete(cacheKey);
+                  }}
                   className={`px-2 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium rounded-lg transition-all duration-200 capitalize whitespace-nowrap ${
                     timeRange === range
                       ? "bg-gradient-to-r from-[#7b183f] to-[#a52355] text-white shadow-md"
@@ -327,25 +450,25 @@ const Dashboard = () => {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
           <StatCardEnhanced
             title="Total Sales"
-            value={formatCurrency(sales?.total_sales)}
+            value={formatCurrency(sales?.summary?.total_sales || sales?.total_sales)}
             change={`vs last ${timeRange}`}
             trend={sales?.trend_percentage}
             subtext={sales?.trend_text}
             icon={DollarSign}
-            loading={salesLoading}
+            loading={isLoading}
           />
           <StatCardEnhanced
             title="Total Orders"
-            value={orders?.total_orders?.toLocaleString() || "0"}
+            value={orders?.summary?.total_orders?.toLocaleString() || orders?.total_orders?.toLocaleString() || "0"}
             change={`vs last ${timeRange}`}
             trend={orders?.trend_percentage}
             subtext={orders?.trend_text}
             icon={ShoppingBag}
-            loading={ordersLoading}
+            loading={isLoading}
           />
           <StatCardEnhanced
             title="Active Products"
-            value={products?.total_products?.toLocaleString() || "0"}
+            value={products?.summary?.total_products?.toLocaleString() || products?.total_products?.toLocaleString() || "0"}
             change="in catalog"
             trend={products?.trend_percentage}
             subtext={products?.trend_text}
@@ -354,7 +477,7 @@ const Dashboard = () => {
           />
           <StatCardEnhanced
             title="Active Vendors"
-            value={vendors?.total_vendors?.toLocaleString() || "0"}
+            value={vendors?.summary?.active_vendors?.toLocaleString() || vendors?.total_vendors?.toLocaleString() || "0"}
             change="this month"
             trend={vendors?.trend_percentage}
             subtext={vendors?.trend_text}
@@ -384,13 +507,15 @@ const Dashboard = () => {
             </div>
             <div className="overflow-x-auto">
               <div className="min-w-[300px]">
-                <Chart 
-                  key={`area-chart-${timeRange}`}
-                  options={areaChartOptions} 
-                  series={areaChartSeries} 
-                  type="area" 
-                  height={350} 
-                />
+                {chartReady && areaChartSeries[0]?.data?.length > 0 && (
+                  <Chart 
+                    key={`area-chart-${timeRange}`}
+                    options={areaChartOptions} 
+                    series={areaChartSeries} 
+                    type="area" 
+                    height={350} 
+                  />
+                )}
               </div>
             </div>
           </div>
@@ -405,13 +530,15 @@ const Dashboard = () => {
             </div>
             <div className="overflow-x-auto">
               <div className="min-w-[300px]">
-                <Chart 
-                  key={`bar-chart-${timeRange}`}
-                  options={barChartOptions} 
-                  series={barChartSeries} 
-                  type="bar" 
-                  height={350} 
-                />
+                {chartReady && barChartSeries[0]?.data?.length > 0 && (
+                  <Chart 
+                    key={`bar-chart-${timeRange}`}
+                    options={barChartOptions} 
+                    series={barChartSeries} 
+                    type="bar" 
+                    height={350} 
+                  />
+                )}
               </div>
             </div>
           </div>
@@ -423,13 +550,15 @@ const Dashboard = () => {
               <h3 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">Sales by Category</h3>
               <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1">Product distribution</p>
             </div>
-            <Chart 
-              key={`donut-chart`}
-              options={donutOptions} 
-              series={donutSeries} 
-              type="donut" 
-              height={300} 
-            />
+            {chartReady && (
+              <Chart 
+                key={`donut-chart`}
+                options={donutOptions} 
+                series={donutSeries} 
+                type="donut" 
+                height={300} 
+              />
+            )}
           </div>
 
           <div className="lg:col-span-2 bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 overflow-hidden">
@@ -446,7 +575,7 @@ const Dashboard = () => {
             </div>
             <div className="overflow-x-auto">
               <div className="min-w-[600px]">
-                <table className="w-full">
+                <table className="w-full text-sm">
                   <thead className="bg-gray-50 dark:bg-gray-900/50">
                     <tr>
                       <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Order ID</th>

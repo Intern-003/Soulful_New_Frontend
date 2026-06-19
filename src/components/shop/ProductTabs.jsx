@@ -3,7 +3,7 @@ import { CheckCircle, Package, ChevronDown, Trash2 } from "lucide-react";
 import usePost from "../../api/hooks/usePost";
 import useDelete from "../../api/hooks/useDelete";
 
-const ProductTabs = ({ product }) => {
+const ProductTabs = ({ product, onReviewSubmitted }) => {
   const [openTabs, setOpenTabs] = useState([]);
 
   const specs = product?.specifications || [];
@@ -12,7 +12,9 @@ const ProductTabs = ({ product }) => {
 
   const leftSpecs = specs.slice(0, half);
   const rightSpecs = specs.slice(half);
-
+  const averageRating = product?.reviews?.length
+    ? product.reviews.reduce((acc, r) => acc + r.rating, 0) / product.reviews.length
+    : 0;
   const [reviewForm, setReviewForm] = useState({
     rating: 4,
     title: "",
@@ -43,7 +45,20 @@ const ProductTabs = ({ product }) => {
     }));
   };
 
+// In ProductTabs.jsx, update the handleSubmit function:
+
   const handleSubmit = async () => {
+    // Validate required fields
+    if (!reviewForm.rating) {
+      alert("Please select a rating");
+      return;
+    }
+
+    if (!reviewForm.review.trim()) {
+      alert("Please write your review");
+      return;
+    }
+
     try {
       const payload = {
         product_id: product.id,
@@ -52,11 +67,14 @@ const ProductTabs = ({ product }) => {
         review: reviewForm.review,
       };
 
-      await postData(payload);
+      await postData({
+        url: "/reviews",
+        data: payload
+      });
 
-      alert("Review submitted successfully ✅");
+      alert("Review submitted successfully! ✅ It will appear after admin approval.");
 
-      // reset form
+      // Reset form
       setReviewForm({
         rating: 5,
         title: "",
@@ -64,9 +82,15 @@ const ProductTabs = ({ product }) => {
         name: "",
         email: "",
       });
+
+      // ✅ Refresh product data without page reload
+      if (onReviewSubmitted) {
+        onReviewSubmitted();
+      }
+
     } catch (err) {
       console.error(err);
-      alert("Failed to submit review ❌");
+      alert(err?.response?.data?.message || "Failed to submit review ❌");
     }
   };
 
@@ -112,19 +136,17 @@ const ProductTabs = ({ product }) => {
             {item.title}
 
             <ChevronDown
-              className={`transition-transform duration-300 ${
-                openTabs.includes(item.key) ? "rotate-180" : ""
-              }`}
+              className={`transition-transform duration-300 ${openTabs.includes(item.key) ? "rotate-180" : ""
+                }`}
             />
           </button>
 
           {/* ANIMATED CONTENT */}
           <div
-            className={`grid transition-all duration-500 ease-in-out ${
-              openTabs.includes(item.key)
+            className={`grid transition-all duration-500 ease-in-out ${openTabs.includes(item.key)
                 ? "grid-rows-[1fr] opacity-100"
                 : "grid-rows-[0fr] opacity-0"
-            }`}
+              }`}
           >
             <div className="overflow-hidden">
               <div className="pb-6 text-gray-600">
@@ -203,32 +225,29 @@ const ProductTabs = ({ product }) => {
                 {/* REVIEWS */}
                 {item.key === "reviews" && (
                   <div className="space-y-10">
+
+
                     {/* SUMMARY */}
                     <div className="bg-[#f6f1f3] rounded-2xl p-6 md:p-8 grid md:grid-cols-[300px_1fr] gap-8">
                       {/* LEFT */}
+                      {/* LEFT - Rating Summary */}
                       <div className="bg-white rounded-2xl p-6 flex flex-col items-center justify-center">
                         <h2 className="text-4xl font-bold text-[#7a1c3d]">
-                          {product?.reviews?.length
-                            ? (
-                                product.reviews.reduce(
-                                  (acc, r) => acc + r.rating,
-                                  0,
-                                ) / product.reviews.length
-                              ).toFixed(1)
-                            : "0.0"}
+                          {averageRating.toFixed(1)}
                         </h2>
 
-                        <div className="text-yellow-400 text-lg mt-2">
-                          {"★".repeat(
-                            Math.round(
-                              product?.reviews?.length
-                                ? product.reviews.reduce(
-                                    (a, r) => a + r.rating,
-                                    0,
-                                  ) / product.reviews.length
-                                : 0,
-                            ),
-                          )}
+                        <div className="flex gap-0.5 mt-2">
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <span
+                              key={star}
+                              className={`text-lg ${star <= Math.round(averageRating)
+                                  ? "text-yellow-400"
+                                  : "text-gray-300"
+                                }`}
+                            >
+                              ★
+                            </span>
+                          ))}
                         </div>
 
                         <p className="text-xs text-gray-500 mt-2">
@@ -343,11 +362,10 @@ const ProductTabs = ({ product }) => {
                             <button
                               key={index}
                               onClick={() => setCurrentPage(index + 1)}
-                              className={`px-3 py-1 rounded ${
-                                currentPage === index + 1
+                              className={`px-3 py-1 rounded ${currentPage === index + 1
                                   ? "bg-[#7a1c3d] text-white"
                                   : "border"
-                              }`}
+                                }`}
                             >
                               {index + 1}
                             </button>

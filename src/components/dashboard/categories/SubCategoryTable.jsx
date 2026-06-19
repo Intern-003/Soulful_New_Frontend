@@ -104,7 +104,7 @@ const SubCategoryTable = ({
                       ? getImageUrl(
                           item.image
                         )
-                      : "/no-image.png";
+                      : "/placeholder.png";
 
                   return (
                     <tr
@@ -129,12 +129,11 @@ const SubCategoryTable = ({
                             }
                             alt=""
                             className="h-12 w-12 rounded-2xl border object-cover"
-                            onError={(
-                              e
-                            ) =>
-                              (e.currentTarget.src =
-                                "/no-image.png")
-                            }
+                            onError={(e) => {
+                            // ✅ Prevent infinite loop
+                            e.currentTarget.onerror = null;
+                            e.currentTarget.src = "/placeholder.png";
+                          }}
                           />
 
                           <div>

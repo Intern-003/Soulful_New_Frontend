@@ -9,13 +9,15 @@ import {
 import { useNavigate } from "react-router-dom";
 import { useLocation } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 
 import { logout as logoutAction } from "../../app/slices/authSlice";
+import { selectCartItemCount, selectCartItems } from "../../app/slices/cartSlice";
 import { getImageUrl } from "../../utils/getImageUrl";
 import axiosInstance from "../../api/axiosInstance";
 import TopBar from "./TopBar";
 import "../../styles/header.css";
+import usePermissions from "../../api/hooks/usePermissions";
 
 const Header = () => {
   const navigate = useNavigate();
@@ -24,7 +26,12 @@ const Header = () => {
   const searchInputRef = useRef(null);
 
   const { user } = useSelector((state) => state.auth);
-  const { items: cartItems } = useSelector((state) => state.cart);
+  const { can, permissions } = usePermissions(); // ✅ Added permissions here
+
+  // ✅ Use selectors for better performance
+  const cartItemCount = useSelector(selectCartItemCount);
+  const cartItems = useSelector(selectCartItems);
+  const wishlistCount = useSelector((state) => state.wishlist?.items?.length || 0);
 
   const [query, setQuery] = useState("");
   const [suggestions, setSuggestions] = useState([]);
@@ -63,8 +70,6 @@ const Header = () => {
     navigate("/login");
   };
 
-  const wishlistCount = useSelector((state) => state.wishlist?.items?.length || 0);
-
   useEffect(() => {
     const handleTouchOutside = (e) => {
       if (
@@ -93,12 +98,32 @@ const Header = () => {
     navigate(path);
     setMobileMenu(false);
   };
+
+  // Check if user has any admin-related permission
+  const hasAdminAccess = useMemo(() => {
+  if (!permissions || permissions.length === 0) return false;
+
+  // For string format
+  if (typeof permissions[0] === 'string') {
+    return permissions.some(p => 
+      p === 'dashboard.view' || 
+      p === 'vendor.dashboard.view' ||
+      p.includes('dashboard') // This will catch any dashboard permission
+    );
+  }
+
+  // For object format
+  return permissions.some(p => 
+    (p.module === 'dashboard' && p.action === 'view') ||
+    (p.module === 'vendor.dashboard' && p.action === 'view')
+  );
+}, [permissions, can]);
+
   const routes = {
     Electronics: "/category/electronics",
     Fashion: "/category/fashion",
     Beauty: "/category/beauty",
     Footwear: "/category/footwear",
-
     Bestsellers: "/bestsellers",
     "Fresh Arrivals": "/fresh-arrivals",
     Essentials: "/essentials",
@@ -195,9 +220,9 @@ const Header = () => {
 
           <div onClick={() => handleNavigation("/cart")} className="relative cursor-pointer group">
             <ShoppingCart size={20} className="text-gray-700 group-hover:text-[#7a1c3d] transition" />
-            {cartItems.length > 0 && (
+            {cartItemCount > 0 && (
               <span className="absolute -top-1.5 -right-1.5 bg-[#7a1c3d] text-white text-[9px] px-1 py-0.5 rounded-full min-w-[16px] text-center leading-none">
-                {cartItems.length > 99 ? '99+' : cartItems.length}
+                {cartItemCount > 99 ? '99+' : cartItemCount}
               </span>
             )}
           </div>
@@ -208,7 +233,7 @@ const Header = () => {
             onMouseEnter={() => window.innerWidth >= 768 && setProfileOpen(true)}
             onMouseLeave={() => window.innerWidth >= 768 && setProfileOpen(false)}
           >
-            <div className="flex items-center gap-1.5 cursor-pointer">
+            <div className="flex items-center gap-1.5 cursor-pointer profile-trigger">
               <div className="w-8 h-8 rounded-full bg-[#f3e8ee] flex items-center justify-center text-[#7a1c3d] font-semibold text-xs shadow-sm hover:shadow-md transition">
                 {user?.name?.[0]?.toUpperCase() || "A"}
               </div>
@@ -329,33 +354,31 @@ const Header = () => {
                 key={category}
                 onClick={() => handleNavigation(routes[category])}
                 className={`group relative whitespace-nowrap text-sm transition-colors ${location.pathname === routes[category]
-                    ? "text-[#7A1C3D] font-semibold"
-                    : "text-gray-600 hover:text-[#7A1C3D]"
+                  ? "text-[#7A1C3D] font-semibold"
+                  : "text-gray-600 hover:text-[#7A1C3D]"
                   }`}
               >
                 {category}
-
                 <span
                   className={`absolute left-0 -bottom-1 h-0.5 bg-[#7A1C3D] transition-all duration-300 ${location.pathname === routes[category]
-                      ? "w-full"
-                      : "w-0 group-hover:w-full"
+                    ? "w-full"
+                    : "w-0 group-hover:w-full"
                     }`}
                 />
               </button>
             ))}
 
-            {/* Admin Button - Compact */}
-            <button
-              onClick={() => handleNavigation("/dashboard")}
-              className="relative overflow-hidden flex items-center justify-center w-7 h-7 rounded-full bg-[#7A1C3D]/10 hover:bg-[#7A1C3D] transition-all duration-300 group"
-              title="Admin Panel"
-            >
-              <span
-                className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent"
-                className="header-admin-shine"
-              />
-              <Shield className="w-3.5 h-3.5 text-[#7A1C3D] group-hover:text-white transition duration-300" />
-            </button>
+            {/* Admin Button - Show for any admin dashboard permission */}
+            {hasAdminAccess && (
+              <button
+                onClick={() => handleNavigation("/dashboard")}
+                className="relative overflow-hidden flex items-center justify-center w-7 h-7 rounded-full bg-[#7A1C3D]/10 hover:bg-[#7A1C3D] transition-all duration-300 group"
+                title="Admin Panel"
+              >
+                <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent header-admin-shine" />
+                <Shield className="w-3.5 h-3.5 text-[#7A1C3D] group-hover:text-white transition duration-300" />
+              </button>
+            )}
           </div>
         </div>
       </nav>
@@ -378,6 +401,17 @@ const Header = () => {
                 <button onClick={() => handleNavigation("/about")} className="block w-full text-left py-2 text-gray-700 hover:text-[#7a1c3d] cursor-pointer font-medium">About Us</button>
                 <button onClick={() => handleNavigation("/contact")} className="block w-full text-left py-2 text-gray-700 hover:text-[#7a1c3d] cursor-pointer font-medium">Contact Us</button>
                 <button onClick={() => handleNavigation("/soulful-special")} className="block w-full text-left py-2 text-gray-700 hover:text-[#7a1c3d] cursor-pointer font-medium">Soulful Special</button>
+                
+                {/* Admin Panel in mobile menu */}
+                {hasAdminAccess && (
+                  <button
+                    onClick={() => handleNavigation("/dashboard")}
+                    className="block w-full text-left py-2 text-gray-700 hover:text-[#7a1c3d] cursor-pointer font-medium flex items-center gap-2"
+                  >
+                    <Shield size={18} />
+                    Admin Panel
+                  </button>
+                )}
 
                 <div className="pt-2 border-t">
                   <p className="text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wide">Shop by Category</p>
@@ -385,7 +419,8 @@ const Header = () => {
                     {["Electronics", "Fashion", "Beauty", "Footwear", "Bestsellers", "Fresh Arrivals", "Essentials", "Exclusive"].map((cat) => (
                       <button
                         key={cat}
-                        onClick={() => handleNavigation(routes[cat])} className="py-2 px-2 text-sm text-left cursor-pointer hover:text-[#7a1c3d] hover:bg-gray-50 rounded-md transition"
+                        onClick={() => handleNavigation(routes[cat])}
+                        className="py-2 px-2 text-sm text-left cursor-pointer hover:text-[#7a1c3d] hover:bg-gray-50 rounded-md transition"
                       >
                         {cat}
                       </button>
