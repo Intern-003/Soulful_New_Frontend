@@ -12,6 +12,7 @@ import Login from "../pages/auth/Login";
 import Register from "../pages/auth/Register";
 import Dashboard from "../pages/dashboard/Dashboard";
 import VendorDashboard from "../pages/dashboard/VendorDashboard";
+import StoreManagement from "../pages/dashboard/store/StoreManagement";
 import Products from "../pages/dashboard/Products";
 import Users from "../pages/dashboard/Users";
 import Categories from "../pages/dashboard/categories/Categories";
@@ -64,6 +65,8 @@ import VendorEarningsPage from "../pages/dashboard/VendorEarningsPage";
 import AdminWithdrawalsPage from "../pages/dashboard/AdminWithdrawalsPage";
 import VendorWithdrawalsPage from "../pages/dashboard/VendorWithdrawalsPage";
 import OrderComplete from "../pages/user/OrderComplete";
+import VendorStorePage from "../pages/public/VendorStorePage"; 
+
 
 const AppRoutes = () => {
   return (
@@ -95,6 +98,8 @@ const AppRoutes = () => {
           <Route path="/support" element={<Support />} />
           <Route path="/BecomeVendor" element={<BecomeVendor />} />
           <Route path="/order-complete" element={<OrderComplete />} />
+          <Route path="/store/:slug" element={<VendorStorePage />} />
+
         </Route>
 
         {/* DASHBOARD */}
@@ -106,6 +111,7 @@ const AppRoutes = () => {
           {/* Vendor Orders */}
           <Route path="vendor/orders" element={<VendorOrdersPage />} />
           <Route path="vendor/orders/:id" element={<VendorOrderDetailsPage />} />
+          <Route path="store-management"element={<StoreManagement />}/>
           
           {/* Admin Orders */}
           <Route path="admin/orders" element={<AdminOrdersPage />} />
