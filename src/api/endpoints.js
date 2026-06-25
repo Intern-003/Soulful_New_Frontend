@@ -19,3 +19,13 @@ export const BANNER = {
   UPDATE: (id) => `/admin/banners/${id}`,
   DELETE: (id) => `/admin/banners/${id}`,
 };
+
+export const VENDOR = {
+  STORE: (slug) => `/vendors/${slug}`,
+  PRODUCTS: (slug) => `/vendors/${slug}/products`,
+  REVIEWS: (slug) => `/vendors/${slug}/reviews`,
+    HOMEPAGE: (slug) => `/vendors/${slug}/homepage`,
+  STORE_MANAGEMENT: "/vendor/store-management",
+
+  
+};

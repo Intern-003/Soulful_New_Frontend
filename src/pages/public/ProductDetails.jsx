@@ -10,6 +10,7 @@ import {
   Star,
   ShoppingBag,
   Zap,
+  Share2,
 } from "lucide-react";
 
 import ProductDetailsSkeleton from "../../components/shop/ProductDetailsSkeleton";
@@ -244,6 +245,24 @@ const ProductDetails = () => {
       setWishlistLoading(false);
     }
   };
+  const handleShare = async () => {
+  const shareData = {
+    title: product?.name,
+    text: product?.short_description || product?.name,
+    url: window.location.href,
+  };
+
+  try {
+    if (navigator.share) {
+      await navigator.share(shareData);
+    } else {
+      navigator.clipboard.writeText(window.location.href);
+      toast.success("Product link copied!");
+    }
+  } catch (error) {
+    console.log("Share cancelled");
+  }
+}; 
 
   if (loading) return <ProductDetailsSkeleton />;
 
@@ -366,10 +385,30 @@ const ProductDetails = () => {
               {product?.category?.name}
             </p>
 
-            <h2 className="text-3xl md:text-5xl font-bold text-[#2d0f1f] leading-tight">
-              {product?.name}
-            </h2>
+<div className="flex items-start justify-between gap-4">
+  <h2 className="text-3xl md:text-5xl font-bold text-[#2d0f1f] leading-tight flex-1">
+    {product?.name}
+  </h2>
 
+  <button
+    onClick={handleShare}
+    className="
+      shrink-0
+      h-12 w-12
+      rounded-full
+      border
+      border-gray-200
+      bg-white
+      flex items-center justify-center
+      shadow-sm
+      hover:bg-[#7a1c3d]
+      hover:text-white
+      transition-all duration-300
+    "
+  >
+    <Share2 size={20} />
+  </button>
+</div>
             {/* RATING */}
             <div className="flex flex-wrap items-center gap-3">
               <div className="flex items-center gap-1">
@@ -387,6 +426,42 @@ const ProductDetails = () => {
               <span className="font-semibold text-sm">{avgRating}</span>
               <span className="text-gray-400 text-sm">({reviews.length} Reviews)</span>
             </div>
+
+<div className="flex items-center gap-2 flex-wrap">
+  <span className="text-sm text-gray-500">
+    Sold by
+  </span>
+
+  <button
+    onClick={() =>
+      navigate(`/store/${product?.vendor?.store_slug}`)
+    }
+    className="text-sm font-semibold text-[#7a1c3d] hover:underline"
+  >
+    {product?.vendor?.store_name}
+  </button>
+
+  <button
+    onClick={() =>
+      navigate(`/store/${product?.vendor?.store_slug}`)
+    }
+    className="
+      text-xs
+      px-2.5
+      py-1
+      rounded-full
+      border
+      border-[#7a1c3d]
+      text-[#7a1c3d]
+      hover:bg-[#7a1c3d]
+      hover:text-white
+      transition
+    "
+  >
+    Visit Store
+  </button>
+</div>
+
 
             {/* PRICE CARD */}
             <div className="bg-white rounded-3xl border border-gray-100 p-6 shadow-sm space-y-4">

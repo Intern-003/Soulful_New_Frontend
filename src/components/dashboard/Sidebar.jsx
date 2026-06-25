@@ -32,6 +32,7 @@ import {
   Wallet,
   DollarSign,
   TrendingUp,
+  Settings,
 } from "lucide-react";
 
 import { logout } from "../../app/slices/authSlice";
@@ -178,15 +179,15 @@ export default function Sidebar() {
       }
 
       // ✅ Vendor Dashboard - Show if user has vendor dashboard permission
-      if (hasPermission("vendor.dashboard.view")) {
-        menuItems.push({
-          label: "Vendor Dashboard",
-          path: "/dashboard/vendor/dashboard",
-          icon: Store,
-          module: "vendor.dashboard",
-          isVendor: true,
-        });
-      }
+      // if (hasPermission("vendor.dashboard.view")) {
+      //   menuItems.push({
+      //     label: "Vendor Dashboard",
+      //     path: "/dashboard/vendor/dashboard",
+      //     icon: Store,
+      //     module: "vendor.dashboard",
+      //     isVendor: true,
+      //   });
+      // }
 
       // ✅ Other menu items (only if user has access)
       const commonMenus = [
@@ -196,6 +197,12 @@ export default function Sidebar() {
           icon: Package,
           module: "product",
         },
+        {
+  label: "Store Management",
+  path: "/dashboard/store-management",
+  icon: Settings,
+  module: "store",
+},
         {
           label: "Users",
           path: "/dashboard/users",
